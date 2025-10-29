@@ -1,13 +1,11 @@
 export interface SteamGameResponse {
-	data: {
-		[appId: string]: {
-			success: boolean;
-			data: GameData;
-		};
+	[appId: string]: {
+		success: boolean;
+		data: GameData;
 	};
 }
 
-interface GameData {
+export interface GameData {
 	type: string;
 	name: string;
 	steam_appid: number;
@@ -89,12 +87,12 @@ interface Platforms {
 	linux: boolean;
 }
 
-interface Category {
+export interface Category {
 	id: number;
 	description: string;
 }
 
-interface Genre {
+export interface Genre {
 	id: string;
 	description: string;
 }
