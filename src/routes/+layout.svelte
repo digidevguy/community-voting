@@ -5,6 +5,11 @@
 	import DarkModeToggle from '$lib/components/custom/DarkModeToggle.svelte';
 	import { Button } from '$lib/components/ui/button';
 
+	const navigation = [
+		{ href: '/search', label: 'Search' },
+		{ href: '/auth', label: 'Auth' }
+	];
+
 	let { children } = $props();
 </script>
 
@@ -17,8 +22,9 @@
 	<a href="/" class="text-lg font-bold">Community Voting</a>
 	<div class="flex items-center gap-4">
 		<nav>
-			<a href="/search">Search</a>
-			<a href="/auth">Auth</a>
+			{#each navigation as item}
+				<Button variant="ghost" href={item.href} class="mr-4 last:mr-0">{item.label}</Button>
+			{/each}
 		</nav>
 		<DarkModeToggle />
 	</div>
