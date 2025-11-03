@@ -15,7 +15,7 @@ export const POST: RequestHandler = async ({ params }) => {
 	const game = await db
 		.select()
 		.from(table.game)
-		.where(sql`${table.game.externalIds} ->> 'steamId' = ${gameId}`);
+		.where(sql`${table.game.steamAppId} = ${gameId}`);
 
 	// If not found or missing image, fetch from Steam API
 	if (game.length === 0 || !game[0].image) {
@@ -72,7 +72,7 @@ export const POST: RequestHandler = async ({ params }) => {
 				categories: (categories ?? []).map((c: Category) => c.description ?? ''),
 				genres: (genres ?? []).map((g: Genre) => g.description ?? '')
 			})
-			.where(sql`${table.game.externalIds} ->> 'steamId' = ${gameId}`)
+			.where(sql`${table.game.steamAppId} = ${gameId}`)
 			.returning();
 
 		if (!gameUpdate) {

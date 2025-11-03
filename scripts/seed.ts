@@ -27,7 +27,7 @@ async function seed() {
 		id: randomUUID(),
 		title: a.name,
 		type: 'video_game' as const,
-		externalIds: { steamId: a.appid }
+		steamAppId: a.appid
 	}));
 
 	const chunkSize = 2000;
