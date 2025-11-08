@@ -66,7 +66,10 @@ export const session = pgTable(
 		expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
-	(table) => [index('user_id_idx').on(table.userId), index('expires_at_idx').on(table.expiresAt)]
+	(table) => [
+		index('session_user_id_idx').on(table.userId),
+		index('expires_at_idx').on(table.expiresAt)
+	]
 );
 
 // Core tables
@@ -82,7 +85,7 @@ export const community = pgTable(
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 		createdBy: text('created_by').references(() => user.id, { onDelete: 'cascade' })
 	},
-	(table) => [index('created_by_idx').on(table.createdBy)]
+	(table) => [index('community_created_by_idx').on(table.createdBy)]
 );
 
 export const communityUser = pgTable(
@@ -99,7 +102,7 @@ export const communityUser = pgTable(
 	},
 	(table) => [
 		primaryKey({ columns: [table.communityId, table.userId] }),
-		index('user_id_idx').on(table.userId),
+		index('community_user_user_id_idx').on(table.userId),
 		index('community_role_idx').on(table.communityId, table.role)
 	]
 );
@@ -122,17 +125,15 @@ export const votingSession = pgTable(
 		showRealTimeResults: boolean('show_real_time_results').notNull().default(true),
 		allowAddingOptions: boolean('allow_adding_options').notNull().default(true),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-		updatedBy: text('updated_by')
-			.notNull()
-			.references(() => user.id),
+		updatedBy: text('updated_by').references(() => user.id),
 		selectedOptionId: uuid('selected_option_id')
 	},
 	(table) => [
 		index('status_idx').on(table.status),
-		index('created_by_idx').on(table.createdBy),
-		index('start_date_idx').on(table.startDate),
-		index('end_date_idx').on(table.endDate),
-		index('community_stats_idx').on(table.communityId, table.status)
+		index('voting_session_created_by_idx').on(table.createdBy),
+		index('voting_session_start_date_idx').on(table.startDate),
+		index('voting_session_end_date_idx').on(table.endDate),
+		index('community_status_idx').on(table.communityId, table.status)
 	]
 );
 
@@ -156,9 +157,9 @@ export const votingOption = pgTable(
 	},
 	(table) => [
 		uniqueIndex('voting_session_game_idx').on(table.votingSessionId, table.gameId),
-		index('voting_session_is_active_idx').on(table.votingSessionId, table.isActive),
-		index('game_id_idx').on(table.gameId),
-		index('added_by_idx').on(table.addedBy)
+		index('voting_session_id_is_active_idx').on(table.votingSessionId, table.isActive),
+		index('voting_option_game_id_idx').on(table.gameId),
+		index('voting_option_added_by_idx').on(table.addedBy)
 	]
 );
 
@@ -177,8 +178,8 @@ export const vote = pgTable(
 	},
 	(table) => [
 		uniqueIndex('voting_option_user_idx').on(table.votingOptionId, table.userId),
-		index('voting_option_idx').on(table.votingOptionId),
-		index('user_idx').on(table.userId)
+		index('voting_option_id_idx').on(table.votingOptionId),
+		index('vote_user_idx').on(table.userId)
 	]
 );
 
@@ -217,8 +218,8 @@ export const game = pgTable(
 		uniqueIndex('game_steam_id_idx')
 			.on(table.steamAppId)
 			.where(sql`${table.steamAppId} IS NOT NULL`),
-		index('type_idx').on(table.type),
-		index('title').on(table.title),
+		index('game_type_idx').on(table.type),
+		index('game_title_idx').on(table.title),
 		index('last_api_sync_idx').on(table.lastApiSync),
 		index('api_data_complete_idx').on(table.apiDataComplete)
 	]
@@ -242,9 +243,9 @@ export const communityCollections = pgTable(
 	},
 	(table) => [
 		uniqueIndex('community_game_idx').on(table.communityId, table.gameId),
-		index('community_is_active_idx').on(table.communityId, table.isActive),
-		index('game_id_idx').on(table.gameId),
-		index('added_by_idx').on(table.addedBy)
+		index('community_id_is_active_idx').on(table.communityId, table.isActive),
+		index('community_collection_game_id_idx').on(table.gameId),
+		index('community_collection_added_by_idx').on(table.addedBy)
 	]
 );
 
@@ -265,7 +266,7 @@ export const notification = pgTable(
 	},
 	(table) => [
 		index('user_id_is_read_idx').on(table.userId, table.isRead),
-		index('created_at_idx').on(table.createdAt)
+		index('notification_created_at_idx').on(table.createdAt)
 	]
 );
 
