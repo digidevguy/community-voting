@@ -1,11 +1,29 @@
 import type { Database, DBTransaction } from '$lib/server/db';
+import { votingSession } from '../db/schema';
 import type { CreateVotingSessionInput } from './voting-session.validation';
 
 export async function createVotingSession(
 	db: Database | DBTransaction,
 	data: CreateVotingSessionInput,
 	userId: string
-) {}
+) {
+	const [session] = await db
+		.insert(votingSession)
+		.values({
+			title: data.title,
+			communityId: data.communityId,
+			description: data.description,
+			startDate: data.startDate,
+			endDate: data.endDate,
+			showRealTimeResults: data.showRealTimeResults,
+			allowAddingOptions: data.allowAddingOptions,
+			status: 'draft',
+			createdBy: userId
+		})
+		.returning();
+
+	return session;
+}
 
 export async function getVotingSession(db: Database, sessionId: string) {}
 
