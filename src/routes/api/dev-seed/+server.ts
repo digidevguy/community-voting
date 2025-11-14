@@ -3,7 +3,8 @@ import { hash } from '@node-rs/argon2';
 import { error, json } from '@sveltejs/kit';
 import { type DBTransaction } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
-import { encodeBase32LowerCase } from '@oslojs/encoding';
+import * as auth from '$lib/server/auth.js';
+import { generateUserId } from '$lib/server/auth.js';
 
 export const POST: RequestHandler = async ({ locals, request }) => {
 	if (process.env.NODE_ENV !== 'development') {
@@ -26,9 +27,6 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 	});
 
 	try {
-		/**Backup - Test user creation
-		 * await db.insert(table.user).values({ id: userId, email, displayName, passwordHash, username });
-		 */
 		await locals.db.transaction(async (tx: DBTransaction) => {
 			await tx
 				.insert(table.user)
@@ -43,16 +41,12 @@ export const POST: RequestHandler = async ({ locals, request }) => {
 			});
 		});
 
-		return json({ success: true });
+		const sessionToken = auth.generateSessionToken();
+		const session = await auth.createSession(sessionToken, userId);
+
+		return json({ success: true, userId, sessionId: session.id });
 	} catch (err) {
 		console.log('Registration error:', err);
 		throw error(500, 'Error creating user');
 	}
 };
-
-function generateUserId() {
-	// ID with 120 bits of entropy, or about the same as UUID v4.
-	const bytes = crypto.getRandomValues(new Uint8Array(15));
-	const id = encodeBase32LowerCase(bytes);
-	return id;
-}
