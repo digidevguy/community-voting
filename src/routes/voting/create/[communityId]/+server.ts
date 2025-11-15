@@ -6,25 +6,35 @@ import type { RequestHandler } from './$types';
 export const POST: RequestHandler = async ({ params, request, locals }) => {
 	const { communityId } = params;
 
-	if (!locals.user) {
-		return json({ error: 'unauthorized' }, { status: 401 });
-	}
+	/**
+	 * TODO: Bring forward after page is built.
+	 * if (!locals.user) {
+	 * 	return json({ error: 'unauthorized' }, { status: 401 });
+	 * }
+	 */
+
+	// ! Temporary fix: Hard-coded userId
+	const userId = '5hhn4lqbtmyitae2ujtvfjri';
 
 	const body = await request.json();
 
 	const validated = createVotingSessionSchema.parse({ ...body, communityId });
 
 	try {
-		const session = await createVotingSession(locals.db, validated, locals.user?.id);
+		/**
+		 * TODO: Bring in after userID refactor is in place
+		 * const session = await createVotingSession(locals.db, validated, locals.user?.id);
+		 */
+		const session = await createVotingSession(locals.db, validated, userId);
 
-		return {
+		return json({
 			status: 201,
 			votingSession: session
-		};
-	} catch (err: any) {
-		return {
+		});
+	} catch (err: unknown) {
+		return json({
 			status: 500,
-			message: err.message
-		};
+			message: err instanceof Error ? err.message : 'An unexpected error occurred'
+		});
 	}
 };
