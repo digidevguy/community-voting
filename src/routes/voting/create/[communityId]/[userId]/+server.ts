@@ -4,7 +4,7 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ params, request, locals }) => {
-	const { communityId } = params;
+	const { communityId, userId } = params;
 
 	/**
 	 * TODO: Bring forward after page is built.
@@ -12,9 +12,6 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 	 * 	return json({ error: 'unauthorized' }, { status: 401 });
 	 * }
 	 */
-
-	// ! Temporary fix: Hard-coded userId
-	const userId = '5hhn4lqbtmyitae2ujtvfjri';
 
 	const body = await request.json();
 

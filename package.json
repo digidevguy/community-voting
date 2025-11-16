@@ -17,6 +17,7 @@
 		"test:e2e": "playwright test",
 		"db:start": "docker compose up",
 		"db:push": "drizzle-kit push",
+		"db:drop": "drizzle-kit drop",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
