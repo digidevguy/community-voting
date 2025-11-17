@@ -1,5 +1,5 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { votingSession } from '../db/schema';
+import { votingSession, type VotingOption } from '$lib/server/db/schema';
 import type { CreateVotingSessionInput } from './voting-session.validation';
 
 export async function createVotingSession(
@@ -40,13 +40,8 @@ export async function deleteVotinSession(
 	userId: string
 ) {}
 
-export async function addGameToSession(
-	db: Database | DBTransaction,
-	sessionId: string,
-	data,
-	userId: string
-) {
-	// 1. Check if game exists
+export async function addGameToSession(db: Database | DBTransaction, data: VotingOption) {
+	// 1. Check if game exists as option
 	// 2. Check if already in session
 	// 3. Add to voting_option table
 	// 4. Add to community_collection if first time
