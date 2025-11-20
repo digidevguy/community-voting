@@ -1,5 +1,5 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { game, votingOption, votingSession, type VotingOption } from '$lib/server/db/schema';
+import { communityCollections, game, votingOption, votingSession } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import type {
 	CreateVotingOptionInput,
@@ -49,13 +49,34 @@ export async function addGameToSession(
 	data: CreateVotingOptionInput
 ) {
 	// 1. Check if game exists as option
-	const [{ id }] = await db.select({ id: game.id }).from(game).where(eq(game.id, data.gameId)); // TODO: If existingGame is empty, return the error message
+	const [existingGame] = await db
+		.select({ id: game.id })
+		.from(game)
+		.where(eq(game.id, data.gameId));
 
-	if (!id) {
-		console.error('GameId not valid');
-	} // 2. Check if already in session
+	if (!existingGame) {
+		throw new Error(`Game with id ${data.gameId} does not exist`);
+	}
 
-	const [option] = await db
+	const [session] = await db
+		.select({
+			id: votingSession.id,
+			communityId: votingSession.communityId,
+			createdBy: votingSession.createdBy,
+			status: votingSession.status
+		})
+		.from(votingSession)
+		.where(eq(votingSession.id, data.votingSessionId));
+
+	if (!session) {
+		throw new Error(`Voting session with id ${data.votingSessionId} does not exist.`);
+	}
+
+	if (session.status !== 'draft' && session.status !== 'active') {
+		throw new Error('Unable to add games to a session that is not in draft or active.');
+	}
+
+	const [existingOption] = await db
 		.select()
 		.from(votingOption)
 		.where(
@@ -65,12 +86,37 @@ export async function addGameToSession(
 			)
 		);
 
-	if (option) return option; // 3. Add to voting_option table
+	if (existingOption) return existingOption; // 3. Add to voting_option table
 
-	const newOption = await db.insert(votingOption).values(data); // TODO: if newOption is not a success, return the error message
-	// 4. Return data
+	const newOption = await db.insert(votingOption).values(data).returning();
 
-	return newOption; // TODO: Check if game is in community's collection, if it is not the add it.
+	if (!newOption) {
+		throw new Error('Failed to add game to session');
+	}
+
+	// TODO: Uncomment when community_collection logic is created
+	// const [existingInCollection] = await db
+	// 	.select()
+	// 	.from(communityCollections)
+	// 	.where(
+	// 		and(
+	// 			eq(communityCollections.communityId, session.communityId),
+	// 			eq(communityCollections.gameId, data.gameId),
+	// 			eq(communityCollections.isActive, true)
+	// 		)
+	// 	);
+
+	// if (!existingInCollection) {
+	// 	await db.insert(communityCollections).values({
+	// 		communityId: session.communityId,
+	// 		gameId: data.gameId,
+	// 		addedBy: data.addedBy,
+	// 		addedAt: new Date(),
+	// 		isActive: true
+	// 	});
+	// }
+
+	return newOption;
 }
 
 export async function removeGameFromSession(
