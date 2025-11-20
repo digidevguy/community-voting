@@ -24,4 +24,15 @@ export const createVotingSessionSchema = z
 		}
 	);
 
+export const createVotingOptionSchema = z.object({
+	gameId: z.uuid(),
+	votingSessionId: z.uuid(),
+	addedBy: z.uuid(),
+	order: z.number(),
+	addedDuringVoting: z.boolean(),
+	approvalStatus: z.enum(['pending', 'approved', 'rejected'])
+});
+
 export type CreateVotingSessionInput = z.infer<typeof createVotingSessionSchema>;
+
+export type CreateVotingOptionInput = z.infer<typeof createVotingOptionSchema>;

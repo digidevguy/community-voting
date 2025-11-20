@@ -1,6 +1,10 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { votingSession, type VotingOption } from '$lib/server/db/schema';
-import type { CreateVotingSessionInput } from './voting-session.validation';
+import { game, votingOption, votingSession, type VotingOption } from '$lib/server/db/schema';
+import { and, eq } from 'drizzle-orm';
+import type {
+	CreateVotingOptionInput,
+	CreateVotingSessionInput
+} from './voting-session.validation';
 
 export async function createVotingSession(
 	db: Database | DBTransaction,
@@ -40,11 +44,33 @@ export async function deleteVotinSession(
 	userId: string
 ) {}
 
-export async function addGameToSession(db: Database | DBTransaction, data: VotingOption) {
+export async function addGameToSession(
+	db: Database | DBTransaction,
+	data: CreateVotingOptionInput
+) {
 	// 1. Check if game exists as option
-	// 2. Check if already in session
-	// 3. Add to voting_option table
-	// 4. Add to community_collection if first time
+	const [{ id }] = await db.select({ id: game.id }).from(game).where(eq(game.id, data.gameId)); // TODO: If existingGame is empty, return the error message
+
+	if (!id) {
+		console.error('GameId not valid');
+	} // 2. Check if already in session
+
+	const [option] = await db
+		.select()
+		.from(votingOption)
+		.where(
+			and(
+				eq(votingOption.gameId, data.gameId),
+				eq(votingOption.votingSessionId, data.votingSessionId)
+			)
+		);
+
+	if (option) return option; // 3. Add to voting_option table
+
+	const newOption = await db.insert(votingOption).values(data); // TODO: if newOption is not a success, return the error message
+	// 4. Return data
+
+	return newOption; // TODO: Check if game is in community's collection, if it is not the add it.
 }
 
 export async function removeGameFromSession(
