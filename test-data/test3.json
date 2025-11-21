@@ -1,0 +1,19 @@
+{
+	"title": "Third Test title",
+	"description": "Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.\n\nLorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.\n\nLorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.",
+	"endDate": "12/01/2025",
+	"showRealTimeResults": true,
+	"allowAddingOptions": true,
+	"gameIds": [
+		"083679c4-cd2a-4c89-9507-c5e61612e3c3",
+		"78f74177-237d-4131-939c-bce478ca62c4",
+		"08e62dc4-529c-4d92-84dd-9ab7e1f76110",
+		"3119d685-d999-4a03-b8b9-3d56e6114dac",
+		"07aaa032-9422-4e03-99d6-fa2ad465fc9a",
+		"9e5153eb-5552-4573-95dc-f32a5e76d92a",
+		"1416309d-ee43-4ff2-ac31-0a127e6f1f2f",
+		"ec83f22d-f74a-4296-9197-c7b23d847e0e",
+		"9045a2bc-3c06-4d8e-9a68-ee7b01db189f",
+		"f07caf7a-33da-4df2-927c-7a01019d292e"
+	]
+}

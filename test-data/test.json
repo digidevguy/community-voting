@@ -1,0 +1,19 @@
+{
+	"title": "Test title",
+	"description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+	"endDate": "12/3/2025",
+	"showRealTimeResults": true,
+	"allowAddingOptions": true,
+	"gameIds": [
+		"ab3c1eca-cd5f-4f69-a198-c2d372524723",
+		"5532221c-b36b-4fae-9294-44da2ffd087a",
+		"736819a0-bca3-4fe4-9366-dfceff00562e",
+		"7a01e1b6-6ad3-43c7-a730-f446b855f3c6",
+		"16469d18-2e78-45c4-9ae1-4c7607241693",
+		"3a0bbb74-e681-4258-a3bf-30ed65355996",
+		"83cdf020-a304-48de-be70-bb28de6406f0",
+		"87bcc944-73a1-4152-9315-ca5c608f200c",
+		"69dfda1b-a51d-46d0-9334-d2ba47a09309",
+		"b410a3e5-cfc0-47cc-8938-f0bcc4dd84df"
+	]
+}
