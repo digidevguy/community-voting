@@ -122,6 +122,7 @@ export const votingSession = pgTable(
 		status: votingSessionStatus('status').notNull().default('draft'),
 		startDate: timestamp('start_date', { withTimezone: true }),
 		endDate: timestamp('end_date', { withTimezone: true }),
+		gameDayDate: timestamp('game_day_date', { withTimezone: true }),
 		showRealTimeResults: boolean('show_real_time_results').notNull().default(true),
 		allowAddingOptions: boolean('allow_adding_options').notNull().default(true),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
