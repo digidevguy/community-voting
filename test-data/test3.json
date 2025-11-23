@@ -1,19 +1,19 @@
 {
 	"title": "Third Test title",
 	"description": "Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.\n\nLorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.\n\nLorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.",
-	"endDate": "12/01/2025",
+	"gameDayDate": "12/01/2025",
 	"showRealTimeResults": true,
 	"allowAddingOptions": true,
 	"gameIds": [
-		"083679c4-cd2a-4c89-9507-c5e61612e3c3",
-		"78f74177-237d-4131-939c-bce478ca62c4",
-		"08e62dc4-529c-4d92-84dd-9ab7e1f76110",
-		"3119d685-d999-4a03-b8b9-3d56e6114dac",
-		"07aaa032-9422-4e03-99d6-fa2ad465fc9a",
-		"9e5153eb-5552-4573-95dc-f32a5e76d92a",
-		"1416309d-ee43-4ff2-ac31-0a127e6f1f2f",
-		"ec83f22d-f74a-4296-9197-c7b23d847e0e",
-		"9045a2bc-3c06-4d8e-9a68-ee7b01db189f",
-		"f07caf7a-33da-4df2-927c-7a01019d292e"
+		"697ebb7b-838d-4e29-acea-6d74fefed22d",
+		"702ad547-73a4-4b29-a069-e116946c3990",
+		"4d97a53e-7680-4343-9141-198aee5c19b6",
+		"8559824c-8ea7-43dd-9dec-08a6d412f5a6",
+		"fe4ffe5b-7ac9-468e-90bc-8c759d43a70b",
+		"25508e1f-165f-471e-8267-9b120482d948",
+		"db8905aa-9857-4893-b226-bf83665f8f70",
+		"9943a5a2-53c4-4a29-8561-053916c18e22",
+		"cb057e55-0cd0-48e8-b3fb-59e1f64e8d3a",
+		"c2c52182-eae8-42f5-bbed-028316ccc1a0"
 	]
 }

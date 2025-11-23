@@ -1,19 +1,19 @@
 {
 	"title": "Test title",
 	"description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
-	"endDate": "12/3/2025",
+	"gameDayDate": "12/3/2025",
 	"showRealTimeResults": true,
 	"allowAddingOptions": true,
 	"gameIds": [
-		"ab3c1eca-cd5f-4f69-a198-c2d372524723",
-		"5532221c-b36b-4fae-9294-44da2ffd087a",
-		"736819a0-bca3-4fe4-9366-dfceff00562e",
-		"7a01e1b6-6ad3-43c7-a730-f446b855f3c6",
-		"16469d18-2e78-45c4-9ae1-4c7607241693",
-		"3a0bbb74-e681-4258-a3bf-30ed65355996",
-		"83cdf020-a304-48de-be70-bb28de6406f0",
-		"87bcc944-73a1-4152-9315-ca5c608f200c",
-		"69dfda1b-a51d-46d0-9334-d2ba47a09309",
-		"b410a3e5-cfc0-47cc-8938-f0bcc4dd84df"
+		"837c18b4-5f6f-4df8-9336-6e90c9abaaa5",
+		"cfe06afe-cb08-45c2-ab2f-fb9c0bd2031f",
+		"1686c216-040a-4f04-8eb3-a13c8d08e671",
+		"deea9208-8d19-4a5d-a27b-ee0bb9eed2ab",
+		"4cddf2d4-cf06-4c1e-996e-22c392682709",
+		"3795b09c-70d3-4cdc-b459-2e7bcfbf0b00",
+		"65b46f9d-04b3-49f0-a9d4-071958a1338b",
+		"f9031e61-8d0c-47cf-b6bc-813f8a6770f7",
+		"2587be16-993f-447a-8940-ef0779289a80",
+		"ec1c4025-ffc9-4403-960a-1f7664fe0b29"
 	]
 }

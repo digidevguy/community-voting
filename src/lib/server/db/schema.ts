@@ -120,9 +120,8 @@ export const votingSession = pgTable(
 			.notNull()
 			.references(() => user.id, { onDelete: 'set null' }),
 		status: votingSessionStatus('status').notNull().default('draft'),
-		startDate: timestamp('start_date', { withTimezone: true }),
-		endDate: timestamp('end_date', { withTimezone: true }),
-		gameDayDate: timestamp('game_day_date', { withTimezone: true }),
+		startDate: timestamp('start_date', { withTimezone: true }).notNull().defaultNow(),
+		gameDayDate: timestamp('game_day_date', { withTimezone: true }).notNull(),
 		showRealTimeResults: boolean('show_real_time_results').notNull().default(true),
 		allowAddingOptions: boolean('allow_adding_options').notNull().default(true),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -132,8 +131,7 @@ export const votingSession = pgTable(
 	(table) => [
 		index('status_idx').on(table.status),
 		index('voting_session_created_by_idx').on(table.createdBy),
-		index('voting_session_start_date_idx').on(table.startDate),
-		index('voting_session_end_date_idx').on(table.endDate),
+		index('voting_session_game_day_date_idx').on(table.gameDayDate),
 		index('community_status_idx').on(table.communityId, table.status)
 	]
 );

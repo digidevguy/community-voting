@@ -17,7 +17,6 @@ export const POST: RequestHandler = async ({ params }) => {
 		.from(table.game)
 		.where(sql`${table.game.steamAppId} = ${gameId}`);
 
-	// If not found or missing image, fetch from Steam API
 	if (game.length === 0 || !game[0].image) {
 		if (!STEAM_API_DETAILS_URL) {
 			return new Response(
@@ -61,6 +60,21 @@ export const POST: RequestHandler = async ({ params }) => {
 			genres = []
 		} = gameData;
 
+		function parseSteamData(dateString: string | undefined): Date | null {
+			if (!dateString) return null;
+
+			if (
+				!/^\d{1,2}[/-]\d{1,2}[/-]{4}$/.test(dateString) &&
+				!/^\w{3}\s+\d{1,2},\s+\d{4}$/.test(dateString)
+			) {
+				console.warn(`Invalid Steam date format: ${dateString}`);
+				return null;
+			}
+
+			const parsed = new Date(dateString);
+			return isNaN(parsed.getTime()) ? null : parsed;
+		}
+
 		const gameUpdate = await db
 			.update(table.game)
 			.set({
@@ -68,7 +82,7 @@ export const POST: RequestHandler = async ({ params }) => {
 				description: short_description,
 				developer: developers?.[0] ?? null,
 				publisher: publishers?.[0] ?? null,
-				releaseDate: release_date?.date ? new Date(release_date.date) : null,
+				releaseDate: parseSteamData(release_date?.date),
 				categories: (categories ?? []).map((c: Category) => c.description ?? ''),
 				genres: (genres ?? []).map((g: Genre) => g.description ?? '')
 			})

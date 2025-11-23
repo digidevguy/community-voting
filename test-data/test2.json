@@ -1,19 +1,19 @@
 {
 	"title": "Second Test title",
 	"description": "Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.\nLorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque sem placerat. In id cursus mi pretium tellus duis convallis. Tempus leo eu aenean sed diam urna tempor. Pulvinar vivamus fringilla lacus nec metus bibendum egestas. Iaculis massa nisl malesuada lacinia integer nunc posuere. Ut hendrerit semper vel class aptent taciti sociosqu. Ad litora torquent per conubia nostra inceptos himenaeos.",
-	"endDate": "11/28/2025",
+	"gameDayDate": "11/28/2025",
 	"showRealTimeResults": true,
 	"allowAddingOptions": true,
 	"gameIds": [
-		"27ae2362-4c9f-4c6c-823b-b06f1d6a6bec",
-		"a997a7d3-9223-4bb9-9b7c-c40c02a047eb",
-		"5e424993-3629-4453-b872-3e588eccc265",
-		"7fe676cb-e4b0-4acd-9430-609bb927d320",
-		"72bc426b-9557-4ed3-bce1-a857a619d9a3",
-		"d9eb6dac-4dbe-42d7-bb7c-1e0c7c502634",
-		"8ba21adc-a6cc-4e3e-bed2-a23a0b5c4bbf",
-		"2d195be4-d3f8-476e-b9a6-4e22b6fa8d3b",
-		"b0c21010-870c-4b78-aed3-58a7afc91d53",
-		"5790e1d8-8e9d-4f11-8fbf-eb768a516be7"
+		"2b208733-5bf2-46c8-b761-60fc3167b844",
+		"3a7cb0ba-da22-4e14-ae16-3ac008135c97",
+		"de8ff989-274f-41bd-a423-6fda4ac559c4",
+		"7a8263b2-4770-417f-a917-6ab713ae414e",
+		"179143ac-8a2c-4a44-af2b-2264fe089f50",
+		"f0dd62ed-1e95-49ff-b865-9f115f9e237e",
+		"75307aa2-e088-4c4a-b691-e6b0d33dcb79",
+		"24436cf0-4167-4324-8fb4-98e44e678baf",
+		"bdc01eb3-ad63-49ce-bde5-2f87d4f3d75d",
+		"7ed69e89-942e-41bc-a36c-e2f55d90ae0b"
 	]
 }

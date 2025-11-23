@@ -10,7 +10,7 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
 
 	const body = await request.json();
 
-	console.log('parsing');
+	console.log('Body:', body);
 	const validated = createVotingSessionSchema.parse({ ...body, communityId });
 	console.log(validated.gameIds);
 
