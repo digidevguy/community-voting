@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -34,11 +35,13 @@
 		<time datetime="${data.session.gameDayDate}">{formmattedGameDate}</time>
 	</div>
 </section>
+<Separator class="my-4" />
 <section>
-	<ul>
+	<ul
+		class="grid grid-cols-[repeat(auto-fit,minmax(theme(spacing.48),1fr))] place-items-center gap-4"
+	>
 		{#each options as option}
-			<li>
-				<strong>{option.game?.title} - {option.game?.steamAppId}</strong>
+			<li class="flex max-w-xs flex-col">
 				{#if option.game?.image}
 					<img src={option.game.image} alt={option.game.title} />
 				{/if}

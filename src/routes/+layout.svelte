@@ -29,6 +29,6 @@
 		<DarkModeToggle />
 	</div>
 </header>
-<main class="grid h-svh place-content-center">
+<main class="mx-auto h-svh w-full max-w-5xl px-4 py-4 sm:px-6 md:px-8">
 	{@render children?.()}
 </main>
