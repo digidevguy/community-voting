@@ -1,5 +1,11 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { communityCollections, game, votingOption, votingSession } from '$lib/server/db/schema';
+import {
+	communityCollections,
+	game,
+	vote,
+	votingOption,
+	votingSession
+} from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import type {
 	CreateVotingOptionInput,
@@ -38,7 +44,7 @@ export async function updateVotingSession(
 	userId: string
 ) {}
 
-export async function deleteVotinSession(
+export async function deleteVotingSession(
 	db: Database | DBTransaction,
 	sessionId: string,
 	userId: string
@@ -135,6 +141,48 @@ export async function publishVotingSession(
 	// 2. Check user permissions
 	// 3. Update status to 'active'
 	// 4. Maybe send notifications
+}
+
+export async function castVote(
+	db: Database | DBTransaction,
+	userId: string,
+	votingSessionId: string,
+	votingOptionId: string
+) {
+	const [option] = await db
+		.select()
+		.from(votingOption)
+		.where(
+			and(eq(votingOption.votingSessionId, votingSessionId), eq(votingOption.id, votingOptionId))
+		);
+
+	if (!option) {
+		throw new Error('Invalid voting option for this session');
+	}
+
+	const [result] = await db
+		.insert(vote)
+		.values({ userId, votingOptionId, votingSessionId })
+		.onConflictDoUpdate({
+			target: vote.votingSessionId,
+			set: { votingOptionId, updatedAt: new Date() }
+		})
+		.returning();
+
+	return result;
+}
+
+export async function removeVoteByOption(
+	db: Database | DBTransaction,
+	userId: string,
+	votingOptionId: string
+) {
+	const [deleted] = await db
+		.delete(vote)
+		.where(and(eq(vote.userId, userId), eq(vote.votingOptionId, votingOptionId)))
+		.returning();
+
+	return deleted;
 }
 
 export async function getVotingSessionWithResults(db: Database | DBTransaction, sessionId: string) {

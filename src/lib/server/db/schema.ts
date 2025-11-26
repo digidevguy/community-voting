@@ -165,21 +165,20 @@ export const votingOption = pgTable(
 export const vote = pgTable(
 	'vote',
 	{
-		id: uuid('id').primaryKey().notNull(),
+		id: uuid('id').primaryKey().defaultRandom(),
 		votingOptionId: uuid('voting_option_id')
 			.notNull()
 			.references(() => votingOption.id, { onDelete: 'cascade' }),
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
+		votingSessionId: uuid('voting_session_id')
+			.notNull()
+			.references(() => votingSession.id),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
-	(table) => [
-		uniqueIndex('voting_option_user_idx').on(table.votingOptionId, table.userId),
-		index('voting_option_id_idx').on(table.votingOptionId),
-		index('vote_user_idx').on(table.userId)
-	]
+	(table) => [uniqueIndex('user_session_vote_idx').on(table.votingOptionId, table.userId)]
 );
 
 export const game = pgTable(
