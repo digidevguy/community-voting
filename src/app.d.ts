@@ -5,7 +5,7 @@ declare global {
 		interface Locals {
 			user: import('$lib/server/auth').SessionValidationResult['user'];
 			session: import('$lib/server/auth').SessionValidationResult['session'];
-			db: import('$lib/server/db').SessionValidationResult['db'];
+			db: typeof import('$lib/server/db').db;
 		}
 	} // interface Error {}
 	// interface Locals {}

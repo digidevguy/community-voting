@@ -164,7 +164,7 @@ export async function castVote(
 		.insert(vote)
 		.values({ userId, votingOptionId, votingSessionId })
 		.onConflictDoUpdate({
-			target: vote.votingSessionId,
+			target: [vote.userId, vote.votingSessionId],
 			set: { votingOptionId, updatedAt: new Date() }
 		})
 		.returning();

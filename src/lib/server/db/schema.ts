@@ -174,11 +174,11 @@ export const vote = pgTable(
 			.references(() => user.id, { onDelete: 'cascade' }),
 		votingSessionId: uuid('voting_session_id')
 			.notNull()
-			.references(() => votingSession.id),
+			.references(() => votingSession.id, { onDelete: 'cascade' }),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
-	(table) => [uniqueIndex('user_session_vote_idx').on(table.votingOptionId, table.userId)]
+	(table) => [uniqueIndex('user_session_vote_idx').on(table.userId, table.votingSessionId)]
 );
 
 export const game = pgTable(

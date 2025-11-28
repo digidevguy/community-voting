@@ -5,17 +5,17 @@ import { count, eq } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	const { gameSessionId } = params;
+	const { votingSessionId } = params;
 	const db: Database = locals.db;
 
-	if (!gameSessionId) {
+	if (!votingSessionId) {
 		return error(500, 'Voting session not found');
 	}
 
 	const results = await db
 		.select()
 		.from(votingSession)
-		.where(eq(votingSession.id, gameSessionId))
+		.where(eq(votingSession.id, votingSessionId))
 		.leftJoin(votingOption, eq(votingOption.votingSessionId, votingSession.id))
 		.leftJoin(game, eq(votingOption.gameId, game.id));
 
