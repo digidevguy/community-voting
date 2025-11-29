@@ -1,19 +1,28 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import * as table from '$lib/server/db/schema';
+import { game } from '$lib/server/db/schema';
 import { sql } from 'drizzle-orm';
+import type { GameDetailsInput } from './games.validation';
 
 // Find a games details from DB
 export async function findGameDetails(db: Database | DBTransaction, gameId: string) {
-	const game = await db
+	const [gameDetails] = await db
 		.select()
-		.from(table.game)
-		.where(sql`${table.game.steamAppId} = ${gameId}`);
+		.from(game)
+		.where(sql`${game.steamAppId} = ${gameId}`);
 
-	return game;
+	return gameDetails;
 }
 
-//  Save game to database
-export async function saveGameDetails() {}
-
 // Update game details
-export async function updateGameDetails() {}
+export async function updateGameDetails(
+	db: Database | DBTransaction,
+	data: GameDetailsInput,
+	gameId: string
+) {
+	const [updatedGame] = await db
+		.update(game)
+		.set(data)
+		.where(sql`${game.steamAppId} = ${gameId}`);
+
+	return updatedGame;
+}
