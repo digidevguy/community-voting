@@ -1,12 +1,6 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import {
-	communityCollections,
-	game,
-	vote,
-	votingOption,
-	votingSession
-} from '$lib/server/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { game, user, vote, votingOption, votingSession } from '$lib/server/db/schema';
+import { and, count, eq } from 'drizzle-orm';
 import type {
 	CreateVotingOptionInput,
 	CreateVotingSessionInput
@@ -35,22 +29,43 @@ export async function createVotingSession(
 	return session;
 }
 
-export async function getVotingSession(db: Database, sessionId: string) {}
+export async function getVotingSession(db: Database, votingSessionId: string) {
+	const [result] = await db
+		.select()
+		.from(votingSession)
+		.where(eq(votingSession.id, votingSessionId));
+
+	return result;
+}
 
 export async function updateVotingSession(
 	db: Database | DBTransaction,
-	sessionId: string,
+	votingSessionId: string,
 	data: CreateVotingSessionInput,
 	userId: string
-) {}
+) {
+	const [result] = await db
+		.update({ ...votingSession, updatedBy: userId })
+		.set(data)
+		.where(eq(votingSession.id, votingSessionId));
+
+	return result;
+}
 
 export async function deleteVotingSession(
 	db: Database | DBTransaction,
-	sessionId: string,
+	votingSessionId: string,
 	userId: string
-) {}
+) {
+	const [id] = await db
+		.delete(votingSession)
+		.where(and(eq(votingSession.id, votingSessionId), eq(votingSession.createdBy, userId)))
+		.returning({ id: votingSession.id });
 
-export async function addGameToSession(
+	return id;
+}
+
+export async function addVotingOptionToSession(
 	db: Database | DBTransaction,
 	data: CreateVotingOptionInput
 ) {
@@ -125,22 +140,51 @@ export async function addGameToSession(
 	return newOption;
 }
 
-export async function removeGameFromSession(
+export async function removeVotingOptionFromSession(
 	db: Database | DBTransaction,
-	sessionId: string,
-	gameId: string,
+	votingSessionId: string,
+	votingOptionId: string,
 	userId: string
-) {}
+) {
+	const [id] = await db
+		.update(votingOption)
+		.set({ isActive: false, reviewedBy: userId })
+		.where(eq(votingOption.id, votingOptionId))
+		.returning({ id: votingOption.id });
+
+	return id;
+}
 
 export async function publishVotingSession(
 	db: Database | DBTransaction,
-	sessionId: string,
+	votingSessionId: string,
 	userId: string
 ) {
 	// 1. Validate session has games
-	// 2. Check user permissions
+	const hasGames = await db
+		.select()
+		.from(votingOption)
+		.where(eq(votingOption.votingSessionId, votingSessionId));
+
+	if (!hasGames || hasGames.length === 0) {
+		throw new Error('Cannot publish session without voting options');
+	}
+
+	// 2. Check if user is in community
+	const [foundUser] = await db.select().from(user).where(eq(user.id, userId));
+
+	if (!foundUser) {
+		throw new Error('User not found');
+	}
+
 	// 3. Update status to 'active'
-	// 4. Maybe send notifications
+	const [updatedVotingSessionStatus] = await db
+		.update(votingSession)
+		.set({ status: 'active', updatedBy: userId })
+		.where(eq(votingSession.id, votingSessionId))
+		.returning({ status: votingSession.status });
+
+	return updatedVotingSessionStatus;
 }
 
 export async function castVote(
@@ -185,15 +229,54 @@ export async function removeVoteByOption(
 	return deleted;
 }
 
-export async function getVotingSessionWithResults(db: Database | DBTransaction, sessionId: string) {
+export async function getVotingSessionWithResults(
+	db: Database | DBTransaction,
+	votingSessionId: string
+) {
 	// Join voting_session, voting_option, vote, game
+	const results = await db
+		.select()
+		.from(votingSession)
+		.where(eq(votingSession.id, votingSessionId))
+		.leftJoin(votingOption, eq(votingOption.votingSessionId, votingSessionId))
+		.leftJoin(game, eq(votingOption.gameId, game.id));
+
+	if (results.length === 0) {
+		throw new Error('Voting session not found');
+	}
+
+	const votingSessionDetails = results[0].voting_session;
+	const options = results
+		.map((r) => ({ ...r.voting_option, game: r.game }))
+		.filter((opt) => opt.id !== null);
+
 	// Calculate vote counts
+	const voteCounts = await db
+		.select({ votingOptionId: vote.votingOptionId, count: count() })
+		.from(vote)
+		.where(eq(vote.votingSessionId, votingSessionId))
+		.groupBy(vote.votingOptionId);
+
+	const voteCountMap = new Map(
+		voteCounts.filter((v) => v.votingOptionId !== null).map((v) => [v.votingOptionId!, v.count])
+	);
+
+	const optionsWithCounts = options.map((opt) => ({
+		...opt,
+		voteCount: opt.id ? (voteCountMap.get(opt.id) ?? 0) : 0
+	}));
+
 	// Return formatted results
+	return { votingSessionDetails, options: optionsWithCounts };
 }
 
-export async function getCommunityActiveSessions(
-	db: Database | DBTransaction,
-	communityId: string
-) {
-	// Join
+export async function getCommunitySessions(db: Database | DBTransaction, communityId: string) {
+	// Join community and voting_sessions
+	const results = await db
+		.select()
+		.from(votingSession)
+		.where(eq(votingSession.communityId, communityId))
+		.orderBy(votingSession.status);
+
+	return results;
 }
