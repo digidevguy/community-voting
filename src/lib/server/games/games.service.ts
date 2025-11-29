@@ -2,6 +2,7 @@ import type { Database, DBTransaction } from '$lib/server/db';
 import { game } from '$lib/server/db/schema';
 import { sql } from 'drizzle-orm';
 import type { GameDetailsInput } from './games.validation';
+import type { Category, Genre, SteamGameResponse } from '$lib/types';
 
 // Find a games details from DB
 export async function findGameDetails(db: Database | DBTransaction, gameId: string) {
@@ -25,4 +26,62 @@ export async function updateGameDetails(
 		.where(sql`${game.steamAppId} = ${gameId}`);
 
 	return updatedGame;
+}
+
+export async function fetchSteamGameData(
+	apiUrl: string,
+	gameId: string
+): Promise<SteamGameResponse[string] | null> {
+	const response = await fetch(`${apiUrl}?appids=${gameId}`);
+
+	if (!response.ok) {
+		throw new Error(`Steam API returned status ${response.status}`);
+	}
+
+	const apiResponse: SteamGameResponse = await response.json();
+	const app = apiResponse[gameId];
+
+	if (!app || !app.success || !app.data) {
+		return null;
+	}
+
+	return app;
+}
+
+export function transformSteamData(steamData: SteamGameResponse[string]['data']): GameDetailsInput {
+	const {
+		header_image,
+		short_description,
+		developers = [],
+		publishers = [],
+		release_date,
+		categories = [],
+		genres = []
+	} = steamData;
+
+	return {
+		image: header_image,
+		description: short_description,
+		developer: developers?.[0] ?? null,
+		publisher: publishers?.[0] ?? null,
+		releaseDate: parseSteamDate(release_date?.date) ?? undefined,
+		categories: (categories ?? []).map((c: Category) => c.description ?? ''),
+		genres: (genres ?? []).map((g: Genre) => g.description ?? '')
+	};
+}
+
+function parseSteamDate(dateString: string | undefined): Date | null {
+	if (!dateString) return null;
+
+	const isValidFormat =
+		!/^\d{1,2}[/-]\d{1,2}[/-]\d{4}$/.test(dateString) ||
+		!/^\w{3}\s+\d{1,2},\s+\d{4}$/.test(dateString);
+
+	if (!isValidFormat) {
+		console.warn(`Invalid Steam date format: ${dateString}`);
+		return null;
+	}
+
+	const parsed = new Date(dateString);
+	return isNaN(parsed.getTime()) ? null : parsed;
 }

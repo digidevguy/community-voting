@@ -1,107 +1,56 @@
 import type { RequestHandler } from './$types';
-import { db } from '$lib/server/db';
-import * as table from '$lib/server/db/schema';
-import type { SteamGameResponse, Category, Genre } from '$lib/types';
-import { sql } from 'drizzle-orm';
 import { STEAM_API_DETAILS_URL } from '$env/static/private';
 import { gameDetailsInputSchema } from '$lib/server/games/games.validation';
-import { error } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
+import {
+	findGameDetails,
+	fetchSteamGameData,
+	transformSteamData,
+	updateGameDetails
+} from '$lib/server/games/games.service';
 
-export const POST: RequestHandler = async ({ params }) => {
+export const POST: RequestHandler = async ({ locals, params }) => {
 	const gameId = params.gameId;
 
 	if (isNaN(Number(gameId))) {
-		return new Response(JSON.stringify({ error: 'Invalid gameId' }), { status: 400 });
+		throw error(400, 'Invalid gameId');
 	}
 
-	const game = await db
-		.select()
-		.from(table.game)
-		.where(sql`${table.game.steamAppId} = ${gameId}`);
+	const existingGame = await findGameDetails(locals.db, gameId);
 
-	if (game.length === 0 || !game[0].image) {
-		if (!STEAM_API_DETAILS_URL) {
-			return new Response(
-				JSON.stringify({ error: 'Server misconfiguration: missing STEAM_API_DETAILS_URL' }),
-				{ status: 500 }
-			);
-		}
-
-		const response = await fetch(`${STEAM_API_DETAILS_URL}?appids=${gameId}`);
-
-		if (!response.ok) {
-			console.log('row 58');
-			console.error(`Steam API fetch failed with status: ${response.status}`);
-			return new Response(
-				JSON.stringify({ error: 'Failed to fetch game details from Steam API' }),
-				{ status: 502 }
-			);
-		}
-
-		const apiResponse: SteamGameResponse = await response.json();
-
-		const app = apiResponse[gameId];
-
-		if (!app || !app.success || !app.data) {
-			console.log('row 63');
-			return new Response(
-				JSON.stringify({ error: 'Failed to fetch game details from Steam API' }),
-				{ status: 502 }
-			);
-		}
-
-		const gameData = app.data;
-
-		const {
-			header_image,
-			short_description,
-			developers = [],
-			publishers = [],
-			release_date,
-			categories = [],
-			genres = []
-		} = gameData;
-
-		function parseSteamDate(dateString: string | undefined): Date | null {
-			if (!dateString) return null;
-
-			if (
-				!/^\d{1,2}[/-]\d{1,2}[/-]{4}$/.test(dateString) &&
-				!/^\w{3}\s+\d{1,2},\s+\d{4}$/.test(dateString)
-			) {
-				console.warn(`Invalid Steam date format: ${dateString}`);
-				return null;
-			}
-
-			const parsed = new Date(dateString);
-			return isNaN(parsed.getTime()) ? null : parsed;
-		}
-
-		const updated = {
-			image: header_image,
-			description: short_description,
-			developer: developers?.[0] ?? null,
-			publisher: publishers?.[0] ?? null,
-			releaseDate: parseSteamDate(release_date?.date),
-			categories: (categories ?? []).map((c: Category) => c.description ?? ''),
-			genres: (genres ?? []).map((g: Genre) => g.description ?? '')
-		};
-
-		const validated = gameDetailsInputSchema.parse(updated);
-
-		const gameUpdate = await db
-			.update(table.game)
-			.set(validated)
-			.where(sql`${table.game.steamAppId} = ${gameId}`)
-			.returning();
-
-		if (!gameUpdate) {
-			console.error(`Failed to update game with gameId: ${gameId}`);
-			return error(500, 'Failed to update game');
-		}
-
-		return new Response(JSON.stringify(gameUpdate[0]), { status: 200 });
+	if (existingGame?.image) {
+		return json(existingGame);
 	}
 
-	return new Response(JSON.stringify(game[0]), { status: 200 });
+	if (!STEAM_API_DETAILS_URL) {
+		throw error(500, 'Server misconfiguration: missing STEAM_API_DETAILS_URL');
+	}
+
+	let steamApp;
+	try {
+		steamApp = await fetchSteamGameData(STEAM_API_DETAILS_URL, gameId);
+	} catch (err) {
+		console.error(`Steam API fetch failed for gameId ${gameId}:`, err);
+		throw error(502, 'Failed to fetch game details from Steam API');
+	}
+
+	if (!steamApp) {
+		throw error(404, 'Game not found on Steam');
+	}
+
+	const transformedData = transformSteamData(steamApp.data);
+	const validated = gameDetailsInputSchema.parse(transformedData);
+
+	try {
+		const updatedGame = await updateGameDetails(locals.db, validated, gameId);
+
+		if (!updatedGame) {
+			throw error(500, 'Failed to update game in database');
+		}
+
+		return json(updatedGame);
+	} catch (err) {
+		console.error(`Failed to update game ${gameId}:`, err);
+		throw error(500, 'Failed to update game');
+	}
 };

@@ -5,7 +5,7 @@ export const gameDetailsInputSchema = z.object({
 	description: z.string(),
 	developer: z.string(),
 	publisher: z.string(),
-	releaseDate: z.coerce.date(),
+	releaseDate: z.coerce.date().optional(),
 	categories: z.array(z.string()),
 	genres: z.array(z.string())
 });
