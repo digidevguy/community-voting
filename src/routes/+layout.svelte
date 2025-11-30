@@ -1,16 +1,14 @@
 <script lang="ts">
 	import '../app.css';
+	import type { LayoutData } from './$types';
 	import favicon from '$lib/assets/favicon.svg';
 	import { ModeWatcher } from 'mode-watcher';
 	import DarkModeToggle from '$lib/components/custom/DarkModeToggle.svelte';
 	import { Button } from '$lib/components/ui/button';
 
-	const navigation = [
-		{ href: '/search', label: 'Search' },
-		{ href: '/auth', label: 'Auth' }
-	];
+	const navigation = [{ href: '/search', label: 'Search' }];
 
-	let { children } = $props();
+	let { children, data }: { children: any; data: LayoutData } = $props();
 </script>
 
 <svelte:head>
@@ -26,6 +24,15 @@
 				<Button variant="ghost" href={item.href} class="mr-4 last:mr-0">{item.label}</Button>
 			{/each}
 		</nav>
+
+		{#if data?.user}
+			<form action="/auth?/logout" method="POST">
+				<Button type="submit" variant="ghost">Logout</Button>
+			</form>
+		{:else}
+			<Button variant="ghost" href="/auth">Auth</Button>
+		{/if}
+
 		<DarkModeToggle />
 	</div>
 </header>
