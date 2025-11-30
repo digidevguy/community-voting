@@ -28,11 +28,13 @@ async function getGameList() {
 		.orderBy(sql`RANDOM()`)
 		.limit(10);
 
+	const gameIds = selection.map((game) => game.id);
+
 	// 3. Write the selection to a json file named test-games.json in the test-data directory
 	const outputPath = join(process.cwd(), 'test-data', 'test.games.json');
-	writeFileSync(outputPath, JSON.stringify(selection, null, 2), 'utf-8');
+	writeFileSync(outputPath, JSON.stringify(gameIds, null, 2), 'utf-8');
 
-	console.log(`Wrote ${selection.length} games to ${outputPath}`);
+	console.log(`Wrote ${gameIds.length} games to ${outputPath}`);
 
 	await client.end();
 }
