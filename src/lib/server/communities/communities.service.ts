@@ -95,3 +95,20 @@ export async function deleteCommunity(
 
 	return deletedCommunityId;
 }
+
+export async function confirmUserInCommunity(
+	db: Database | DBTransaction,
+	userId: string,
+	communityId: string
+) {
+	const [userInCommunity] = await db
+		.select()
+		.from(communityUser)
+		.where(and(eq(communityUser.userId, userId), eq(communityUser.communityId, communityId)));
+
+	if (!userInCommunity) {
+		throw new Error(`User not found in community with id ${communityId}`);
+	}
+
+	return userInCommunity;
+}
