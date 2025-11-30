@@ -1,7 +1,33 @@
 import type { Database, DBTransaction } from '$lib/server/db';
 import { and, eq } from 'drizzle-orm';
-import { communityCollections } from '../db/schema';
+import { communityCollections, game } from '$lib/server/db/schema';
 import type { CreateCommunityCollectionInput } from './collection.validation';
+
+export async function getCommunityCollection(db: Database | DBTransaction, communityId: string) {
+	const collection = await db
+		.select({
+			id: communityCollections.id,
+			addedBy: communityCollections.addedBy,
+			addedAt: communityCollections.addedAt,
+			isActive: communityCollections.isActive,
+			removedBy: communityCollections.removedBy,
+			removedAt: communityCollections.removedAt,
+			game: {
+				id: game.id,
+				title: game.title,
+				type: game.type
+			}
+		})
+		.from(communityCollections)
+		.innerJoin(game, eq(communityCollections.gameId, game.id))
+		.where(eq(communityCollections.communityId, communityId));
+
+	if (!collection || collection.length === 0) {
+		throw new Error(`Unable to fetch collection community with id ${communityId}`);
+	}
+
+	return collection;
+}
 
 export async function addGameToCollection(
 	db: Database | DBTransaction,
