@@ -1,16 +1,16 @@
 <script lang="ts">
 	import * as Tabs from '$lib/components/ui/tabs/index';
 	import * as Card from '$lib/components/ui/card/index';
-	import * as Button from '$lib/components/ui/button/index';
 	import { enhance } from '$app/forms';
 	import type { ActionData } from './$types';
 	import type { SubmitFunction } from '@sveltejs/kit';
 	import { Label } from '$lib/components/ui/label';
 	import { Input } from '$lib/components/ui/input';
+	import Button from '$lib/components/ui/button/button.svelte';
 
 	let { form }: { form: ActionData } = $props();
 
-	let activeTab: 'login' | 'register' = $state('login');
+	let activeTab: 'login' | 'register' = $state('register');
 	let loading = $state(false);
 
 	const handleSubmit: SubmitFunction = () => {
@@ -44,15 +44,17 @@
 					<Card.Description>Welcome back! Please enter your details.</Card.Description>
 				</Card.Header>
 				<Card.Content>
-					<form action="/auth/login" method="POST" use:enhance={handleSubmit} class="grid gap-4">
+					<form action="?/login" method="POST" use:enhance={handleSubmit} class="grid gap-4">
 						<div class="grid gap-2">
-							<Label for="email">Email</Label>
-							<Input id="email" name="email" type="email" placeholder="you@example.com" />
+							<Label for="username">Username</Label>
+							<Input id="username" name="username" type="text" placeholder="BossMan2025" />
 						</div>
 						<div class="grid gap-2">
 							<Label for="password">Password</Label>
 							<Input id="password" name="password" type="password" placeholder="Your password" />
 						</div>
+						<Button type="submit">Submit</Button>
+						<p style="color: red">{form?.message ?? ''}</p>
 					</form>
 				</Card.Content>
 			</Card.Root>
@@ -63,7 +65,9 @@
 					<Card.Title>Register</Card.Title>
 					<Card.Description>Create an account to start voting.</Card.Description>
 				</Card.Header>
-				<Card.Content class="grid gap-6"></Card.Content>
+				<Card.Content class="grid gap-6">
+					<form action="?/register"></form>
+				</Card.Content>
 			</Card.Root>
 		</Tabs.Content>
 	</Tabs.Root>
