@@ -90,3 +90,46 @@ export async function deleteGameFromCollection(
 
 	return deletedGameId;
 }
+
+export async function ensureGameInCommunity(
+	db: Database | DBTransaction,
+	communityId: string,
+	gameId: string,
+	userId: string
+) {
+	const [existing] = await db
+		.select()
+		.from(communityCollections)
+		.where(
+			and(
+				eq(communityCollections.communityId, communityId),
+				eq(communityCollections.gameId, gameId),
+				eq(communityCollections.isActive, true)
+			)
+		);
+
+	if (existing) {
+		return existing;
+	}
+
+	const [gameExists] = await db.select({ id: game.id }).from(game).where(eq(game.id, gameId));
+
+	if (!gameExists) {
+		throw new Error(`Game with id ${gameId} does not exist`);
+	}
+
+	const [newCollectionItem] = await db
+		.insert(communityCollections)
+		.values({
+			communityId,
+			gameId,
+			addedBy: userId
+		})
+		.returning();
+
+	if (newCollectionItem) {
+		throw new Error('Failed to add game to community collection');
+	}
+
+	return newCollectionItem;
+}

@@ -5,6 +5,7 @@ import type {
 	CreateVotingOptionInput,
 	CreateVotingSessionInput
 } from './voting-session.validation';
+import { ensureGameInCommunity } from '../collections/collection.service';
 
 export async function createVotingSession(
 	db: Database | DBTransaction,
@@ -109,33 +110,14 @@ export async function addVotingOptionToSession(
 
 	if (existingOption) return existingOption; // 3. Add to voting_option table
 
-	const newOption = await db.insert(votingOption).values(data).returning();
+	// ? Used as a side effect, should I capture the returned info?
+	await ensureGameInCommunity(db, session.communityId, data.gameId, data.addedBy);
+
+	const [newOption] = await db.insert(votingOption).values(data).returning();
 
 	if (!newOption) {
 		throw new Error('Failed to add game to session');
 	}
-
-	// TODO: Uncomment when community_collection logic is created
-	// const [existingInCollection] = await db
-	// 	.select()
-	// 	.from(communityCollections)
-	// 	.where(
-	// 		and(
-	// 			eq(communityCollections.communityId, session.communityId),
-	// 			eq(communityCollections.gameId, data.gameId),
-	// 			eq(communityCollections.isActive, true)
-	// 		)
-	// 	);
-
-	// if (!existingInCollection) {
-	// 	await db.insert(communityCollections).values({
-	// 		communityId: session.communityId,
-	// 		gameId: data.gameId,
-	// 		addedBy: data.addedBy,
-	// 		addedAt: new Date(),
-	// 		isActive: true
-	// 	});
-	// }
 
 	return newOption;
 }
