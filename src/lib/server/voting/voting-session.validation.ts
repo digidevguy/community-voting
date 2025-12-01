@@ -20,6 +20,14 @@ export const createVotingOptionSchema = z.object({
 	approvalStatus: z.enum(['pending', 'approved', 'rejected'])
 });
 
+export const createVoteSchema = z.object({
+	userId: z.string(),
+	votingSessionId: z.uuid(),
+	votingOptionId: z.uuid()
+});
+
 export type CreateVotingSessionInput = z.infer<typeof createVotingSessionSchema>;
 
 export type CreateVotingOptionInput = z.infer<typeof createVotingOptionSchema>;
+
+export type CreateVoteInput = z.infer<typeof createVoteSchema>;

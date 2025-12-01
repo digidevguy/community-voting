@@ -1,38 +1,43 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import Button from '$lib/components/ui/button/button.svelte';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import type { PageProps } from './$types';
 
-	let { data }: PageProps = $props();
-	const options = $derived(data.options);
+	let { data, form }: PageProps = $props();
+	const votingSessionDetails = $derived(data.session.votingSessionDetails);
+	const options = $derived(data.session.options);
+	let submittingOptionId = $state<string | undefined>();
 
-	const formmattedStartDate = $derived(
-		data.session.startDate
+	const formattedStartDate = $derived(
+		votingSessionDetails.startDate
 			? new Intl.DateTimeFormat('en-US', {
 					dateStyle: 'long'
-				}).format(new Date(data.session.startDate))
+				}).format(new Date(votingSessionDetails.startDate))
 			: 'Not set'
 	);
-	const formmattedGameDate = $derived(
-		data.session.gameDayDate
+	const formattedGameDate = $derived(
+		votingSessionDetails.gameDayDate
 			? new Intl.DateTimeFormat('en-US', {
 					dateStyle: 'long'
-				}).format(new Date(data.session.gameDayDate))
+				}).format(new Date(votingSessionDetails.gameDayDate))
 			: 'Not set'
 	);
-
-	$inspect(options);
 </script>
 
 <section class="max-w-2xl">
-	<h1>{data.session.title}</h1>
-	<p>{data.session.description}</p>
+	<div>
+		<h1>{votingSessionDetails.title}</h1>
+		<p>{votingSessionDetails.status}</p>
+	</div>
+	<p class="whitespace-pre-wrap">{votingSessionDetails.description}</p>
 	<div>
 		<label for="start-date">Voting Start Date</label>
-		<time datetime="${data.session.startDate}">{formmattedStartDate}</time>
+		<time datetime={votingSessionDetails.startDate?.toISOString()}>{formattedStartDate}</time>
 	</div>
 	<div>
 		<label for="game-day-date">Game day</label>
-		<time datetime="${data.session.gameDayDate}">{formmattedGameDate}</time>
+		<time datetime={votingSessionDetails.gameDayDate?.toISOString()}>{formattedGameDate}</time>
 	</div>
 </section>
 <Separator class="my-4" />
@@ -45,6 +50,35 @@
 				{#if option.game?.image}
 					<img src={option.game.image} alt={option.game.title} />
 				{/if}
+				<p>{option.game?.title}</p>
+				<!-- Todo: add form w/ button -->
+				<form
+					action="?/vote"
+					method="POST"
+					use:enhance={() => {
+						submittingOptionId = option.id;
+						return async ({ update }) => {
+							await update();
+							submittingOptionId = undefined;
+						};
+					}}
+				>
+					<input type="hidden" name="votingSessionId" value={votingSessionDetails.id ?? ''} />
+					<input type="hidden" name="votingOptionId" value={option.id ?? ''} />
+					{#if form?.errors && Array.isArray(form.errors)}
+						<div class="text-red-600">
+							{#each form.errors as error}
+								<p>{error}</p>
+							{/each}
+						</div>
+					{/if}
+					<Button type="submit" disabled={submittingOptionId === option.id}>
+						{submittingOptionId === option.id ? 'Voting...' : 'Vote'}
+					</Button>
+					{#if form?.success && submittingOptionId === option.id}
+						<p class="text-green-700">Vote successful: {form.voteId}</p>
+					{/if}
+				</form>
 			</li>
 		{/each}
 	</ul>
