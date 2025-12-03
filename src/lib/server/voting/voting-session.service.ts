@@ -262,3 +262,20 @@ export async function getCommunitySessions(db: Database | DBTransaction, communi
 
 	return results;
 }
+
+export async function getUserVoteForSession(
+	db: Database | DBTransaction,
+	userId: string,
+	votingSessionId: string
+) {
+	const [userVote] = await db
+		.select()
+		.from(vote)
+		.where(and(eq(vote.userId, userId), eq(vote.votingSessionId, votingSessionId)));
+
+	if (!userVote) {
+		return null;
+	}
+
+	return userVote;
+}

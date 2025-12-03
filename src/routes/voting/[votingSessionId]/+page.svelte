@@ -8,6 +8,7 @@
 	let { data, form }: PageProps = $props();
 	const votingSessionDetails = $derived(data.session.votingSessionDetails);
 	const options = $derived(data.session.options);
+	const userVote = $derived(data.userVote);
 	let submittingOptionId = $state<string | undefined>();
 
 	const formattedStartDate = $derived(

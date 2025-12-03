@@ -1,11 +1,17 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, redirect } from '@sveltejs/kit';
-import { getVotingSessionWithResults } from '$lib/server/voting/voting-session.service';
+import {
+	getUserVoteForSession,
+	getVotingSessionWithResults
+} from '$lib/server/voting/voting-session.service';
 import { castVote } from '$lib/server/voting/voting-session.service';
 import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
 import z from 'zod';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
+	if (!locals.user) {
+		throw redirect(303, '/auth');
+	}
 	const { votingSessionId } = params;
 
 	if (!votingSessionId) {
@@ -13,7 +19,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	}
 
 	return {
-		session: await getVotingSessionWithResults(locals.db, votingSessionId)
+		session: await getVotingSessionWithResults(locals.db, votingSessionId),
+		userVote: await getUserVoteForSession(locals.db, locals.user.id, votingSessionId)
 	};
 };
 
