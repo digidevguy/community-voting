@@ -26,6 +26,11 @@ export const votingSessionStatus = pgEnum('voting_session_status', [
 	'archived',
 	'cancelled'
 ]);
+export const votingSessionType = pgEnum('voting_session_type', [
+	'board_game',
+	'video_game',
+	'mixed'
+]);
 
 export const approvalStatus = pgEnum('approval_status', ['pending', 'approved', 'rejected']);
 
@@ -119,6 +124,7 @@ export const votingSession = pgTable(
 		createdBy: text('created_by')
 			.notNull()
 			.references(() => user.id, { onDelete: 'set null' }),
+		voting_session_type: votingSessionType('voting_session_type').notNull().default('video_game'),
 		status: votingSessionStatus('status').notNull().default('draft'),
 		startDate: timestamp('start_date', { withTimezone: true }).notNull().defaultNow(),
 		gameDayDate: timestamp('game_day_date', { withTimezone: true }).notNull(),

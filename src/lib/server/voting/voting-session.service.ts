@@ -18,6 +18,7 @@ export async function createVotingSession(
 			title: data.title,
 			communityId: data.communityId,
 			description: data.description,
+			voting_session_type: data.votingSessionType,
 			startDate: data.startDate || new Date(),
 			gameDayDate: data.gameDayDate,
 			showRealTimeResults: data.showRealTimeResults,

@@ -5,6 +5,7 @@ export const createVotingSessionSchema = z.object({
 	title: z.string().min(1),
 	description: z.string().optional(),
 	startDate: z.coerce.date().optional(),
+	votingSessionType: z.enum(['board_game', 'video_game', 'mixed']).default('video_game'),
 	gameDayDate: z.coerce.date(),
 	showRealTimeResults: z.boolean().default(true),
 	allowAddingOptions: z.boolean().default(true),
