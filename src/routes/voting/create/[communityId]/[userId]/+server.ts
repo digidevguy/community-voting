@@ -1,25 +1,37 @@
 import { createVotingSession } from '$lib/server/voting/voting-session.service';
 import { createVotingSessionSchema } from '$lib/server/voting/voting-session.validation';
-import { json } from '@sveltejs/kit';
+import { error, json, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { DBTransaction } from '$lib/server/db';
 import { votingOption } from '$lib/server/db/schema';
+import { confirmUserInCommunity } from '$lib/server/communities/communities.service';
 
 export const POST: RequestHandler = async ({ params, locals, request }) => {
-	const { communityId, userId } = params;
+	if (!locals.user) {
+		throw redirect(303, '/auth');
+	}
+	const user = locals.user;
+
+	const { communityId } = params;
+
+	if (!communityId) {
+		return error(400, { message: 'The matching community could not be found.' });
+	}
+
+	const isUserInCommunity = await confirmUserInCommunity(locals.db, user.id, communityId);
+
+	if (!isUserInCommunity) {
+		return error(403, {
+			message: 'You must be a member of this community to create a voting session.'
+		});
+	}
 
 	const body = await request.json();
 
-	console.log('Body:', body);
 	const validated = createVotingSessionSchema.parse({ ...body, communityId });
-	console.log(validated.gameIds);
 
 	try {
-		/**
-		 * TODO: Bring in after userID refactor is in place
-		 * const session = await createVotingSession(locals.db, validated, locals.user?.id);
-		 */
-		const session = await createVotingSession(locals.db, validated, userId);
+		const session = await createVotingSession(locals.db, validated, user.id);
 
 		if (validated.gameIds && validated.gameIds.length > 0) {
 			const gameIds = validated.gameIds;
@@ -35,13 +47,11 @@ export const POST: RequestHandler = async ({ params, locals, request }) => {
 							await tx.insert(votingOption).values({
 								gameId,
 								votingSessionId: session.id,
-								addedBy: userId,
-
+								addedBy: user.id,
 								addedDuringVoting: false,
 								approvalStatus: 'approved'
 							});
 						});
-						console.log(`Successfully added ${gameId}`);
 					} catch (err: unknown) {
 						const msg = err instanceof Error ? err.message : String(err);
 						errors.push(msg);

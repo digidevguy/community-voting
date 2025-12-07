@@ -107,8 +107,8 @@ export async function confirmUserInCommunity(
 		.where(and(eq(communityUser.userId, userId), eq(communityUser.communityId, communityId)));
 
 	if (!userInCommunity) {
-		throw new Error(`User not found in community with id ${communityId}`);
+		return false;
 	}
 
-	return userInCommunity;
+	return true;
 }
