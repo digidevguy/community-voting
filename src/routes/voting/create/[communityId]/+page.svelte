@@ -16,7 +16,7 @@
 
 	let { data, form }: PageProps = $props();
 
-	let selectValue: 'videoGame' | 'boardGame' | 'mixed' | undefined = $state(undefined);
+	let selectValue: 'video_game' | 'board_game' | 'mixed' = $state('video_game');
 	let searchQuery = $state('');
 	let searchResults = $state<Array<{ id: string; title: string; type: string }>>([]);
 	let selectedGames = $state<Array<{ id: string; title: string }>>([]);
@@ -41,7 +41,7 @@
 	}
 
 	function removeGame(gameId: string) {
-		selectedGames = selectedGames.filter((g) => g.id === gameId);
+		selectedGames = selectedGames.filter((g) => g.id !== gameId);
 	}
 
 	$inspect(searchQuery);
@@ -63,15 +63,21 @@
 		</div>
 		<div>
 			<Label for="type">Game Type</Label>
-			<Select.Root type="single" bind:value={selectValue} name="type">
-				<Select.Trigger>Select a game type</Select.Trigger>
+			<Select.Root type="single" name="votingSessionType" bind:value={selectValue}>
+				<Select.Trigger class="w-full">
+					{selectValue}
+				</Select.Trigger>
 				<Select.Content>
-					<Select.Item value="videoGame">Video Games</Select.Item>
-					<Select.Item value="boardGame">Board Games</Select.Item>
+					<Select.Item value="video_game">Video Games</Select.Item>
+					<Select.Item value="board_game">Board Games</Select.Item>
 					<Select.Item value="mixed">Mixed</Select.Item>
 				</Select.Content>
 			</Select.Root>
 		</div>
+
+		<input type="hidden" name="startDate" value={startDate?.toString()} />
+		<input type="hidden" name="gameDayDate" value={gameDayDate?.toString()} />
+
 		<!-- Obtain voting start date here -->
 		<div class="flex justify-center gap-6">
 			<div class="flex flex-col gap-2">
@@ -180,13 +186,13 @@
 		{#if searchResults.length > 0}
 			<div class="mt-4 space-y-2">
 				{#each searchResults as game}
-					<Card.Root>
-						<Card.Header>
+					<Card.Root class="py-2">
+						<Card.Content>
 							<div class="flex items-center justify-between">
 								<Card.Title class="text-base">{game.title}</Card.Title>
 								<Button size="sm" onclick={() => addGame(game)}>Add</Button>
 							</div>
-						</Card.Header>
+						</Card.Content>
 					</Card.Root>
 				{/each}
 			</div>

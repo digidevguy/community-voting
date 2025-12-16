@@ -49,9 +49,21 @@ export const actions: Actions = {
 			});
 		}
 
-		const body = await request.json();
+		const body = await request.formData();
 
-		const validated = createVotingSessionSchema.parse({ ...body, communityId });
+		const gameIds = body.getAll('gameIds').map((id) => id.toString());
+
+		const validated = createVotingSessionSchema.parse({
+			title: body.get('title')?.toString() || '',
+			description: body.get('description')?.toString() || undefined,
+			startDate: body.get('startDate')?.toString() || undefined,
+			votingSessionType: body.get('votingSessionType')?.toString() || undefined,
+			gameDayDate: body.get('gameDayDate')?.toString() || '',
+			showRealTimeResults: body.get('showRealTimeResults') === 'on',
+			allowAddingOptions: body.get('allowAddingOptions') === 'on',
+			communityId,
+			gameIds
+		});
 
 		try {
 			const session = await createVotingSession(locals.db, validated, user.id);
