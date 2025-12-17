@@ -16,7 +16,7 @@
 
 	let { data, form }: PageProps = $props();
 
-	let selectValue: 'video_game' | 'board_game' | 'mixed' = $state('video_game');
+	let gameTypeValue: 'video_game' | 'board_game' | 'mixed' = $state('video_game');
 	let searchQuery = $state('');
 	let searchResults = $state<Array<{ id: string; title: string; type: string }>>([]);
 	let selectedGames = $state<Array<{ id: string; title: string }>>([]);
@@ -28,15 +28,23 @@
 	let startDateOpen = $state(false);
 	let gameDayOpen = $state(false);
 
+	let gameTypeDisplay = $derived(
+		gameTypeValue
+			.replace(/_/g, ' ')
+			.split(' ')
+			.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+			.join(' ')
+	);
+
 	let startDateTime = $derived.by(() => {
-		if (!startDate) return undefined;
+		if (!startDate || !startTime) return undefined;
 		const date = startDate.toDate(getLocalTimeZone());
 		const [hours, minutes, seconds] = startTime.split(':').map(Number);
 		date.setHours(hours, minutes, seconds || 0);
 		return date.toISOString();
 	});
 	let gameDayDateTime = $derived.by(() => {
-		if (!gameDayDate) return undefined;
+		if (!gameDayDate || !gameDayTime) return undefined;
 		const date = gameDayDate.toDate(getLocalTimeZone());
 		const [hours, minutes, seconds] = gameDayTime.split(':').map(Number);
 		date.setHours(hours, minutes, seconds || 0);
@@ -78,9 +86,9 @@
 		</div>
 		<div>
 			<Label for="type">Game Type</Label>
-			<Select.Root type="single" name="votingSessionType" bind:value={selectValue}>
+			<Select.Root type="single" name="votingSessionType" bind:value={gameTypeValue}>
 				<Select.Trigger class="w-full">
-					{selectValue}
+					{gameTypeDisplay}
 				</Select.Trigger>
 				<Select.Content>
 					<Select.Item value="video_game">Video Games</Select.Item>
