@@ -22,9 +22,26 @@
 	let selectedGames = $state<Array<{ id: string; title: string }>>([]);
 	let startDate = $state<CalendarDate | undefined>();
 	let gameDayDate = $state<CalendarDate | undefined>();
+	let startTime = $state('10:30:00');
+	let gameDayTime = $state('10:30:00');
 
 	let startDateOpen = $state(false);
 	let gameDayOpen = $state(false);
+
+	let startDateTime = $derived.by(() => {
+		if (!startDate) return undefined;
+		const date = startDate.toDate(getLocalTimeZone());
+		const [hours, minutes, seconds] = startTime.split(':').map(Number);
+		date.setHours(hours, minutes, seconds || 0);
+		return date.toISOString();
+	});
+	let gameDayDateTime = $derived.by(() => {
+		if (!gameDayDate) return undefined;
+		const date = gameDayDate.toDate(getLocalTimeZone());
+		const [hours, minutes, seconds] = gameDayTime.split(':').map(Number);
+		date.setHours(hours, minutes, seconds || 0);
+		return date.toISOString();
+	});
 
 	$effect(() => {
 		if (form?.games) {
@@ -44,10 +61,8 @@
 		selectedGames = selectedGames.filter((g) => g.id !== gameId);
 	}
 
-	$inspect(searchQuery);
-	$inspect(searchResults);
-	$inspect(selectedGames);
-	$inspect(form);
+	$inspect(startDateTime);
+	$inspect(gameDayDateTime);
 </script>
 
 <section class="space-y-2">
@@ -75,8 +90,8 @@
 			</Select.Root>
 		</div>
 
-		<input type="hidden" name="startDate" value={startDate?.toString()} />
-		<input type="hidden" name="gameDayDate" value={gameDayDate?.toString()} />
+		<input type="hidden" name="startDate" value={startDateTime} />
+		<input type="hidden" name="gameDayDate" value={gameDayDateTime} />
 
 		<!-- Obtain voting start date here -->
 		<div class="flex justify-center gap-6">
@@ -111,7 +126,7 @@
 						<Input
 							class="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 							step="1"
-							value="10:30:00"
+							bind:value={startTime}
 							type="time"
 							id="startDateTime"
 						/>
@@ -151,9 +166,9 @@
 						<Input
 							class="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 							step="1"
-							value="10:30:00"
+							bind:value={gameDayTime}
 							type="time"
-							id="startDateTime"
+							id="gameDayDateTime"
 						/>
 					</div>
 				</div>
