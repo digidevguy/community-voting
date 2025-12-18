@@ -13,6 +13,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import Calendar from '$lib/components/ui/calendar/calendar.svelte';
+	import { goto } from '$app/navigation';
 
 	let { data, form }: PageProps = $props();
 
@@ -24,6 +25,7 @@
 	let gameDayDate = $state<CalendarDate | undefined>();
 	let startTime = $state('10:30:00');
 	let gameDayTime = $state('10:30:00');
+	let isSubmitting = $state(false);
 
 	let startDateOpen = $state(false);
 	let gameDayOpen = $state(false);
@@ -75,7 +77,25 @@
 
 <section class="space-y-2">
 	<h1 class="text-3xl font-semibold">Create a voting session</h1>
-	<form action="?/create" method="POST" use:enhance class="space-y-2">
+	<form
+		action="?/create"
+		method="POST"
+		use:enhance={() => {
+			isSubmitting = true;
+			return async ({ result, update }) => {
+				isSubmitting = false;
+				await update();
+				const votingSessionId =
+					result.type === 'success' ? result.data?.votingSessionId : undefined;
+				if (votingSessionId) {
+					setTimeout(() => {
+						goto(`/voting/${votingSessionId}`);
+					}, 1500);
+				}
+			};
+		}}
+		class="space-y-2"
+	>
 		<div>
 			<Label for="title">Event title</Label>
 			<Input id="title" name="title" />
