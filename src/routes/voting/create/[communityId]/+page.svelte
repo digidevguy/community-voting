@@ -77,6 +77,21 @@
 
 <section class="space-y-2">
 	<h1 class="text-3xl font-semibold">Create a voting session</h1>
+
+	{#if form && 'votingSessionId' in form && form.votingSessionId}
+		<div class="rounded-md bg-green-50 p-4 dark:bg-green-950">
+			<p class="text-sm font-medium text-green-800 dark:text-green-200">
+				{form.message || 'Voting session created successfully!'}
+			</p>
+		</div>
+	{:else if form && 'message' in form && !form.votingSessionId}
+		<div class="rounded-md bg-red-50 p-4 dark:bg-red-950">
+			<p class="text-sm font-medium text-red-800 dark:text-red-200">
+				{form.message || 'An error occurred while creating the voting session.'}
+			</p>
+		</div>
+	{/if}
+
 	<form
 		action="?/create"
 		method="POST"
@@ -88,6 +103,7 @@
 				const votingSessionId =
 					result.type === 'success' ? result.data?.votingSessionId : undefined;
 				if (votingSessionId) {
+					selectedGames = [];
 					setTimeout(() => {
 						goto(`/voting/${votingSessionId}`);
 					}, 1500);
