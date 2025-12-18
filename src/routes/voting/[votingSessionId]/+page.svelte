@@ -82,7 +82,19 @@
 					onclick={() => (expandedCardId = expandedCardId === option.id ? undefined : option.id)}
 				>
 					{#if option.game?.image}
-						<img src={option.game.image} alt={option.game.title} />
+						<img
+							src={option.game.image}
+							alt={option.game.title}
+							class="aspect=[460-215] w-full object-cover"
+						/>
+					{:else}
+						<div
+							class="flex aspect-[460/215] w-full items-center justify-center bg-gray-200 p-4 dark:bg-gray-800"
+						>
+							<p class="text-center text-sm text-gray-600 dark:text-gray-400">
+								{option.game?.title || 'No image available'}
+							</p>
+						</div>
 					{/if}
 					<div
 						class="absolute inset-0 bg-black/60 transition-opacity duration-300 {expandedCardId ===
