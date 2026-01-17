@@ -307,6 +307,6 @@ export type Vote = typeof vote.$inferSelect;
 
 export type Game = typeof game.$inferSelect;
 
-export type CommunityCollection = typeof game.$inferSelect;
+export type CommunityCollection = typeof communityCollections.$inferSelect;
 
 export type Notification = typeof notification.$inferSelect;

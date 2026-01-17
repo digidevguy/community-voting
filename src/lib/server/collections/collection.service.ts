@@ -1,7 +1,8 @@
 import type { Database, DBTransaction } from '$lib/server/db';
 import { and, eq } from 'drizzle-orm';
-import { communityCollections, game } from '$lib/server/db/schema';
+import { communityCollections, game, type CommunityCollection } from '$lib/server/db/schema';
 import type { CreateCommunityCollectionInput } from './collection.validation';
+import { enrichGameData } from '../games/games.service';
 
 export async function getCommunityCollection(db: Database | DBTransaction, communityId: string) {
 	const collection = await db
@@ -42,13 +43,58 @@ export async function addGameToCollection(
 	return newCollectionItem;
 }
 
+export async function addGameToCollectionWithEnrichment(
+	db: Database | DBTransaction,
+	communityId: string,
+	userId: string,
+	gameId: string
+): Promise<CommunityCollection> {
+	const [existingGame] = await db.select().from(game).where(eq(game.id, gameId));
+
+	if (!existingGame) {
+		throw new Error(`Game with id ${gameId} does not exist`);
+	}
+
+	const [existingCollectionItem] = await db
+		.select()
+		.from(communityCollections)
+		.where(
+			and(
+				eq(communityCollections.communityId, communityId),
+				eq(communityCollections.gameId, gameId)
+			)
+		);
+
+	if (existingCollectionItem) {
+		throw new Error(`Game with id ${gameId} is already in community collection`);
+	}
+
+	const newCollectionItem = await addGameToCollection(db, {
+		communityId,
+		gameId,
+		addedBy: userId,
+		addedAt: new Date(),
+		isActive: true
+	});
+
+	if (!newCollectionItem) {
+		throw new Error(`Unable to add game to community collection`);
+	}
+
+	if (existingGame.type === 'video_game' && existingGame.steamAppId) {
+		await enrichGameData('video_game', db, existingGame.steamAppId.toString());
+	}
+
+	return newCollectionItem;
+}
+
 export async function softRemoveGameFromCollection(
 	db: Database | DBTransaction,
 	communityId: string,
 	userId: string,
 	gameId: string
 ) {
-	const [game] = await db
+	const [removedGame] = await db
 		.update(communityCollections)
 		.set({
 			isActive: false,
@@ -62,11 +108,11 @@ export async function softRemoveGameFromCollection(
 			)
 		);
 
-	if (!game) {
+	if (!removedGame) {
 		throw new Error('Unable to remove game from collection');
 	}
 
-	return game;
+	return removedGame;
 }
 
 export async function deleteGameFromCollection(

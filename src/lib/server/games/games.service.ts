@@ -1,3 +1,4 @@
+import { STEAM_API_DETAILS_URL } from '$env/static/private';
 import type { Database, DBTransaction } from '$lib/server/db';
 import { game } from '$lib/server/db/schema';
 import { sql } from 'drizzle-orm';
@@ -23,7 +24,43 @@ export async function updateGameDetails(
 	const [updatedGame] = await db
 		.update(game)
 		.set(data)
-		.where(sql`${game.steamAppId} = ${gameId}`);
+		.where(sql`${game.steamAppId} = ${gameId}`)
+		.returning();
+
+	return updatedGame;
+}
+
+export async function enrichGameData(
+	gameType: 'video_game' | 'board_game',
+	db: Database | DBTransaction,
+	gameId: string
+) {
+	if (!STEAM_API_DETAILS_URL) {
+		throw new Error('Server misconfiguration: missing STEAM_API_DETAILS_URL');
+	}
+
+	const appData = await fetchSteamGameData(STEAM_API_DETAILS_URL, gameId);
+
+	if (!appData) {
+		throw new Error('Game not found on Steam');
+	}
+
+	const transformedData = transformSteamData(appData.data);
+
+	const updatedGame = await db
+		.update(game)
+		.set({
+			...transformedData,
+			lastApiSync: new Date(),
+			apiDataComplete: true,
+			updatedAt: new Date()
+		})
+		.where(sql`${game.steamAppId} = ${gameId}`)
+		.returning();
+
+	if (!updatedGame) {
+		throw new Error('Failed to update game in database');
+	}
 
 	return updatedGame;
 }
