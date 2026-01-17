@@ -5,7 +5,7 @@ import type {
 	CreateVotingOptionInput,
 	CreateVotingSessionInput
 } from './voting-session.validation';
-import { ensureGameInCommunity } from '../collections/collection.service';
+import { isGameInCollection } from '../collections/collection.service';
 
 export async function createVotingSession(
 	db: Database | DBTransaction,
@@ -99,6 +99,12 @@ export async function addVotingOptionToSession(
 		throw new Error('Unable to add games to a session that is not in draft or active.');
 	}
 
+	const gameInCollection = await isGameInCollection(db, session.communityId, data.gameId);
+
+	if (!gameInCollection) {
+		throw new Error('Game is not in the community collection');
+	}
+
 	const [existingOption] = await db
 		.select()
 		.from(votingOption)
@@ -110,9 +116,6 @@ export async function addVotingOptionToSession(
 		);
 
 	if (existingOption) return existingOption; // 3. Add to voting_option table
-
-	// ? Used as a side effect, should I capture the returned info?
-	await ensureGameInCommunity(db, session.communityId, data.gameId, data.addedBy);
 
 	const [newOption] = await db.insert(votingOption).values(data).returning();
 
