@@ -91,6 +91,25 @@ export async function addGameToCollectionWithEnrichment(
 	return newCollectionItem;
 }
 
+export async function isGameInCollection(
+	db: Database | DBTransaction,
+	communityId: string,
+	gameId: string
+): Promise<boolean> {
+	const [collectionItem] = await db
+		.select()
+		.from(communityCollections)
+		.where(
+			and(
+				eq(communityCollections.communityId, communityId),
+				eq(communityCollections.gameId, gameId),
+				eq(communityCollections.isActive, true)
+			)
+		);
+
+	return !!collectionItem;
+}
+
 export async function softRemoveGameFromCollection(
 	db: Database | DBTransaction,
 	communityId: string,
