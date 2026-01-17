@@ -52,7 +52,7 @@ export async function addGameToCollectionWithEnrichment(
 	const [existingGame] = await db.select().from(game).where(eq(game.id, gameId));
 
 	if (!existingGame) {
-		throw new Error(`Game with id ${gameId} does not exist`);
+		throw new Error(`Game not found:id ${gameId}`);
 	}
 
 	const [existingCollectionItem] = await db
@@ -66,7 +66,7 @@ export async function addGameToCollectionWithEnrichment(
 		);
 
 	if (existingCollectionItem) {
-		throw new Error(`Game with id ${gameId} is already in community collection`);
+		throw new Error(`Game already exits in collection: ${gameId}`);
 	}
 
 	const newCollectionItem = await addGameToCollection(db, {
@@ -77,12 +77,15 @@ export async function addGameToCollectionWithEnrichment(
 		isActive: true
 	});
 
-	if (!newCollectionItem) {
-		throw new Error(`Unable to add game to community collection`);
-	}
-
 	if (existingGame.type === 'video_game' && existingGame.steamAppId) {
-		await enrichGameData('video_game', db, existingGame.steamAppId.toString());
+		try {
+			await enrichGameData('video_game', db, existingGame.steamAppId.toString());
+		} catch (err) {
+			console.error(
+				`Failed to enrich game data for gameId ${gameId}:`,
+				err instanceof Error ? err.message : err
+			);
+		}
 	}
 
 	return newCollectionItem;
