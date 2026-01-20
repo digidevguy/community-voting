@@ -9,7 +9,7 @@ export const createVotingSessionSchema = z.object({
 	gameDayDate: z.coerce.date(),
 	showRealTimeResults: z.boolean().default(true),
 	allowAddingOptions: z.boolean().default(true),
-	gameIds: z.array(z.uuid()).optional()
+	gameIds: z.array(z.uuid()).optional() || []
 });
 
 export const createVotingOptionSchema = z.object({

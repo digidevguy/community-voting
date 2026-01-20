@@ -6,6 +6,7 @@ import type { DBTransaction } from '$lib/server/db';
 import { game, votingOption } from '$lib/server/db/schema';
 import { confirmUserInCommunity } from '$lib/server/communities/communities.service';
 import { ilike } from 'drizzle-orm';
+import { isGameInCollection } from '$lib/server/collections/collection.service';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -51,7 +52,7 @@ export const actions: Actions = {
 
 		const body = await request.formData();
 
-		const gameIds = body.getAll('gameIds').map((id) => id.toString());
+		const gameIds = body.getAll('gameIds')?.map((id) => id.toString()) || [];
 
 		const validated = createVotingSessionSchema.parse({
 			title: body.get('title')?.toString() || '',
@@ -65,39 +66,54 @@ export const actions: Actions = {
 			gameIds
 		});
 
+		if (validated.gameIds && validated.gameIds.length > 0) {
+			const invalidGames: string[] = [];
+			for (const gameId of validated.gameIds) {
+				const inCollection = await isGameInCollection(locals.db, gameId, communityId);
+				if (!inCollection) {
+					invalidGames.push(gameId);
+				}
+			}
+
+			if (invalidGames.length > 0) {
+				return fail(400, {
+					success: false,
+					message: `The following games are not in the community collection: ${invalidGames.join(', ')}`
+				});
+			}
+		}
+
 		try {
 			const session = await createVotingSession(locals.db, validated, user.id);
 
-			if (validated.gameIds && validated.gameIds.length > 0) {
-				const gameIds = validated.gameIds;
-				const errors: string[] = [];
-				const concurrency = 4;
+			const gameIds = validated.gameIds || [];
+			const errors: string[] = [];
+			const concurrency = 4;
 
-				async function worker() {
-					while (true) {
-						const gameId = gameIds.shift();
-						if (!gameId) break;
-						try {
-							await locals.db.transaction(async (tx: DBTransaction) => {
-								await tx.insert(votingOption).values({
-									gameId,
-									votingSessionId: session.id,
-									addedBy: user.id,
-									addedDuringVoting: false,
-									approvalStatus: 'approved'
-								});
+			async function worker() {
+				while (true) {
+					const gameId = gameIds.shift();
+					if (!gameId) break;
+					try {
+						await locals.db.transaction(async (tx: DBTransaction) => {
+							await tx.insert(votingOption).values({
+								gameId,
+								votingSessionId: session.id,
+								addedBy: user.id,
+								addedDuringVoting: false,
+								approvalStatus: 'approved'
 							});
-						} catch (err: unknown) {
-							const msg = err instanceof Error ? err.message : String(err);
-							errors.push(msg);
-							console.error('Voting option error: ', msg);
-						}
+						});
+					} catch (err: unknown) {
+						const msg = err instanceof Error ? err.message : String(err);
+						errors.push(msg);
+						console.error('Voting option error: ', msg);
 					}
 				}
-
-				await Promise.all(Array.from({ length: concurrency }, () => worker()));
-				console.log(`Voting options save complete, Errors: ${errors.length}`);
 			}
+
+			await Promise.all(Array.from({ length: concurrency }, () => worker()));
+			console.log(`Voting options save complete, Errors: ${errors.length}`);
 
 			return {
 				status: 200,
