@@ -16,7 +16,8 @@ export async function getCommunityCollection(db: Database | DBTransaction, commu
 			game: {
 				id: game.id,
 				title: game.title,
-				type: game.type
+				type: game.type,
+				image: game.image
 			}
 		})
 		.from(communityCollections)
