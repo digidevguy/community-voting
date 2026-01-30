@@ -70,7 +70,6 @@ export const actions: Actions = {
 		}
 	},
 	search: async ({ locals, request }) => {
-		// Todo: Search for games
 		if (!locals.user) {
 			throw redirect(303, '/auth');
 		}
