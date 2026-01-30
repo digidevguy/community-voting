@@ -78,7 +78,11 @@ export async function addGameToCollectionWithEnrichment(
 		isActive: true
 	});
 
-	if (existingGame.type === 'video_game' && existingGame.steamAppId) {
+	if (
+		existingGame.type === 'video_game' &&
+		existingGame.steamAppId &&
+		!existingGame.apiDataComplete
+	) {
 		try {
 			await enrichGameData('video_game', db, existingGame.steamAppId.toString());
 		} catch (err) {
