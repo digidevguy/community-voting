@@ -3,10 +3,12 @@ import { createVotingSessionSchema } from '$lib/server/voting/voting-session.val
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import type { DBTransaction } from '$lib/server/db';
-import { game, votingOption } from '$lib/server/db/schema';
+import { votingOption } from '$lib/server/db/schema';
 import { confirmUserInCommunity } from '$lib/server/communities/communities.service';
-import { ilike } from 'drizzle-orm';
-import { isGameInCollection } from '$lib/server/collections/collection.service';
+import {
+	getCommunityCollection,
+	isGameInCollection
+} from '$lib/server/collections/collection.service';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -26,7 +28,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		});
 	}
 
-	return { communityId };
+	return {
+		communityId,
+		collection: await getCommunityCollection(locals.db, communityId)
+	};
 };
 
 export const actions: Actions = {
@@ -126,11 +131,5 @@ export const actions: Actions = {
 				message: err instanceof Error ? err.message : 'An unexpected error occurred'
 			});
 		}
-	},
-	search: async ({ locals, request }) => {
-		// Todo: Search for games within the community collection.
-		// if (!locals.user) {
-		// 	throw redirect(303, '/auth');
-		// }
 	}
 };
