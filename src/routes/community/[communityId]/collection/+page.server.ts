@@ -4,7 +4,11 @@ import {
 	confirmUserInCommunity,
 	getCommunityInfo
 } from '$lib/server/communities/communities.service';
-import { getCommunityCollection } from '$lib/server/collections/collection.service';
+import {
+	addGameToCollectionWithEnrichment,
+	getCommunityCollection,
+	isGameInCollection
+} from '$lib/server/collections/collection.service';
 import { fail } from '@sveltejs/kit';
 import { game } from '$lib/server/db/schema';
 import { ilike } from 'drizzle-orm';
@@ -32,7 +36,37 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 export const actions: Actions = {
 	add: async ({ locals, params, request }) => {
-		// Todo: Add game to collection with enrichment
+		if (!locals.user) {
+			throw redirect(303, '/auth');
+		}
+
+		const communityId = params.communityId;
+		const formData = await request.formData();
+		const gameId = formData.get('gameId')?.toString();
+		if (!gameId) {
+			return fail(400, { message: 'Invalid game selected' });
+		}
+
+		const isInCollection = await isGameInCollection(locals.db, communityId, gameId);
+		if (isInCollection) {
+			return fail(400, { message: 'Game is already in the collection' });
+		}
+
+		try {
+			const addedCollectionItem = await addGameToCollectionWithEnrichment(
+				locals.db,
+				communityId,
+				locals.user.id,
+				gameId
+			);
+			return { success: true, addedCollectionItem };
+		} catch (error) {
+			console.error(
+				'Error adding game to collection:',
+				error instanceof Error ? error.message : error
+			);
+			return fail(500, { message: 'Failed to add game to collection' });
+		}
 	},
 	search: async ({ locals, request }) => {
 		// Todo: Search for games
