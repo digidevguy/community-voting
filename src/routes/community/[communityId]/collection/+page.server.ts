@@ -7,7 +7,8 @@ import {
 import {
 	addGameToCollectionWithEnrichment,
 	getCommunityCollection,
-	isGameInCollection
+	isGameInCollection,
+	softRemoveGameFromCollection
 } from '$lib/server/collections/collection.service';
 import { fail } from '@sveltejs/kit';
 import { game } from '$lib/server/db/schema';
@@ -101,6 +102,27 @@ export const actions: Actions = {
 		};
 	},
 	remove: async ({ locals, params, request }) => {
-		// Todo: Soft delete game from collection
+		if (!locals.user) {
+			throw redirect(303, '/auth');
+		}
+
+		const communityId = params.communityId;
+		const formData = await request.formData();
+		const gameId = formData.get('gameId')?.toString();
+
+		if (!gameId) {
+			return fail(400, { message: 'Invalid game selected' });
+		}
+
+		try {
+			await softRemoveGameFromCollection(locals.db, communityId, locals.user.id, gameId);
+			return { success: true };
+		} catch (error) {
+			console.error(
+				'Error removing game from collection:',
+				error instanceof Error ? error.message : error
+			);
+			return fail(500, { message: 'Failed to remove game from collection' });
+		}
 	}
 };
