@@ -31,7 +31,7 @@ export async function getCommunityCollection(db: Database | DBTransaction, commu
 	return collection;
 }
 
-export async function addGameToCollection(
+async function addGameToCollection(
 	db: Database | DBTransaction,
 	data: CreateCommunityCollectionInput
 ) {
