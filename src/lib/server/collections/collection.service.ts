@@ -22,11 +22,12 @@ export async function getCommunityCollection(db: Database | DBTransaction, commu
 		})
 		.from(communityCollections)
 		.innerJoin(game, eq(communityCollections.gameId, game.id))
-		.where(eq(communityCollections.communityId, communityId));
-
-	if (!collection || collection.length === 0) {
-		throw new Error(`Unable to fetch collection community with id ${communityId}`);
-	}
+		.where(
+			and(
+				eq(communityCollections.isActive, true),
+				eq(communityCollections.communityId, communityId)
+			)
+		);
 
 	return collection;
 }
@@ -65,6 +66,8 @@ export async function addGameToCollectionWithEnrichment(
 				eq(communityCollections.gameId, gameId)
 			)
 		);
+
+	// Todo: Check if the existingCollectionItem isActive is false, then we can just reactivate it instead of throwing an error
 
 	if (existingCollectionItem) {
 		throw new Error(`Game already exits in collection: ${gameId}`);
@@ -133,7 +136,8 @@ export async function softRemoveGameFromCollection(
 				eq(communityCollections.communityId, communityId),
 				eq(communityCollections.gameId, gameId)
 			)
-		);
+		)
+		.returning();
 
 	if (!removedGame) {
 		throw new Error('Unable to remove game from collection');

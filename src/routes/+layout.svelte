@@ -16,7 +16,7 @@
 </svelte:head>
 
 <ModeWatcher />
-<header class="flex items-center justify-between border-b p-4">
+<header class="flex items-center justify-between border-b bg-white p-4">
 	<a href="/" class="text-lg font-bold">Community Voting</a>
 	<div class="flex items-center gap-4">
 		<nav>
@@ -36,6 +36,14 @@
 		<DarkModeToggle />
 	</div>
 </header>
-<main class="mx-auto h-svh w-full max-w-5xl px-4 py-4 sm:px-6 md:px-8">
+<main
+	class="mx-auto my-2 min-h-screen w-full max-w-5xl rounded-md bg-amber-50 px-4 py-4 sm:px-6 md:px-8"
+>
 	{@render children?.()}
 </main>
+
+<style>
+	:global(body) {
+		background-color: oklch(68.5% 0.169 237.323);
+	}
+</style>

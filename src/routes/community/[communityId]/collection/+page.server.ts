@@ -54,6 +54,7 @@ export const actions: Actions = {
 		}
 
 		try {
+			console.log('Adding game to collection:', { communityId, gameId, userId: locals.user.id });
 			const addedCollectionItem = await addGameToCollectionWithEnrichment(
 				locals.db,
 				communityId,
@@ -76,14 +77,14 @@ export const actions: Actions = {
 
 		console.log('Game search requested by user:', locals.user.id);
 		const formData = await request.formData();
-		const query = formData.get('query')?.toString().trim() || '';
+		const searchTerm = formData.get('searchTerm')?.toString().trim() || '';
 
-		console.log('Query input:', query);
-		if (!query || query.length < 2) {
+		console.log('Query input:', searchTerm);
+		if (!searchTerm || searchTerm.length < 2) {
 			return fail(400, { message: 'Query must be at least 2 characters long.' });
 		}
 
-		console.log('Searching for games with query:', query);
+		console.log('Searching for games with query:', searchTerm);
 		const games = await locals.db
 			.select({
 				id: game.id,
@@ -92,10 +93,10 @@ export const actions: Actions = {
 				type: game.type
 			})
 			.from(game)
-			.where(ilike(game.title, `%${query}%`))
+			.where(ilike(game.title, `%${searchTerm}%`))
 			.limit(10);
 
-		console.log(`Found ${games.length} games matching query "${query}"`);
+		console.log(`Found ${games.length} games matching query "${searchTerm}"`);
 		return {
 			games
 		};
@@ -112,6 +113,7 @@ export const actions: Actions = {
 		if (!gameId) {
 			return fail(400, { message: 'Invalid game selected' });
 		}
+		console.log('Removing game from collection:', { communityId, gameId, userId: locals.user.id });
 
 		try {
 			await softRemoveGameFromCollection(locals.db, communityId, locals.user.id, gameId);

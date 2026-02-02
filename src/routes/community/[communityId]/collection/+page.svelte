@@ -1,18 +1,77 @@
 <script lang="ts">
+	import Button, { buttonVariants } from '$lib/components/ui/button/button.svelte';
+	import * as Dialog from '$lib/components/ui/dialog/index.js';
+	import { Check, CirclePlus, Plus, Trash2 } from '@lucide/svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
-	let { data } = $props();
+	import Separator from '$lib/components/ui/separator/separator.svelte';
+	import { Label } from '$lib/components/ui/label';
+	import { Input } from '$lib/components/ui/input';
+	import { enhance } from '$app/forms';
 
-	$inspect(data);
+	let newGame = $state<string | null>(null);
+
+	let { data, form } = $props();
 </script>
 
-<h1>Community Collection</h1>
-<ul
-	class="grid grid-cols-[repeat(auto-fit,minmax(theme(spacing.64),1fr))] place-items-center gap-4"
->
+<h1 class="mb-2 text-xl font-semibold">Community Collection</h1>
+<div class="text-right">
+	<Dialog.Root>
+		<Dialog.Trigger class={buttonVariants({ variant: 'outline' })}
+			><CirclePlus />Add new</Dialog.Trigger
+		>
+		<Dialog.Content class="max-w-[425px]">
+			<Dialog.Header>
+				<Dialog.Title>Add new game</Dialog.Title>
+			</Dialog.Header>
+			<div>
+				<form method="POST" action="?/search" use:enhance>
+					<Label for="searchTerm" class="mb-2">Game name</Label>
+					<Input id="searchTerm" name="searchTerm" />
+					<div class="my-2 text-right"><Button type="submit">Search</Button></div>
+				</form>
+				<ul>
+					{#if form?.games}
+						{#each form.games as game}
+							<li class="flex items-center justify-between">
+								{game.title}
+								<Button
+									size="icon"
+									variant="ghost"
+									onclick={() => (newGame = newGame === game.id ? null : game.id)}
+								>
+									{#if newGame === game.id}
+										<Check class="text-green-500" />
+									{:else}
+										<Plus />
+									{/if}
+								</Button>
+							</li>
+						{/each}
+					{/if}
+				</ul>
+			</div>
+			<Dialog.Footer class="flex-row justify-end">
+				<form method="POST" action="?/add">
+					<input type="hidden" bind:value={newGame} name="gameId" />
+					<Button type="submit" variant="default">Save</Button>
+				</form>
+				<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Cancel</Dialog.Close>
+			</Dialog.Footer>
+		</Dialog.Content>
+	</Dialog.Root>
+</div>
+<Separator class="my-4" />
+<ul class="flex flex-col gap-2">
 	{#each data.collection as item}
 		<li>
-			<Card.Root class="flex w-full max-w-sm place-items-center px-4">
+			<Card.Root class="flex-row items-center justify-between p-2">
 				<h2>{item.game.title}</h2>
+				<form method="POST" action="?/remove" use:enhance>
+					<input type="hidden" value={item.game.id} name="gameId" />
+					<Button size="icon-sm" aria-label="Remove" variant="ghost" type="submit">
+						<Trash2 class="text-red-500" />
+					</Button>
+				</form>
 			</Card.Root>
 		</li>
 	{/each}
