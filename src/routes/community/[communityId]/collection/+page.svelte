@@ -1,20 +1,24 @@
 <script lang="ts">
 	import Button, { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
-	import { Check, CirclePlus, Plus, Trash2 } from '@lucide/svelte';
+	import { Check, CircleChevronLeft, CirclePlus, Plus, Trash2 } from '@lucide/svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import { Label } from '$lib/components/ui/label';
 	import { Input } from '$lib/components/ui/input';
 	import { enhance } from '$app/forms';
+	import type { ActionData, PageServerData } from './$types';
 
 	let newGame = $state<string | null>(null);
 
-	let { data, form } = $props();
+	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 </script>
 
-<h1 class="mb-2 text-xl font-semibold">Community Collection</h1>
-<div class="text-right">
+<h1 class="mb-4 text-xl font-semibold">Community Collection</h1>
+<div class="flex items-center justify-between">
+	<Button href="/community/{data.community.id}" variant="outline"
+		><CircleChevronLeft></CircleChevronLeft>Back</Button
+	>
 	<Dialog.Root>
 		<Dialog.Trigger class={buttonVariants({ variant: 'outline' })}
 			><CirclePlus />Add new</Dialog.Trigger
