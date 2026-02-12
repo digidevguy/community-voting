@@ -2,7 +2,7 @@
 	import type { PageServerData } from './$types';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
-	import { CirclePlus, LayoutDashboard, Library } from '@lucide/svelte';
+	import { CircleChevronLeft, CirclePlus, LayoutDashboard, Library } from '@lucide/svelte';
 
 	let { data }: { data: PageServerData } = $props();
 	$inspect(data);
