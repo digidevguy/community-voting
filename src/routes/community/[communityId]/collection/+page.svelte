@@ -19,6 +19,7 @@
 	<Button href="/community/{data.community.id}" variant="outline"
 		><CircleChevronLeft></CircleChevronLeft>Back</Button
 	>
+	<!-- Todo: Add collection badge count -->
 	<Dialog.Root>
 		<Dialog.Trigger class={buttonVariants({ variant: 'outline' })}
 			><CirclePlus />Add new</Dialog.Trigger
