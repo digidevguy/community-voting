@@ -21,6 +21,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		return redirect(403, 'You do not have access to this community');
 	}
 
+	// Todo: Get community collection count
+
 	return {
 		community: await getCommunityInfo(locals.db, params.communityId),
 		sessions: await getCommunitySessions(locals.db, params.communityId)
