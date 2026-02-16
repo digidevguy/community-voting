@@ -26,6 +26,7 @@
 	let startTime = $state('10:30:00');
 	let gameDayTime = $state('10:30:00');
 	let isSubmitting = $state(false);
+	let dateValidationMessage = $state<string | null>(null);
 
 	let startDateOpen = $state(false);
 	let gameDayOpen = $state(false);
@@ -50,7 +51,9 @@
 			? collectionGames.filter((game) => game.title.toLowerCase().includes(query))
 			: collectionGames;
 
-		return matches.slice(0, 10).map((game) => ({ id: game.id, title: game.title, type: game.type }));
+		return matches
+			.slice(0, 10)
+			.map((game) => ({ id: game.id, title: game.title, type: game.type }));
 	});
 
 	let startDateTime = $derived.by(() => {
@@ -66,6 +69,21 @@
 		const [hours, minutes, seconds] = gameDayTime.split(':').map(Number);
 		date.setHours(hours, minutes, seconds || 0);
 		return date.toISOString();
+	});
+
+	let hasPastStartDateTime = $derived.by(() => {
+		if (!startDateTime) return false;
+		return new Date(startDateTime).getTime() < Date.now();
+	});
+
+	let hasPastGameDayDateTime = $derived.by(() => {
+		if (!gameDayDateTime) return false;
+		return new Date(gameDayDateTime).getTime() < Date.now();
+	});
+
+	let isGameDayBeforeStartDateTime = $derived.by(() => {
+		if (!startDateTime || !gameDayDateTime) return false;
+		return new Date(gameDayDateTime).getTime() < new Date(startDateTime).getTime();
 	});
 
 	function addGame(game: { id: string; title: string }) {
@@ -106,7 +124,28 @@
 <form
 	action="?/create"
 	method="POST"
-	use:enhance={() => {
+	use:enhance={({ cancel }) => {
+		dateValidationMessage = null;
+
+		if (hasPastStartDateTime) {
+			dateValidationMessage = 'Voting start date/time cannot be in the past.';
+			cancel();
+			return;
+		}
+
+		if (hasPastGameDayDateTime) {
+			dateValidationMessage = 'Game day date/time cannot be in the past.';
+			cancel();
+			return;
+		}
+
+		if (isGameDayBeforeStartDateTime) {
+			dateValidationMessage =
+				'Game day date/time must be the same as or after voting start date/time.';
+			cancel();
+			return;
+		}
+
 		isSubmitting = true;
 		return async ({ result, update }) => {
 			isSubmitting = false;
@@ -122,6 +161,14 @@
 	}}
 	class="space-y-2"
 >
+	{#if dateValidationMessage}
+		<div class="rounded-md bg-red-50 p-4 dark:bg-red-950">
+			<p class="text-sm font-medium text-red-800 dark:text-red-200">
+				{dateValidationMessage}
+			</p>
+		</div>
+	{/if}
+
 	<div class="space-y-2">
 		<Label for="title">Event title</Label>
 		<Input id="title" name="title" />

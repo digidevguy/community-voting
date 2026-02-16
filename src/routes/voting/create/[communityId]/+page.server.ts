@@ -59,7 +59,7 @@ export const actions: Actions = {
 
 		const gameIds = body.getAll('gameIds')?.map((id) => id.toString()) || [];
 
-		const validated = createVotingSessionSchema.parse({
+		const validationResult = createVotingSessionSchema.safeParse({
 			title: body.get('title')?.toString() || '',
 			description: body.get('description')?.toString() || undefined,
 			startDate: body.get('startDate')?.toString() || undefined,
@@ -70,6 +70,15 @@ export const actions: Actions = {
 			communityId,
 			gameIds
 		});
+
+		if (!validationResult.success) {
+			return fail(400, {
+				success: false,
+				message: validationResult.error.issues[0]?.message || 'Invalid voting session data.'
+			});
+		}
+
+		const validated = validationResult.data;
 
 		if (validated.gameIds && validated.gameIds.length > 0) {
 			const invalidGames: string[] = [];
