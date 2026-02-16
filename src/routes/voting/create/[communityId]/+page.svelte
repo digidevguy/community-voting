@@ -20,7 +20,6 @@
 
 	let gameTypeValue: 'video_game' | 'board_game' | 'mixed' = $state('video_game');
 	let searchQuery = $state('');
-	let searchResults = $state<Array<{ id: string; title: string; type: string }>>([]);
 	let selectedGames = $state<Array<{ id: string; title: string }>>([]);
 	let startDate = $state<CalendarDate | undefined>();
 	let gameDayDate = $state<CalendarDate | undefined>();
@@ -39,6 +38,21 @@
 			.join(' ')
 	);
 
+	let searchResults = $derived.by(() => {
+		const query = searchQuery.trim().toLowerCase();
+		const selectedIds = new Set(selectedGames.map((game) => game.id));
+
+		const collectionGames = data.collection
+			.map((entry) => entry.game)
+			.filter((game) => !selectedIds.has(game.id));
+
+		const matches = query
+			? collectionGames.filter((game) => game.title.toLowerCase().includes(query))
+			: collectionGames;
+
+		return matches.slice(0, 10).map((game) => ({ id: game.id, title: game.title, type: game.type }));
+	});
+
 	let startDateTime = $derived.by(() => {
 		if (!startDate || !startTime) return undefined;
 		const date = startDate.toDate(getLocalTimeZone());
@@ -54,18 +68,11 @@
 		return date.toISOString();
 	});
 
-	$effect(() => {
-		if (form?.games) {
-			searchResults = form.games;
-		}
-	});
-
 	function addGame(game: { id: string; title: string }) {
 		if (!selectedGames.find((g) => g.id === game.id)) {
 			selectedGames = [...selectedGames, game];
 		}
 		searchQuery = '';
-		searchResults = [];
 	}
 
 	function removeGame(gameId: string) {
@@ -238,12 +245,9 @@
 
 <div class="flex flex-col space-y-4">
 	<h2 class=" text-xl font-semibold">Add Games</h2>
-	<form action="?/search" method="POST" use:enhance>
-		<div class="flex gap-2">
-			<Input id="search" name="query" placeholder="Search for games..." bind:value={searchQuery} />
-			<Button type="submit">Search</Button>
-		</div>
-	</form>
+	<div class="flex gap-2">
+		<Input id="search" name="query" placeholder="Search for games..." bind:value={searchQuery} />
+	</div>
 
 	{#if searchResults.length > 0}
 		<div class="space-y-2">
@@ -259,7 +263,7 @@
 			{/each}
 		</div>
 	{:else}
-		<p>No results yet...</p>
+		<p>No matching games in this community collection.</p>
 	{/if}
 
 	{#if selectedGames.length > 0}
