@@ -3,6 +3,7 @@ import {
 	getCommunityInfo,
 	confirmUserInCommunity
 } from '$lib/server/communities/communities.service';
+import { getCommunityCollectionCount } from '$lib/server/collections/collection.service';
 import { getCommunitySessions } from '$lib/server/voting/voting-session.service';
 import { redirect } from '@sveltejs/kit';
 
@@ -21,10 +22,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		return redirect(403, 'You do not have access to this community');
 	}
 
-	// Todo: Get community collection count
-
 	return {
 		community: await getCommunityInfo(locals.db, params.communityId),
-		sessions: await getCommunitySessions(locals.db, params.communityId)
+		sessions: await getCommunitySessions(locals.db, params.communityId),
+		collectionCount: await getCommunityCollectionCount(locals.db, params.communityId)
 	};
 };

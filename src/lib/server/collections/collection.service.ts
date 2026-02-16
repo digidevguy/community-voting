@@ -1,5 +1,5 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { communityCollections, game, type CommunityCollection } from '$lib/server/db/schema';
 import type { CreateCommunityCollectionInput } from './collection.validation';
 import { enrichGameData } from '../games/games.service';
@@ -30,6 +30,24 @@ export async function getCommunityCollection(db: Database | DBTransaction, commu
 		);
 
 	return collection;
+}
+
+export async function getCommunityCollectionCount(
+	db: Database | DBTransaction,
+	communityId: string
+): Promise<number> {
+	const result = await db
+		.select({ count: count() })
+		.from(communityCollections)
+		.where(
+			and(
+				eq(communityCollections.isActive, true),
+				eq(communityCollections.communityId, communityId)
+			)
+		)
+		.execute();
+
+	return result[0]?.count || 0;
 }
 
 async function addGameToCollection(

@@ -3,6 +3,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
 	import { CircleChevronLeft, CirclePlus, LayoutDashboard, Library } from '@lucide/svelte';
+	import { Badge } from '$lib/components/ui/badge';
 
 	let { data }: { data: PageServerData } = $props();
 	$inspect(data);
@@ -19,7 +20,12 @@
 		</li>
 		<li>
 			<Button href="/community/{data.community.id}/collection" variant="outline"
-				><Library></Library>Manage collection</Button
+				><Library></Library>Manage collection<Badge
+					class="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
+					variant="secondary"
+				>
+					{data.collectionCount}
+				</Badge></Button
 			>
 		</li>
 		<li>
