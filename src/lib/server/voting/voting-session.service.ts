@@ -1,6 +1,6 @@
 import type { Database, DBTransaction } from '$lib/server/db';
 import { game, user, vote, votingOption, votingSession } from '$lib/server/db/schema';
-import { and, count, eq } from 'drizzle-orm';
+import { and, count, eq, sql } from 'drizzle-orm';
 import type {
 	CreateVotingOptionInput,
 	CreateVotingSessionInput
@@ -256,11 +256,32 @@ export async function getVotingSessionWithResults(
 	return { votingSessionDetails, options: optionsWithCounts };
 }
 
-export async function getCommunitySessions(db: Database | DBTransaction, communityId: string) {
-	// Join community and voting_sessions
+export async function getCommunitySessions(
+	db: Database | DBTransaction,
+	communityId: string,
+	userId: string
+) {
+	// Join community and voting_sessions, check if user has voted
 	const results = await db
-		.select()
+		.select({
+			id: votingSession.id,
+			communityId: votingSession.communityId,
+			title: votingSession.title,
+			description: votingSession.description,
+			createdBy: votingSession.createdBy,
+			status: votingSession.status,
+			startDate: votingSession.startDate,
+			gameDayDate: votingSession.gameDayDate,
+			voting_session_type: votingSession.voting_session_type,
+			showRealTimeResults: votingSession.showRealTimeResults,
+			allowAddingOptions: votingSession.allowAddingOptions,
+			selectedOptionId: votingSession.selectedOptionId,
+			createdAt: votingSession.createdAt,
+			updatedBy: votingSession.updatedBy,
+			hasVoted: sql<boolean>`CASE WHEN ${vote.id} IS NOT NULL THEN true ELSE false END`
+		})
 		.from(votingSession)
+		.leftJoin(vote, and(eq(vote.votingSessionId, votingSession.id), eq(vote.userId, userId)))
 		.where(eq(votingSession.communityId, communityId))
 		.orderBy(votingSession.status);
 

@@ -19,12 +19,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	);
 
 	if (!userInCommunity) {
-		return redirect(403, 'You do not have access to this community');
+		return redirect(403, '/unauthorized');
 	}
 
 	return {
 		community: await getCommunityInfo(locals.db, params.communityId),
-		sessions: await getCommunitySessions(locals.db, params.communityId),
+		sessions: await getCommunitySessions(locals.db, params.communityId, locals.user.id),
 		collectionCount: await getCommunityCollectionCount(locals.db, params.communityId)
 	};
 };
