@@ -2,7 +2,7 @@
 	import type { PageServerData } from './$types';
 	import * as Card from '$lib/components/ui/card';
 	import { Button } from '$lib/components/ui/button';
-	import { CircleChevronLeft, CirclePlus, LayoutDashboard, Library } from '@lucide/svelte';
+	import { Check, CirclePlus, LayoutDashboard, Library } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 
 	let { data }: { data: PageServerData } = $props();
@@ -39,14 +39,24 @@
 <ul class="flex flex-col gap-4">
 	{#each data.sessions as session}
 		<li>
-			<!-- Todo: Add voting styling, tie styling to if user has voted in this session -->
-			<Card.Root class="w-full">
-				<Card.Header>
-					<Card.Title>{session.title}</Card.Title>
-					<Card.Description class="line-clamp-3">{session.description}</Card.Description>
-				</Card.Header>
+			<Card.Root>
+				<!-- Add session image -->
+				<div class="space-y-2 p-4">
+					<div class="flex justify-between p-2">
+						<div>
+							<Card.Title>{session.title}</Card.Title>
+							<p>{session.gameDayDate}</p>
+						</div>
+						<span
+							class="flex place-items-center rounded-full bg-green-200 p-2 {session.hasVoted
+								? 'block'
+								: 'hidden'}"><Check class="text-green-600"></Check></span
+						>
+					</div>
+					<Card.Description>{session.description}</Card.Description>
+				</div>
 				<Card.Footer class="justify-end">
-					<Button href="/voting/{session.id}">Learn more</Button>
+					<Button href="/voting/{session.id}">View Details</Button>
 				</Card.Footer>
 			</Card.Root>
 		</li>
