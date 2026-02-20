@@ -1,12 +1,27 @@
 <script lang="ts">
-	import type { PageServerData } from './$types';
+	import type { PageData } from './$types';
+	import { format } from 'date-fns';
 	import * as Card from '$lib/components/ui/card';
+	import * as Tabs from '$lib/components/ui/tabs';
 	import { Button } from '$lib/components/ui/button';
 	import { Check, CirclePlus, LayoutDashboard, Library } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 
-	let { data }: { data: PageServerData } = $props();
-	$inspect(data);
+	let { data }: { data: PageData } = $props();
+	type Session = PageData['sessions'][number];
+	type SessionList = PageData['sessions'];
+	type SessionTabStatus = 'active' | 'completed' | 'archived';
+
+	const activeSessions: SessionList = $derived(
+		data.sessions.filter((session: Session) => session.status === 'active')
+	);
+	const completedSessions: SessionList = $derived(
+		data.sessions.filter((session: Session) => session.status === 'completed')
+	);
+	const archivedSessions: SessionList = $derived(
+		data.sessions.filter((session: Session) => session.status === 'archived')
+	);
+	$inspect(activeSessions);
 </script>
 
 <h1 class="mb-4 text-xl font-semibold">{data.community.title}</h1>
@@ -36,29 +51,44 @@
 	</ul>
 </nav>
 
-<ul class="flex flex-col gap-4">
-	{#each data.sessions as session}
-		<li>
-			<Card.Root>
-				<!-- Add session image -->
-				<div class="space-y-2 p-4">
-					<div class="flex justify-between p-2">
-						<div>
-							<Card.Title>{session.title}</Card.Title>
-							<p>{session.gameDayDate}</p>
+{#snippet tab(sessionType: SessionTabStatus, filteredSessions: SessionList)}
+	<Tabs.Content value={sessionType}>
+		<ul class="flex flex-col gap-4">
+			{#each filteredSessions as session}
+				<li>
+					<Card.Root>
+						<!-- Add session image -->
+						<div class="space-y-2 px-6 py-4">
+							<div class="flex justify-between">
+								<div class="space-y-2">
+									<Card.Title>{session.title}</Card.Title>
+									<p>{format(session.gameDayDate, 'EEE, MMM do h:mm a')}</p>
+								</div>
+								<span
+									class="flex place-items-center rounded-full bg-green-200 p-4 {session.hasVoted
+										? 'block'
+										: 'hidden'}"><Check class="text-green-600"></Check></span
+								>
+							</div>
+							<Card.Description>{session.description}</Card.Description>
 						</div>
-						<span
-							class="flex place-items-center rounded-full bg-green-200 p-2 {session.hasVoted
-								? 'block'
-								: 'hidden'}"><Check class="text-green-600"></Check></span
-						>
-					</div>
-					<Card.Description>{session.description}</Card.Description>
-				</div>
-				<Card.Footer class="justify-end">
-					<Button href="/voting/{session.id}">View Details</Button>
-				</Card.Footer>
-			</Card.Root>
-		</li>
-	{/each}
-</ul>
+						<Card.Footer class="justify-end">
+							<Button href="/voting/{session.id}">View Details</Button>
+						</Card.Footer>
+					</Card.Root>
+				</li>
+			{/each}
+		</ul>
+	</Tabs.Content>
+{/snippet}
+
+<Tabs.Root value="active">
+	<Tabs.List>
+		<Tabs.Trigger value="active">Active</Tabs.Trigger>
+		<Tabs.Trigger value="completed">Completed</Tabs.Trigger>
+		<Tabs.Trigger value="archived">Archived</Tabs.Trigger>
+	</Tabs.List>
+	{@render tab('active', activeSessions)}
+	{@render tab('completed', completedSessions)}
+	{@render tab('archived', archivedSessions)}
+</Tabs.Root>

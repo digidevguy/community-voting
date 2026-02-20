@@ -38,7 +38,7 @@
 		"@tailwindcss/vite": "^4.0.0",
 		"@types/node": "^22",
 		"@vitest/browser": "^3.2.3",
-		"bits-ui": "^2.14.4",
+		"bits-ui": "2.14.4",
 		"clsx": "^2.1.1",
 		"drizzle-kit": "^0.30.2",
 		"drizzle-orm": "^0.40.0",
@@ -64,6 +64,7 @@
 	},
 	"dependencies": {
 		"@node-rs/argon2": "^2.0.2",
+		"date-fns": "^4.1.0",
 		"mode-watcher": "^1.1.0",
 		"postgres": "^3.4.5",
 		"zod": "^4.1.12"
