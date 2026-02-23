@@ -1,6 +1,6 @@
 import type { Database, DBTransaction } from '$lib/server/db';
 import { game, user, vote, votingOption, votingSession } from '$lib/server/db/schema';
-import { and, count, eq, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, sql } from 'drizzle-orm';
 import type {
 	CreateVotingOptionInput,
 	CreateVotingSessionInput
@@ -47,11 +47,94 @@ export async function updateVotingSession(
 	userId: string
 ) {
 	const [result] = await db
-		.update({ ...votingSession, updatedBy: userId })
-		.set(data)
-		.where(eq(votingSession.id, votingSessionId));
+		.update(votingSession)
+		.set({
+			title: data.title,
+			description: data.description,
+			voting_session_type: data.votingSessionType,
+			startDate: data.startDate || new Date(),
+			gameDayDate: data.gameDayDate,
+			showRealTimeResults: data.showRealTimeResults,
+			allowAddingOptions: data.allowAddingOptions,
+			updatedBy: userId
+		})
+		.where(and(eq(votingSession.id, votingSessionId), eq(votingSession.createdBy, userId)))
+		.returning({ id: votingSession.id });
 
 	return result;
+}
+
+export async function syncVotingSessionOptions(
+	db: Database | DBTransaction,
+	votingSessionId: string,
+	gameIds: string[],
+	userId: string
+) {
+	const desiredGameIds = [...new Set(gameIds)];
+
+	const existingOptions = await db
+		.select({
+			id: votingOption.id,
+			gameId: votingOption.gameId,
+			isActive: votingOption.isActive
+		})
+		.from(votingOption)
+		.where(eq(votingOption.votingSessionId, votingSessionId));
+
+	const existingByGameId = new Map(existingOptions.map((option) => [option.gameId, option]));
+
+	const toInsert = desiredGameIds.filter((gameId) => !existingByGameId.has(gameId));
+	const toActivate = desiredGameIds
+		.map((gameId) => existingByGameId.get(gameId))
+		.filter((option): option is { id: string; gameId: string; isActive: boolean } =>
+			Boolean(option && !option.isActive)
+		)
+		.map((option) => option.id);
+
+	const desiredSet = new Set(desiredGameIds);
+	const toDeactivate = existingOptions
+		.filter((option) => option.isActive && !desiredSet.has(option.gameId))
+		.map((option) => option.id);
+
+	if (toInsert.length > 0) {
+		const rows = toInsert.map((gameId, index) => ({
+			votingSessionId,
+			gameId,
+			addedBy: userId,
+			order: index,
+			addedDuringVoting: false,
+			approvalStatus: 'approved' as const
+		}));
+
+		await db.insert(votingOption).values(rows).onConflictDoNothing();
+	}
+
+	if (toActivate.length > 0) {
+		await db
+			.update(votingOption)
+			.set({ isActive: true, reviewedBy: userId })
+			.where(
+				and(eq(votingOption.votingSessionId, votingSessionId), inArray(votingOption.id, toActivate))
+			);
+	}
+
+	if (toDeactivate.length > 0) {
+		await db
+			.update(votingOption)
+			.set({ isActive: false, reviewedBy: userId })
+			.where(
+				and(
+					eq(votingOption.votingSessionId, votingSessionId),
+					inArray(votingOption.id, toDeactivate)
+				)
+			);
+	}
+
+	return {
+		inserted: toInsert.length,
+		activated: toActivate.length,
+		deactivated: toDeactivate.length
+	};
 }
 
 export async function deleteVotingSession(
