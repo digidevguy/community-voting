@@ -12,10 +12,7 @@
 	const votingSessionDetails = $derived(data.session.votingSessionDetails);
 	const options = $derived(data.session.options);
 
-	/**
-	 * Todo: Use userVote to style option card with the user's current vote.
-	 * */
-	const userVote = $derived(data.userVote);
+	const userVote = $derived(data.userVote?.votingOptionId);
 	const totalVote = $derived(options.reduce((sum, o) => sum + o.voteCount, 0) || 1);
 	let submittingOptionId = $state<string | undefined>();
 	let expandedCardId = $state<string | undefined>();
@@ -88,7 +85,10 @@
 		{#each options as option (option.id)}
 			<li>
 				<Card.Root
-					class="group relative flex overflow-hidden py-0 transition-all duration-100 hover:-translate-y-1 hover:shadow-xl"
+					class="group relative flex overflow-hidden py-0 transition-all duration-100 hover:-translate-y-1 hover:shadow-xl {userVote ===
+					option.id
+						? 'ring-2 ring-sky-500 ring-offset-2'
+						: ''}"
 					onclick={() => (expandedCardId = expandedCardId === option.id ? undefined : option.id)}
 				>
 					{#if option.game?.image}
