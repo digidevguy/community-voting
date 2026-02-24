@@ -1,0 +1,40 @@
+import { error, redirect } from '@sveltejs/kit';
+import { getVotingSession } from '../voting/voting-session.service';
+import { confirmUserInCommunity } from '../communities/communities.service';
+
+/**
+ *  * This function is a reusable authz check for voting access to a community. It checks the following:
+ * 1. If the user is authenticated
+ * 2. If the voting session exists
+ * 3. If the voting session is active (not expired)
+ * 4. If the user is a member of the community that the voting session belongs to
+ * @param locals
+ * @param votingSessionId
+ */
+export async function requireVotingAcces(locals: App.Locals, votingSessionId: string) {
+	if (!locals.user) {
+		throw redirect(303, '/auth');
+	}
+
+	const session = await getVotingSession(locals.db, votingSessionId);
+
+	if (!session) {
+		throw error(404, 'Voting session not found');
+	}
+
+	if (session.gameDayDate && session.gameDayDate < new Date()) {
+		throw error(403, 'Voting session has expired');
+	}
+
+	const isUserInCommunity = await confirmUserInCommunity(
+		locals.db,
+		locals.user.id,
+		session.communityId
+	);
+
+	if (!isUserInCommunity) {
+		throw error(403, 'User is not a member of the community');
+	}
+
+	return session;
+}

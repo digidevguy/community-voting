@@ -40,6 +40,20 @@ export async function getVotingSession(db: Database, votingSessionId: string) {
 	return result;
 }
 
+export async function getVotingSessionWithOptions(db: Database, votingSessionId: string) {
+	const session = await getVotingSession(db, votingSessionId);
+	if (!session) {
+		throw new Error('Voting session not found');
+	}
+
+	const options = await db
+		.select()
+		.from(votingOption)
+		.where(and(eq(votingOption.votingSessionId, votingSessionId), eq(votingOption.isActive, true)));
+
+	return { session, options };
+}
+
 export async function updateVotingSession(
 	db: Database | DBTransaction,
 	votingSessionId: string,
