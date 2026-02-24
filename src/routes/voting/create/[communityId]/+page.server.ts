@@ -83,7 +83,7 @@ export const actions: Actions = {
 		if (validated.gameIds && validated.gameIds.length > 0) {
 			const invalidGames: string[] = [];
 			for (const gameId of validated.gameIds) {
-				const inCollection = await isGameInCollection(locals.db, gameId, communityId);
+				const inCollection = await isGameInCollection(locals.db, communityId, gameId);
 				if (!inCollection) {
 					invalidGames.push(gameId);
 				}

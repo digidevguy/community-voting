@@ -8,19 +8,19 @@ import {
 	updateVotingSession
 } from '$lib/server/voting/voting-session.service';
 import { createVotingSessionSchema } from '$lib/server/voting/voting-session.validation';
+import { requireVotingAccess } from '$lib/server/authz/community';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		throw redirect(303, '/auth');
-	}
-
 	const { votingSessionId } = params;
 	if (!votingSessionId) {
 		return error(500, { message: 'Voting session not found.' });
 	}
 
+	const session = await requireVotingAccess(locals, votingSessionId);
+
 	return {
-		sessionDetails: await getVotingSessionWithOptions(locals.db, votingSessionId)
+		sessionDetails: await getVotingSessionWithOptions(locals.db, votingSessionId),
+		collection: await getCommunityCollection(locals.db, session.communityId)
 	};
 };
 

@@ -11,7 +11,7 @@ import { confirmUserInCommunity } from '../communities/communities.service';
  * @param locals
  * @param votingSessionId
  */
-export async function requireVotingAcces(locals: App.Locals, votingSessionId: string) {
+export async function requireVotingAccess(locals: App.Locals, votingSessionId: string) {
 	if (!locals.user) {
 		throw redirect(303, '/auth');
 	}

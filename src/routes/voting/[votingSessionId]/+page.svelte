@@ -6,7 +6,7 @@
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import type { PageProps } from './$types';
 	import { Badge } from '$lib/components/ui/badge';
-	import { CircleChevronLeft } from '@lucide/svelte';
+	import { CircleChevronLeft, Pencil } from '@lucide/svelte';
 
 	let { data, form }: PageProps = $props();
 	const votingSessionDetails = $derived(data.session.votingSessionDetails);
@@ -43,10 +43,14 @@
 			{votingSessionDetails.status.toLocaleUpperCase()}</Badge
 		>
 	</div>
-
-	<Button href="/community/{votingSessionDetails.communityId}" variant="outline" class="max-w-22">
-		<CircleChevronLeft></CircleChevronLeft>Back
-	</Button>
+	<nav>
+		<Button href="/community/{votingSessionDetails.communityId}" variant="outline">
+			<CircleChevronLeft></CircleChevronLeft>Back
+		</Button>
+		<Button href="/voting/{votingSessionDetails.id}/edit" variant="outline">
+			<Pencil />Edit
+		</Button>
+	</nav>
 
 	<p class="whitespace-pre-wrap">{votingSessionDetails.description}</p>
 	<div class="flex flex-row justify-around">
