@@ -2,6 +2,7 @@
 	import '../app.css';
 	import type { LayoutData } from './$types';
 	import favicon from '$lib/assets/favicon.svg';
+	import { Toaster } from '$lib/components/ui/sonner/index';
 	import { ModeWatcher } from 'mode-watcher';
 	import DarkModeToggle from '$lib/components/custom/DarkModeToggle.svelte';
 	import { Button } from '$lib/components/ui/button';
@@ -14,6 +15,7 @@
 </svelte:head>
 
 <ModeWatcher defaultMode="dark" />
+<Toaster />
 <header class="flex items-center justify-between border-b p-4">
 	<a href="/" class="text-lg font-bold">Community Voting</a>
 	<div class="flex items-center gap-4">
