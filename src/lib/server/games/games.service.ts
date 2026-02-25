@@ -1,7 +1,7 @@
 import { STEAM_API_DETAILS_URL } from '$env/static/private';
 import type { Database, DBTransaction } from '$lib/server/db';
 import { game } from '$lib/server/db/schema';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { GameDetailsInput } from './games.validation';
 import type { Category, Genre, SteamGameResponse } from '$lib/types';
 
@@ -10,7 +10,7 @@ export async function findGameDetails(db: Database | DBTransaction, gameId: stri
 	const [gameDetails] = await db
 		.select()
 		.from(game)
-		.where(sql`${game.steamAppId} = ${gameId}`);
+		.where(eq(game.id, gameId));
 
 	return gameDetails;
 }
