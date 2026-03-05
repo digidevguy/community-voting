@@ -68,7 +68,7 @@
 								<span
 									class="flex place-items-center rounded-full bg-green-200 p-4 {session.hasVoted
 										? 'block'
-										: 'hidden'}"><Check class="text-green-600"></Check></span
+										: 'hidden'}"><Check size={16} class="text-green-600"></Check></span
 								>
 							</div>
 							<Card.Description>{session.description}</Card.Description>
