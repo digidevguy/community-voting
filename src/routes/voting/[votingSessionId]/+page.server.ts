@@ -1,5 +1,5 @@
 import type { Actions, PageServerLoad } from './$types';
-import { error, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import {
 	getUserVoteForSession,
 	getVotingSessionWithResults
@@ -7,6 +7,8 @@ import {
 import { castVote } from '$lib/server/voting/voting-session.service';
 import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
 import z from 'zod';
+import { vote } from '$lib/server/db/schema';
+import { and, eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -61,6 +63,29 @@ export const actions: Actions = {
 				success: false,
 				errors: [err instanceof Error ? err.message : 'Failed to cast vote']
 			};
+		}
+	},
+	clearVote: async ({ request, locals }) => {
+		const formData = await request.formData();
+		const votingSessionId = formData.get('votingSessionId');
+
+		if (!votingSessionId || typeof votingSessionId !== 'string') {
+			return fail(400, { errors: ['Invalid voting session ID'] });
+		}
+
+		if (!locals.user?.id) {
+			return fail(401, { errors: ['You must be logged in to clear your vote'] });
+		}
+
+		try {
+			await locals.db
+				.delete(vote)
+				.where(and(eq(vote.votingSessionId, votingSessionId), eq(vote.userId, locals.user.id)));
+
+			return { success: true };
+		} catch (e) {
+			console.error('Failed to clear user vote: ', e);
+			return fail(500, { error: ['Failed to clear vote. Please try again.'] });
 		}
 	}
 };
