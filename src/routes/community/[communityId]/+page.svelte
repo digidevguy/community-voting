@@ -6,6 +6,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Check, CirclePlus, LayoutDashboard, Library } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
+	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
 
 	let { data }: { data: PageData } = $props();
 	type Session = PageData['sessions'][number];
@@ -72,7 +73,11 @@
 							</div>
 							<Card.Description>{session.description}</Card.Description>
 						</div>
-						<Card.Footer class="justify-end">
+						<Card.Footer class="justify-end gap-4">
+							<!-- Todo: Add this to a dialog -->
+							{#if session.hasVoted}
+								<ClearVoteButton votingSessionId={session.id}></ClearVoteButton>
+							{/if}
 							<Button href="/voting/{session.id}">View Details</Button>
 						</Card.Footer>
 					</Card.Root>

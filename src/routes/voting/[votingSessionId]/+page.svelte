@@ -7,6 +7,7 @@
 	import type { PageProps } from './$types';
 	import { Badge } from '$lib/components/ui/badge';
 	import { CircleChevronLeft, Pencil } from '@lucide/svelte';
+	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
 
 	let { data, form }: PageProps = $props();
 	const votingSessionDetails = $derived(data.session.votingSessionDetails);
@@ -78,7 +79,10 @@
 		</div>
 	{/each}
 </section>
-<section>
+<section class="space-y-4">
+	{#if userVote}
+		<ClearVoteButton votingSessionId={votingSessionDetails.id}></ClearVoteButton>
+	{/if}
 	<ul
 		class="grid grid-cols-[repeat(auto-fit,minmax(theme(spacing.64),1fr))] place-items-center gap-4"
 	>
