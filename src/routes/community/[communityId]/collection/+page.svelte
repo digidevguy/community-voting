@@ -84,7 +84,7 @@
 		<li>
 			<Card.Root class="flex-row items-center justify-between p-2">
 				<h2>{item.game.title}</h2>
-				<!-- Todo: refactor to add confirmation dialog before removal -->
+				<Button href="/library/{item.game.id}" variant="secondary">View game details</Button>
 				<Dialog.Root
 					open={removeDialogOpen[item.game.id] ?? false}
 					onOpenChange={(open) => {
