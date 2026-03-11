@@ -7,6 +7,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Input } from '$lib/components/ui/input';
 	import Button from '$lib/components/ui/button/button.svelte';
+	import { toast } from 'svelte-sonner';
 
 	let { form }: { form: ActionData } = $props();
 
@@ -15,7 +16,10 @@
 
 	const handleSubmit: SubmitFunction = () => {
 		loading = true;
-		return async ({ update }: { update: () => Promise<void> }) => {
+		return async ({ result, update }) => {
+			if (result.type === 'redirect') {
+				toast.success(activeTab === 'login' ? 'Logged in successfully!' : 'Account created!');
+			}
 			await update();
 			loading = false;
 		};
@@ -32,7 +36,7 @@
 		<h1>Auth</h1>
 		<p>Sign in or register to start voting with your friends!</p>
 	</div>
-	<Tabs.Root value="login">
+	<Tabs.Root bind:value={activeTab}>
 		<Tabs.List>
 			<Tabs.Trigger value="login">Log in</Tabs.Trigger>
 			<Tabs.Trigger value="register">Register</Tabs.Trigger>
