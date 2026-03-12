@@ -139,9 +139,7 @@
 											toast.success('Vote cast successfully!');
 										} else {
 											const message =
-												typeof data?.errors === 'string'
-													? data.errors
-													: 'Failed to cast vote';
+												typeof data?.errors === 'string' ? data.errors : 'Failed to cast vote';
 											toast.error(message);
 										}
 									}
@@ -152,6 +150,7 @@
 							<input type="hidden" name="votingOptionId" value={option.id ?? ''} />
 							{#if form?.errors && Array.isArray(form.errors)}
 								<div class="text-red-600">
+									<!-- Todo: address form type to address error -->
 									{#each form.errors as error}
 										<p>{error}</p>
 									{/each}

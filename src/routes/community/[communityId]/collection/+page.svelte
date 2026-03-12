@@ -8,6 +8,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { enhance } from '$app/forms';
 	import type { ActionData, PageServerData } from './$types';
+	import { toast } from 'svelte-sonner';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 
@@ -37,7 +38,7 @@
 				</form>
 				<ul>
 					{#if form?.games}
-					{#each form.games as game (game.id)}
+						{#each form.games as game (game.id)}
 							<li class="flex items-center justify-between">
 								{game.title}
 								<Button
@@ -64,6 +65,7 @@
 						return async ({ result, update }) => {
 							if (result.type === 'success') {
 								addDialogOpen = false;
+								toast.success('Game added!');
 							}
 
 							await update();
@@ -104,6 +106,7 @@
 									return async ({ result, update }) => {
 										if (result.type === 'success') {
 											removeDialogOpen[item.game.id] = false;
+											toast.success('Game removed successfully!');
 										}
 
 										await update();

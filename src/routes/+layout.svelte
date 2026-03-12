@@ -19,7 +19,7 @@
 </svelte:head>
 
 <ModeWatcher defaultMode="dark" />
-<Toaster />
+<Toaster position="bottom-center" richColors />
 <header class="flex items-center justify-between border-b p-4">
 	<a href={resolve('/')} class="text-lg font-bold">Community Voting</a>
 	<div class="flex items-center gap-4">
@@ -36,7 +36,8 @@
 				use:enhance={() => {
 					return async ({ result, update }) => {
 						await update();
-						if (result.type === 'success') {
+						if (result.type === 'redirect') {
+							console.log('Signed out');
 							toast.success('Signed out successfully!');
 						}
 					};
