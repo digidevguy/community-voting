@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { error } from '@sveltejs/kit';
 	import type { PageData } from './$types';
 	import Button from '$lib/components/ui/button/button.svelte';
 
@@ -10,7 +9,7 @@
 {#await data.communities}
 	<p></p>
 {:then communities}
-	{#each communities as item}
+	{#each communities as item (item.community.id)}
 		<div>
 			<h2>{item.community.title}</h2>
 			<p>{item.community.description || 'No description'}</p>

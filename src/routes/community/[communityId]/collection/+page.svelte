@@ -37,7 +37,7 @@
 				</form>
 				<ul>
 					{#if form?.games}
-						{#each form.games as game}
+					{#each form.games as game (game.id)}
 							<li class="flex items-center justify-between">
 								{game.title}
 								<Button
@@ -80,7 +80,7 @@
 </div>
 <Separator class="my-4" />
 <ul class="flex flex-col gap-2">
-	{#each data.collection as item}
+	{#each data.collection as item (item.game.id)}
 		<li>
 			<Card.Root class="flex-row items-center justify-between p-2">
 				<h2>{item.game.title}</h2>

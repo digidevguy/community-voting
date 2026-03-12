@@ -27,6 +27,14 @@ export default ts.config(
 		}
 	},
 	{
+		// The generic Button component handles both internal and external hrefs,
+		// so resolve() cannot be blindly applied inside it.
+		files: ['**/components/ui/button/button.svelte'],
+		rules: {
+			'svelte/no-navigation-without-resolve': ['error', { ignoreLinks: true }]
+		}
+	},
+	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
 		languageOptions: {
 			parserOptions: {

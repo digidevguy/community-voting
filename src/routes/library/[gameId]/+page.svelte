@@ -20,7 +20,7 @@
 		{/if}
 		{#if data.game.genres}
 			<ul class="flex gap-2 p-2">
-				{#each data.game.genres as genre}
+			{#each data.game.genres as genre (genre)}
 					<li><Badge>{genre}</Badge></li>
 				{/each}
 			</ul>

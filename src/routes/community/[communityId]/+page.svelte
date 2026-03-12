@@ -22,7 +22,6 @@
 	const archivedSessions: SessionList = $derived(
 		data.sessions.filter((session: Session) => session.status === 'archived')
 	);
-	$inspect(activeSessions);
 </script>
 
 <h1 class="mb-4 text-xl font-semibold">{data.community.title}</h1>
@@ -55,7 +54,7 @@
 {#snippet tab(sessionType: SessionTabStatus, filteredSessions: SessionList)}
 	<Tabs.Content value={sessionType}>
 		<ul class="flex flex-col gap-4">
-			{#each filteredSessions as session}
+			{#each filteredSessions as session (session.id)}
 				<li>
 					<Card.Root>
 						<!-- Add session image -->

@@ -323,7 +323,7 @@
 		</div>
 	</div>
 
-	{#each selectedGames as game}
+	{#each selectedGames as game (game.id)}
 		<input type="hidden" name="gameIds" value={game.id} />
 	{/each}
 
@@ -340,7 +340,7 @@
 
 	{#if searchResults.length > 0}
 		<div class="space-y-2">
-			{#each searchResults as game}
+			{#each searchResults as game (game.id)}
 				<Card.Root class="py-2">
 					<Card.Content>
 						<div class="flex items-center justify-between">
@@ -359,7 +359,7 @@
 		<div>
 			<h3 class="mb-2 font-semibold">Selected Games ({selectedGames.length})</h3>
 			<ul class="space-y-2">
-				{#each selectedGames as game}
+				{#each selectedGames as game (game.id)}
 					<li class="flex items-center justify-between rounded border p-2">
 						<span>{game.title}</span>
 						<Button size="sm" variant="destructive" onclick={() => removeGame(game.id)}>

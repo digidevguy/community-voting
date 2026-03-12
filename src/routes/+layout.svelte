@@ -6,8 +6,12 @@
 	import { ModeWatcher } from 'mode-watcher';
 	import DarkModeToggle from '$lib/components/custom/DarkModeToggle.svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { enhance } from '$app/forms';
+	import { resolve } from '$app/paths';
+	import { toast } from 'svelte-sonner';
+	import type { Snippet } from 'svelte';
 
-	let { children, data }: { children: any; data: LayoutData } = $props();
+	let { children, data }: { children: Snippet; data: LayoutData } = $props();
 </script>
 
 <svelte:head>
@@ -17,16 +21,27 @@
 <ModeWatcher defaultMode="dark" />
 <Toaster />
 <header class="flex items-center justify-between border-b p-4">
-	<a href="/" class="text-lg font-bold">Community Voting</a>
+	<a href={resolve('/')} class="text-lg font-bold">Community Voting</a>
 	<div class="flex items-center gap-4">
 		<nav>
-			{#each data.navigation as item}
+			{#each data.navigation as item (item.href)}
 				<Button variant="ghost" href={item.href} class="mr-4 last:mr-0">{item.label}</Button>
 			{/each}
 		</nav>
 
 		{#if data?.user}
-			<form action="/auth?/logout" method="POST">
+			<form
+				action="/auth?/logout"
+				method="POST"
+				use:enhance={() => {
+					return async ({ result, update }) => {
+						await update();
+						if (result.type === 'success') {
+							toast.success('Signed out successfully!');
+						}
+					};
+				}}
+			>
 				<Button type="submit" variant="ghost">Logout</Button>
 			</form>
 		{:else}
