@@ -8,6 +8,7 @@
 	import { Badge } from '$lib/components/ui/badge';
 	import { CircleChevronLeft, Pencil } from '@lucide/svelte';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
+	import { toast } from 'svelte-sonner';
 
 	let { data, form }: PageProps = $props();
 	const votingSessionDetails = $derived(data.session.votingSessionDetails);
@@ -129,9 +130,21 @@
 							method="POST"
 							use:enhance={() => {
 								submittingOptionId = option.id;
-								return async ({ update }) => {
+								return async ({ result, update }) => {
 									await update();
 									submittingOptionId = undefined;
+									if (result.type === 'success') {
+										const data = result.data as { success: boolean; errors?: string | object };
+										if (data?.success) {
+											toast.success('Vote cast successfully!');
+										} else {
+											const message =
+												typeof data?.errors === 'string'
+													? data.errors
+													: 'Failed to cast vote';
+											toast.error(message);
+										}
+									}
 								};
 							}}
 						>

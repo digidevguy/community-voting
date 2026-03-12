@@ -57,7 +57,7 @@
 							<Label for="password">Password</Label>
 							<Input id="password" name="password" type="password" placeholder="Your password" />
 						</div>
-						<Button type="submit">Submit</Button>
+						<Button type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Submit'}</Button>
 						<p style="color: red">{form?.message ?? ''}</p>
 					</form>
 				</Card.Content>
@@ -96,7 +96,7 @@
 								placeholder="Confirm your password"
 							/>
 						</div>
-						<Button type="submit">Submit</Button>
+						<Button type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Submit'}</Button>
 						<p style="color: red">{form?.message ?? ''}</p>
 					</form>
 				</Card.Content>

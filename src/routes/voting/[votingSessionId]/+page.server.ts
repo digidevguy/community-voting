@@ -61,7 +61,7 @@ export const actions: Actions = {
 			console.error('Err: ', err);
 			return {
 				success: false,
-				errors: [err instanceof Error ? err.message : 'Failed to cast vote']
+				errors: err instanceof Error ? err.message : 'Failed to cast vote'
 			};
 		}
 	},

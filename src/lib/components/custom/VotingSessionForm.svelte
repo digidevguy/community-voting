@@ -1,7 +1,6 @@
-<script lang="ts">
+<script lang="ts" generics="TForm extends { votingSessionId?: string | null; message?: string | null; success?: boolean } | null | undefined">
 	import { enhance } from '$app/forms';
-	import { Input } from '$lib/components/ui/input/index.js';
-	import Label from '$lib/components/ui/label/label.svelte';
+	import { Input } from '$lib/components/ui/input/index.js';	import Label from '$lib/components/ui/label/label.svelte';
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
@@ -11,8 +10,8 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import Calendar from '$lib/components/ui/calendar/calendar.svelte';
-	import { goto } from '$app/navigation';
 	import { untrack } from 'svelte';
+	import { toast } from 'svelte-sonner';
 
 	interface InitialData {
 		title?: string;
@@ -32,7 +31,7 @@
 		initialData?: InitialData;
 		collection: Array<{ game: { id: string; title: string; type: string } }>;
 		action: string;
-		form: any;
+		form: TForm;
 	} = $props();
 
 	function toCalendarDate(date: Date | string | null | undefined): CalendarDate | undefined {
@@ -76,6 +75,14 @@
 	let dateValidationMessage = $state<string | null>(null);
 	let startDateOpen = $state(false);
 	let gameDayOpen = $state(false);
+	let redirectTo = $state<string | null>(null);
+
+	$effect(() => {
+		if (!redirectTo) return;
+		const target = redirectTo;
+		const timer = setTimeout(() => window.location.assign(target), 2000);
+		return () => clearTimeout(timer);
+	});
 
 	let isEditMode = $derived(!!initialData);
 	let submitLabel = $derived(isEditMode ? 'Save Changes' : 'Create Session');
@@ -148,16 +155,7 @@
 	}
 </script>
 
-{#if form && 'votingSessionId' in form && form.votingSessionId}
-	<div class="rounded-md bg-green-50 p-4 dark:bg-green-950">
-		<p class="text-sm font-medium text-green-800 dark:text-green-200">
-			{form.message ||
-				(isEditMode
-					? 'Voting session updated successfully!'
-					: 'Voting session created successfully!')}
-		</p>
-	</div>
-{:else if form && 'message' in form && !form.votingSessionId}
+{#if form && 'message' in form && !form.votingSessionId}
 	<div class="rounded-md bg-red-50 p-4 dark:bg-red-950">
 		<p class="text-sm font-medium text-red-800 dark:text-red-200">
 			{form.message || 'An error occurred.'}
@@ -196,10 +194,9 @@
 			await update();
 			const votingSessionId = result.type === 'success' ? result.data?.votingSessionId : undefined;
 			if (votingSessionId) {
+				toast.success(isEditMode ? 'Voting session updated!' : 'Voting session created!');
 				selectedGames = [];
-				setTimeout(() => {
-					goto(`/voting/${votingSessionId}`);
-				}, 1500);
+				redirectTo = `/voting/${votingSessionId}`;
 			}
 		};
 	}}
