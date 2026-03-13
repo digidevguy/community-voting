@@ -43,6 +43,13 @@ export const notificationType = pgEnum('notification_type', [
 
 export const relatedEntityType = pgEnum('related_entity_type', ['voting_session', 'game', 'user']);
 
+export const invitationStatus = pgEnum('invitation_status', [
+	'pending',
+	'accepted',
+	'expired',
+	'revoked'
+]);
+
 // Auth and User Management
 
 export const user = pgTable(
@@ -91,6 +98,43 @@ export const community = pgTable(
 		createdBy: text('created_by').references(() => user.id, { onDelete: 'cascade' })
 	},
 	(table) => [index('community_created_by_idx').on(table.createdBy)]
+);
+
+export const invitations = pgTable(
+	'invitations',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		communityId: uuid('community_id')
+			.references(() => community.id, { onDelete: 'cascade' })
+			.notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+		status: invitationStatus('status').notNull().default('pending'),
+		expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }),
+		maxUses: integer('max_uses'),
+		useCount: integer('use_count').notNull().default(0)
+	},
+	(table) => [index('invitations_expires_at_idx').on(table.expiresAt)]
+);
+
+export const invitationRedemptions = pgTable(
+	'invitation_redemptions',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		invitationId: uuid('invitation_id')
+			.references(() => invitations.id, { onDelete: 'cascade' })
+			.notNull(),
+		userId: text('user_id')
+			.references(() => user.id, { onDelete: 'cascade' })
+			.notNull(),
+		redeemedAt: timestamp('redeemed_at', { withTimezone: true, mode: 'date' })
+			.notNull()
+			.defaultNow()
+	},
+	(table) => [
+		index('redemptions_invitation_id_idx').on(table.invitationId),
+		uniqueIndex('redemptions_user_invite_idx').on(table.invitationId, table.userId)
+	]
 );
 
 export const communityUser = pgTable(
