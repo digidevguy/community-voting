@@ -14,6 +14,13 @@ export const createCommunityUserSchema = z.object({
 	role: z.enum(['member', 'moderator', 'admin']).optional()
 });
 
+export const createInviteSchema = z.object({
+	expiresAt: z.coerce.date().optional(),
+	maxUses: z.coerce.number().int().positive().optional()
+});
+
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>;
 
 export type CreateCommunityUserInput = z.infer<typeof createCommunityUserSchema>;
+
+export type CreateInviteInput = z.infer<typeof createInviteSchema>;

@@ -4,7 +4,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { Button } from '$lib/components/ui/button';
-	import { Check, CirclePlus, LayoutDashboard, Library } from '@lucide/svelte';
+	import { Check, CirclePlus, Send, Library } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
 
@@ -29,8 +29,8 @@
 <nav aria-label="Community submenu" class="py-2">
 	<ul class="flex justify-end gap-4">
 		<li>
-			<Button href="/community/{data.community.id}/" variant="outline"
-				><LayoutDashboard></LayoutDashboard>Overview</Button
+			<Button href="/community/{data.community.id}/invites" variant="outline"
+				><Send></Send>Invites</Button
 			>
 		</li>
 		<li>
