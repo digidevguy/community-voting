@@ -15,6 +15,13 @@
       "when": 1765850799615,
       "tag": "0001_flimsy_magik",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773611653354,
+      "tag": "0002_hot_venom",
+      "breakpoints": true
     }
   ]
 }
