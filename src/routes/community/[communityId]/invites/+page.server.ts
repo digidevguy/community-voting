@@ -18,6 +18,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	}
 
 	return {
+		communityId: params.communityId,
 		invites: await getInvitesByCommunity(locals.db, params.communityId)
 	};
 };
