@@ -8,6 +8,7 @@
 	import { toast } from 'svelte-sonner';
 	import { useClipboard } from '$lib/hooks/use-clipboard.svelte';
 	import { page } from '$app/state';
+	import { fade } from 'svelte/transition';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 
@@ -51,9 +52,9 @@
 </div>
 
 <Separator class="my-4" />
-<!-- div for newly created invite link with edit link (dialog trigger). Add accordian-like animation -->
+<!-- Todo: Add edit link (dialog trigger) -->
 {#if form?.success}
-	<div>
+	<div transition:fade={{ duration: 100 }}>
 		<InputGroup.Root>
 			<InputGroup.Input value={inviteLink} readonly class="truncate" />
 			<InputGroup.Addon align="inline-end">
