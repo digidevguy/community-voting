@@ -143,7 +143,7 @@
 			>
 				<Table.Cell class="font-semibold">{invite.createdBy}</Table.Cell>
 				<Table.Cell class="max-w-0 truncate">{invite.id}</Table.Cell>
-				<Table.Cell>{invite.useCount}</Table.Cell>
+				<Table.Cell>{invite.useCount} / {invite.maxUses}</Table.Cell>
 				<Table.Cell>{expiry.label}</Table.Cell>
 				<Table.Cell>
 					<form method="POST" action="?/revoke" use:enhance>
