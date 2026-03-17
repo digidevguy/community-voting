@@ -1,4 +1,5 @@
 import {
+	clearInactiveInvites,
 	confirmUserInCommunity,
 	createCommunityInvite,
 	getInvitesByCommunity,
@@ -24,6 +25,28 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions: Actions = {
+	clear: async ({ locals, params }) => {
+		if (!locals.user) {
+			redirect(303, '/auth');
+		}
+		const isMember = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
+		if (!isMember) {
+			error(403, 'Forbidden');
+		}
+
+		const communityId = params.communityId;
+
+		try {
+			await clearInactiveInvites(locals.db, communityId);
+			return { success: true };
+		} catch (error) {
+			console.error(
+				'Error clearing inactive invite:',
+				error instanceof Error ? error.message : error
+			);
+			return fail(500, { message: 'Failed to clear inactive invites' });
+		}
+	},
 	create: async ({ locals, request, params }) => {
 		if (!locals.user) {
 			redirect(303, '/auth');

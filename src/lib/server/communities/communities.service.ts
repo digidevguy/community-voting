@@ -3,8 +3,14 @@ import type {
 	CreateCommunityUserInput
 } from '$lib/server/communities/communites.validation';
 import type { Database, DBTransaction } from '$lib/server/db';
-import { community, communityUser, invitations, invitationRedemptions } from '$lib/server/db/schema';
-import { and, eq, isNull, or, sql } from 'drizzle-orm';
+import {
+	community,
+	communityUser,
+	invitations,
+	invitationRedemptions,
+	user
+} from '$lib/server/db/schema';
+import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 
 export async function getCommunityInfo(db: Database | DBTransaction, communityId: string) {
 	const [communityInfo] = await db.select().from(community).where(eq(community.id, communityId));
@@ -163,7 +169,21 @@ export async function redeemInvite(db: Database, inviteId: string, userId: strin
 }
 
 export async function getInvitesByCommunity(db: Database | DBTransaction, communityId: string) {
-	return await db.select().from(invitations).where(eq(invitations.communityId, communityId));
+	return await db
+		.select({
+			id: invitations.id,
+			communityId: invitations.communityId,
+			createdAt: invitations.createdAt,
+			createdBy: user.displayName,
+			status: invitations.status,
+			expiresAt: invitations.expiresAt,
+			maxUses: invitations.maxUses,
+			useCount: invitations.useCount
+		})
+		.from(invitations)
+		.leftJoin(user, eq(user.id, invitations.createdBy))
+		.where(eq(invitations.communityId, communityId))
+		.orderBy(asc(invitations.createdAt));
 }
 
 export async function revokeInvite(db: Database | DBTransaction, inviteId: string) {
@@ -182,4 +202,14 @@ export async function cleanupExpiredInvites(db: Database | DBTransaction) {
 	return await db.delete(invitations).where(sql`${invitations.expiresAt} < NOW()`);
 }
 
-
+export async function clearInactiveInvites(db: Database | DBTransaction, communityId: string) {
+	return await db
+		.delete(invitations)
+		.where(
+			and(
+				eq(invitations.communityId, communityId),
+				or(eq(invitations.status, 'expired'), eq(invitations.status, 'revoked'))
+			)
+		)
+		.returning({ id: invitations.id });
+}

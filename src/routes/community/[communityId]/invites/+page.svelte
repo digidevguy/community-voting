@@ -1,7 +1,8 @@
 <script lang="ts">
 	import Button from '$lib/components/ui/button/button.svelte';
-	import * as InputGroup from '$lib/components/ui/input-group/index.js';
-	import { Check, CircleChevronLeft, CirclePlus, Copy } from '@lucide/svelte';
+	import * as InputGroup from '$lib/components/ui/input-group/index';
+	import * as Table from '$lib/components/ui/table/index';
+	import { Check, CircleChevronLeft, CirclePlus, Copy, Recycle, Trash } from '@lucide/svelte';
 	import type { ActionData, PageServerData } from './$types';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import { enhance } from '$app/forms';
@@ -9,8 +10,21 @@
 	import { useClipboard } from '$lib/hooks/use-clipboard.svelte';
 	import { page } from '$app/state';
 	import { fade } from 'svelte/transition';
+	import { cubicInOut } from 'svelte/easing';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
+
+	let clearingInvites = $state(false);
+	const invites = $derived(
+		clearingInvites
+			? data.invites.filter(
+					({ status, expiresAt }) =>
+						status !== 'revoked' &&
+						status !== 'expired' &&
+						!(expiresAt && expiresAt.getTime() <= Date.now())
+				)
+			: data.invites
+	);
 
 	const clipboard = useClipboard();
 	const defaultWeekExpiration = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
@@ -22,6 +36,18 @@
 			? `${page.url.origin}/community/${data.communityId}/join/${form.id}`
 			: ''
 	);
+
+	function getExpiryInfo(
+		status: string,
+		expiresAt: Date | null
+	): { label: string; inactive: boolean } {
+		if (status === 'revoked') return { label: 'Revoked', inactive: true };
+		if (status === 'expired') return { label: 'Expired', inactive: true };
+		if (expiresAt && expiresAt.getTime() <= Date.now()) return { label: 'Expired', inactive: true };
+		if (!expiresAt) return { label: 'Never', inactive: false };
+		const days = Math.ceil((expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+		return { label: `${days} days`, inactive: false };
+	}
 </script>
 
 <h1 class="mb-4 text-xl font-semibold">Invites Dashboard</h1>
@@ -30,31 +56,55 @@
 		<CircleChevronLeft></CircleChevronLeft>Back
 	</Button>
 	<!-- Form for creating deault invite link -->
-	<form
-		action="?/create"
-		method="post"
-		use:enhance={() => {
-			return async ({ result, update }) => {
-				if (result.type === 'failure') {
-					toast.error(String(result.data?.message ?? 'Failed to create invite'));
-				}
-				if (result.type === 'success') {
-					toast.success('Created new invite link!');
-				}
-				await update();
-			};
-		}}
-	>
-		<input type="hidden" name="expiresAt" value={defaultWeekExpiration} />
-		<input type="hidden" name="maxUses" value="1" />
-		<Button variant="outline" type="submit"><CirclePlus></CirclePlus>Create invite</Button>
-	</form>
+	<div class="flex gap-4">
+		<form
+			action="?/create"
+			method="post"
+			use:enhance={() => {
+				return async ({ result, update }) => {
+					if (result.type === 'failure') {
+						toast.error(String(result.data?.message ?? 'Failed to create invite'));
+					}
+					if (result.type === 'success') {
+						toast.success('Created new invite link!');
+					}
+					await update();
+				};
+			}}
+		>
+			<input type="hidden" name="expiresAt" value={defaultWeekExpiration} />
+			<input type="hidden" name="maxUses" value="1" />
+			<Button variant="outline" type="submit"><CirclePlus></CirclePlus>Create invite</Button>
+		</form>
+		<form
+			action="?/clear"
+			method="POST"
+			use:enhance={() => {
+				return async ({ result, update }) => {
+					if (result.type === 'failure') {
+						toast.error(String(result.data?.message ?? 'Failed to clear inactive invites'));
+						await update();
+						return;
+					}
+					if (result.type === 'success') {
+						clearingInvites = true;
+						await new Promise((r) => setTimeout(r, 200));
+						toast.success('Cleared all inactive invites!');
+					}
+					await update();
+					clearingInvites = false;
+				};
+			}}
+		>
+			<Button type="submit" variant="outline"><Recycle />Clear inactive invites</Button>
+		</form>
+	</div>
 </div>
 
 <Separator class="my-4" />
 <!-- Todo: Add edit link (dialog trigger) -->
-{#if form?.success}
-	<div transition:fade={{ duration: 100 }}>
+{#if form?.success && form.id}
+	<div transition:fade>
 		<InputGroup.Root>
 			<InputGroup.Input value={inviteLink} readonly class="truncate" />
 			<InputGroup.Addon align="inline-end">
@@ -74,3 +124,40 @@
 	</div>
 {/if}
 <!-- Table for listing available invites -->
+<Table.Root class="mx-auto max-w-2xl">
+	<Table.Header>
+		<Table.Row>
+			<Table.Head>Creator</Table.Head>
+			<Table.Head class="w-full">Invite code</Table.Head>
+			<Table.Head>Uses</Table.Head>
+			<Table.Head>Expires</Table.Head>
+			<Table.Head></Table.Head>
+		</Table.Row>
+	</Table.Header>
+	<Table.Body>
+		{#each invites as invite (invite.id)}
+			{@const expiry = getExpiryInfo(invite.status, invite.expiresAt)}
+			<tr
+				transition:fade={{ duration: 200, easing: cubicInOut }}
+				class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+			>
+				<Table.Cell class="font-semibold">{invite.createdBy}</Table.Cell>
+				<Table.Cell class="max-w-0 truncate">{invite.id}</Table.Cell>
+				<Table.Cell>{invite.useCount}</Table.Cell>
+				<Table.Cell>{expiry.label}</Table.Cell>
+				<Table.Cell>
+					<form method="POST" action="?/revoke" use:enhance>
+						<input type="hidden" name="inviteId" value={invite.id} />
+						<Button
+							disabled={expiry.inactive}
+							type="submit"
+							size="icon-sm"
+							variant="destructive"
+							aria-label="revoke invite"><Trash /></Button
+						>
+					</form>
+				</Table.Cell>
+			</tr>
+		{/each}
+	</Table.Body>
+</Table.Root>
