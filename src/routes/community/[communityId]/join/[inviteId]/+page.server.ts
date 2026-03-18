@@ -11,7 +11,7 @@ import {
 	validatePassword,
 	validateUsername
 } from '$lib/validation';
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -72,6 +72,6 @@ export const actions: Actions = {
 		const session = await auth.createSession(sessionToken, userId);
 		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
 
-		return redirect(302, `/community/${communityId}`);
+		return { communityId };
 	}
 };

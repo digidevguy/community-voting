@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { applyAction, enhance } from '$app/forms';
 	import * as Card from '$lib/components/ui/card/index';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import Input from '$lib/components/ui/input/input.svelte';
@@ -9,7 +9,6 @@
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 
-	// Todo: Add derived state for displayName
 	let username = $state<string | null>(null);
 	let displayName = $derived(username);
 </script>
@@ -26,12 +25,15 @@
 				method="post"
 				use:enhance={() => {
 					return async ({ result, update }) => {
-						if (result.type === 'failure') {
-							toast.error(
-								String(result.data?.message ?? 'Unable to create new user, please try again later.')
-							);
+						if (result.type === 'success') {
+							toast.success('Account created successfully!');
+							await applyAction({
+								type: 'redirect',
+								status: 303,
+								location: `/community/${result.data?.communityId}`
+							});
+							return;
 						}
-
 						await update();
 					};
 				}}
@@ -41,7 +43,6 @@
 					<Label for="username">Username</Label>
 					<Input id="username" name="username" bind:value={username} />
 				</div>
-				<!-- Todo: Add display name to form -->
 				<input type="hidden" id="displayName" name="displayName" bind:value={displayName} />
 				<div class="space-y-2">
 					<Label for="email">Email</Label>
@@ -51,7 +52,6 @@
 					<Label for="password">Password</Label>
 					<Input id="password" name="password" type="password" />
 				</div>
-				<!-- Todo: Add confirm password to form -->
 				<div class="space-y-2">
 					<Label for="confirmPassword">Confirm Password</Label>
 					<Input id="confirmPassword" name="confirmPassword" type="password" />
