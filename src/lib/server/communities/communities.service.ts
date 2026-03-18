@@ -161,6 +161,10 @@ export async function redeemInvite(db: Database, inviteId: string, userId: strin
 
 		if (!invite) throw new Error('Invite is invalid, expired, or fully used');
 
+		if (invite.maxUses !== null && invite.useCount >= invite.maxUses) {
+			await tx.update(invitations).set({ status: 'accepted' }).where(eq(invitations.id, inviteId));
+		}
+
 		await joinCommunity(tx, { communityId: invite.communityId, userId });
 		await tx.insert(invitationRedemptions).values({ invitationId: inviteId, userId });
 

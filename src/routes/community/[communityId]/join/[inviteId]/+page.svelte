@@ -1,0 +1,66 @@
+<script lang="ts">
+	import { enhance } from '$app/forms';
+	import * as Card from '$lib/components/ui/card/index';
+	import Button from '$lib/components/ui/button/button.svelte';
+	import Input from '$lib/components/ui/input/input.svelte';
+	import type { ActionData, PageServerData } from './$types';
+	import Label from '$lib/components/ui/label/label.svelte';
+	import { toast } from 'svelte-sonner';
+
+	let { data, form }: { data: PageServerData; form: ActionData } = $props();
+
+	// Todo: Add derived state for displayName
+	let username = $state<string | null>(null);
+	let displayName = $derived(username);
+</script>
+
+<div class="flex min-h-screen flex-col items-center justify-center">
+	<Card.Root>
+		<Card.Header>
+			<Card.Title>Welcome to the {data.community.title} Community!</Card.Title>
+			<Card.Description>Let's make an account!</Card.Description>
+		</Card.Header>
+		<Card.Content>
+			<form
+				action="?/join"
+				method="post"
+				use:enhance={() => {
+					return async ({ result, update }) => {
+						if (result.type === 'failure') {
+							toast.error(
+								String(result.data?.message ?? 'Unable to create new user, please try again later.')
+							);
+						}
+
+						await update();
+					};
+				}}
+				class="space-y-2"
+			>
+				<div class="space-y-2">
+					<Label for="username">Username</Label>
+					<Input id="username" name="username" bind:value={username} />
+				</div>
+				<!-- Todo: Add display name to form -->
+				<input type="hidden" id="displayName" name="displayName" bind:value={displayName} />
+				<div class="space-y-2">
+					<Label for="email">Email</Label>
+					<Input id="email" name="email" />
+				</div>
+				<div class="space-y-2">
+					<Label for="password">Password</Label>
+					<Input id="password" name="password" type="password" />
+				</div>
+				<!-- Todo: Add confirm password to form -->
+				<div class="space-y-2">
+					<Label for="confirmPassword">Confirm Password</Label>
+					<Input id="confirmPassword" name="confirmPassword" type="password" />
+				</div>
+				<Button type="submit" class="mt-2 w-full">Create</Button>
+				{#if form?.message}
+					<p class="text-red-600">{form?.message}</p>
+				{/if}
+			</form>
+		</Card.Content>
+	</Card.Root>
+</div>

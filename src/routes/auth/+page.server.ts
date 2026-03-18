@@ -1,10 +1,16 @@
-import { hash, verify } from '@node-rs/argon2';
-import { encodeBase32LowerCase } from '@oslojs/encoding';
+import { verify } from '@node-rs/argon2';
 import { fail, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import * as auth from '$lib/server/auth';
 import { db } from '$lib/server/db';
 import * as table from '$lib/server/db/schema';
+import { createUser } from '$lib/auth/user';
+import {
+	validateUsername,
+	validatePassword,
+	validateEmail,
+	validateDisplayName
+} from '$lib/validation';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async (event) => {
@@ -76,22 +82,8 @@ export const actions: Actions = {
 			return fail(400, { message: 'Passwords do not match' });
 		}
 
-		// Check if username or email already exists
-		// Check if email already exists
-
-		const userId = generateUserId();
-		const passwordHash = await hash(password, {
-			// recommended minimum parameters
-			memoryCost: 19456,
-			timeCost: 2,
-			outputLen: 32,
-			parallelism: 1
-		});
-
 		try {
-			await db
-				.insert(table.user)
-				.values({ id: userId, username, email, displayName, passwordHash });
+			const userId = await createUser(db, { username, email, displayName, password });
 
 			const sessionToken = auth.generateSessionToken();
 			const session = await auth.createSession(sessionToken, userId);
@@ -115,40 +107,3 @@ export const actions: Actions = {
 		return redirect(302, '/');
 	}
 };
-
-function generateUserId() {
-	// ID with 120 bits of entropy, or about the same as UUID v4.
-	const bytes = crypto.getRandomValues(new Uint8Array(15));
-	const id = encodeBase32LowerCase(bytes);
-	return id;
-}
-
-function validateUsername(username: unknown): username is string {
-	return (
-		typeof username === 'string' &&
-		username.length >= 3 &&
-		username.length <= 31 &&
-		/^[a-z0-9_-]+$/.test(username)
-	);
-}
-
-function validateEmail(email: unknown): email is string {
-	return (
-		typeof email === 'string' &&
-		email.length > 0 &&
-		email.length <= 255 &&
-		/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-	);
-}
-
-function validateDisplayName(displayName: unknown): displayName is string {
-	return (
-		typeof displayName === 'string' &&
-		displayName.trim().length >= 2 &&
-		displayName.trim().length <= 50
-	);
-}
-
-function validatePassword(password: unknown): password is string {
-	return typeof password === 'string' && password.length >= 6 && password.length <= 255;
-}
