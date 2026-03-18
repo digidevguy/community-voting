@@ -11,10 +11,13 @@ import {
 	validatePassword,
 	validateUsername
 } from '$lib/validation';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
+	if (locals.user) {
+		return redirect(302, '/community');
+	}
 	const { communityId, inviteId } = params;
 
 	return {
