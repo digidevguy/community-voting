@@ -56,7 +56,7 @@ export const actions: Actions = {
 		const session = await auth.createSession(sessionToken, existingUser.id);
 		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
 
-		return redirect(302, '/');
+		return redirect(302, '/community');
 	},
 	register: async (event) => {
 		const formData = await event.request.formData();
@@ -95,7 +95,7 @@ export const actions: Actions = {
 				field: 'general'
 			});
 		}
-		return redirect(302, '/');
+		return redirect(302, '/community');
 	},
 	logout: async (event) => {
 		if (!event.locals.session) {
