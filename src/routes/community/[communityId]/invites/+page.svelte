@@ -74,7 +74,7 @@
 		>
 			<input type="hidden" name="expiresAt" value={defaultWeekExpiration} />
 			<input type="hidden" name="maxUses" value="1" />
-			<Button variant="outline" type="submit"><CirclePlus></CirclePlus>Create invite</Button>
+			<Button variant="outline" type="submit"><CirclePlus></CirclePlus>Create</Button>
 		</form>
 		<form
 			action="?/clear"
@@ -96,7 +96,7 @@
 				};
 			}}
 		>
-			<Button type="submit" variant="outline"><Recycle />Clear inactive invites</Button>
+			<Button type="submit" variant="outline"><Recycle />Clear inactive</Button>
 		</form>
 	</div>
 </div>
@@ -124,40 +124,44 @@
 	</div>
 {/if}
 <!-- Table for listing available invites -->
-<Table.Root class="mx-auto max-w-2xl">
-	<Table.Header>
-		<Table.Row>
-			<Table.Head>Creator</Table.Head>
-			<Table.Head class="w-full">Invite code</Table.Head>
-			<Table.Head>Uses</Table.Head>
-			<Table.Head>Expires</Table.Head>
-			<Table.Head></Table.Head>
-		</Table.Row>
-	</Table.Header>
-	<Table.Body>
-		{#each invites as invite (invite.id)}
-			{@const expiry = getExpiryInfo(invite.status, invite.expiresAt)}
-			<tr
-				transition:fade={{ duration: 200, easing: cubicInOut }}
-				class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-			>
-				<Table.Cell class="font-semibold">{invite.createdBy}</Table.Cell>
-				<Table.Cell class="max-w-0 truncate">{invite.id}</Table.Cell>
-				<Table.Cell>{invite.useCount} / {invite.maxUses}</Table.Cell>
-				<Table.Cell>{expiry.label}</Table.Cell>
-				<Table.Cell>
-					<form method="POST" action="?/revoke" use:enhance>
-						<input type="hidden" name="inviteId" value={invite.id} />
-						<Button
-							disabled={expiry.inactive}
-							type="submit"
-							size="icon-sm"
-							variant="destructive"
-							aria-label="revoke invite"><Trash /></Button
-						>
-					</form>
-				</Table.Cell>
-			</tr>
-		{/each}
-	</Table.Body>
-</Table.Root>
+{#if invites && invites.length > 0}
+	<Table.Root class="mx-auto max-w-2xl">
+		<Table.Header>
+			<Table.Row>
+				<Table.Head>Creator</Table.Head>
+				<Table.Head class="w-full">Invite code</Table.Head>
+				<Table.Head>Uses</Table.Head>
+				<Table.Head>Expires</Table.Head>
+				<Table.Head></Table.Head>
+			</Table.Row>
+		</Table.Header>
+		<Table.Body>
+			{#each invites as invite (invite.id)}
+				{@const expiry = getExpiryInfo(invite.status, invite.expiresAt)}
+				<tr
+					transition:fade={{ duration: 200, easing: cubicInOut }}
+					class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+				>
+					<Table.Cell class="font-semibold">{invite.createdBy}</Table.Cell>
+					<Table.Cell class="max-w-0 truncate">{invite.id}</Table.Cell>
+					<Table.Cell>{invite.useCount} / {invite.maxUses}</Table.Cell>
+					<Table.Cell>{expiry.label}</Table.Cell>
+					<Table.Cell>
+						<form method="POST" action="?/revoke" use:enhance>
+							<input type="hidden" name="inviteId" value={invite.id} />
+							<Button
+								disabled={expiry.inactive}
+								type="submit"
+								size="icon-sm"
+								variant="destructive"
+								aria-label="revoke invite"><Trash /></Button
+							>
+						</form>
+					</Table.Cell>
+				</tr>
+			{/each}
+		</Table.Body>
+	</Table.Root>
+{:else}
+	<p class="mt-6 text-center">There are no active invites for this community.</p>
+{/if}

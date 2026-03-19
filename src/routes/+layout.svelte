@@ -10,6 +10,7 @@
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import type { Snippet } from 'svelte';
+	import { LogIn, LogOut } from '@lucide/svelte';
 
 	let { children, data }: { children: Snippet; data: LayoutData } = $props();
 </script>
@@ -43,10 +44,10 @@
 					};
 				}}
 			>
-				<Button type="submit" variant="ghost">Logout</Button>
+				<Button type="submit" variant="ghost"><LogOut /></Button>
 			</form>
 		{:else}
-			<Button variant="ghost" href="/auth">Auth</Button>
+			<Button variant="ghost" href="/auth"><LogIn /></Button>
 		{/if}
 
 		<DarkModeToggle />

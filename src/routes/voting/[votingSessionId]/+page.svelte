@@ -36,12 +36,6 @@
 </script>
 
 <section class="flex flex-col gap-2">
-	<div class="flex flex-row justify-between">
-		<h1 class="text-3xl font-semibold">{votingSessionDetails.title}</h1>
-		<Badge variant="secondary" class="h-5 min-w-5 rounded-md px-2 font-mono tabular-nums">
-			{votingSessionDetails.status.toLocaleUpperCase()}</Badge
-		>
-	</div>
 	<nav>
 		<Button href="/community/{votingSessionDetails.communityId}" variant="outline">
 			<CircleChevronLeft></CircleChevronLeft>Back
@@ -50,6 +44,12 @@
 			<Pencil />Edit
 		</Button>
 	</nav>
+	<div class="flex flex-row justify-between">
+		<h1 class="text-3xl font-semibold">{votingSessionDetails.title}</h1>
+		<Badge variant="secondary" class="h-5 min-w-5 rounded-md px-2 font-mono tabular-nums">
+			{votingSessionDetails.status.toLocaleUpperCase()}</Badge
+		>
+	</div>
 
 	<p class="whitespace-pre-wrap">{votingSessionDetails.description}</p>
 	<div class="flex flex-row justify-around">
