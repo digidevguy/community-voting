@@ -1,6 +1,8 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import {
+	closeExpiredVotingSession,
+	endVotingSession,
 	getUserVoteForSession,
 	getVotingSessionWithResults
 } from '$lib/server/voting/voting-session.service';
@@ -20,8 +22,24 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		return error(500, 'Voting session not found');
 	}
 
+	const sessionData = await getVotingSessionWithResults(locals.db, votingSessionId);
+
+	// Auto-transition active sessions whose game day has passed to voting_ended
+	if (
+		sessionData.votingSessionDetails.status === 'active' &&
+		sessionData.votingSessionDetails.gameDayDate &&
+		sessionData.votingSessionDetails.gameDayDate <= new Date()
+	) {
+		await closeExpiredVotingSession(locals.db, votingSessionId);
+		// Re-fetch so the UI gets the updated status
+		return {
+			session: await getVotingSessionWithResults(locals.db, votingSessionId),
+			userVote: await getUserVoteForSession(locals.db, locals.user.id, votingSessionId)
+		};
+	}
+
 	return {
-		session: await getVotingSessionWithResults(locals.db, votingSessionId),
+		session: sessionData,
 		userVote: await getUserVoteForSession(locals.db, locals.user.id, votingSessionId)
 	};
 };
@@ -43,6 +61,18 @@ export const actions: Actions = {
 				success: false,
 				errors: z.treeifyError(validated.error)
 			};
+		}
+
+		// Check the session is still open for voting
+		const sessionData = await getVotingSessionWithResults(
+			e.locals.db,
+			validated.data.votingSessionId
+		);
+		if (sessionData.votingSessionDetails.status !== 'active') {
+			return fail(400, {
+				success: false,
+				errors: 'Voting for this session has ended'
+			});
 		}
 
 		try {
@@ -77,6 +107,12 @@ export const actions: Actions = {
 			return fail(401, { errors: ['You must be logged in to clear your vote'] });
 		}
 
+		// Verify session is still active before allowing vote removal
+		const sessionData = await getVotingSessionWithResults(locals.db, votingSessionId);
+		if (sessionData.votingSessionDetails.status !== 'active') {
+			return fail(400, { errors: ['Voting for this session has ended'] });
+		}
+
 		try {
 			await locals.db
 				.delete(vote)
@@ -86,6 +122,24 @@ export const actions: Actions = {
 		} catch (e) {
 			console.error('Failed to clear user vote: ', e);
 			return fail(500, { error: ['Failed to clear vote. Please try again.'] });
+		}
+	},
+	endSession: async ({ locals, params }) => {
+		if (!locals.user?.id) {
+			return fail(401, { errors: ['You must be logged in'] });
+		}
+
+		const { votingSessionId } = params;
+
+		try {
+			await endVotingSession(locals.db, votingSessionId, locals.user.id);
+			return { success: true };
+		} catch (err: unknown) {
+			console.error('Failed to end voting session: ', err);
+			return fail(400, {
+				success: false,
+				errors: err instanceof Error ? err.message : 'Failed to end voting session'
+			});
 		}
 	}
 };

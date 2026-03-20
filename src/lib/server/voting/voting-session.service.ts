@@ -1,6 +1,6 @@
 import type { Database, DBTransaction } from '$lib/server/db';
 import { game, user, vote, votingOption, votingSession } from '$lib/server/db/schema';
-import { and, count, eq, inArray, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import type {
 	CreateVotingOptionInput,
 	CreateVotingSessionInput
@@ -400,4 +400,73 @@ export async function getUserVoteForSession(
 	}
 
 	return userVote;
+}
+
+/**
+ * Covers closing an active voting session to `voting_ended` when its gameDayDate has passed.
+ * Safe to call repeatedly — only updates if status is still `active`.
+ */
+export async function closeExpiredVotingSession(
+	db: Database | DBTransaction,
+	votingSessionId: string
+) {
+	const [updated] = await db
+		.update(votingSession)
+		.set({ status: 'voting_ended' })
+		.where(and(eq(votingSession.id, votingSessionId), eq(votingSession.status, 'active')))
+		.returning({ id: votingSession.id, status: votingSession.status });
+
+	return updated ?? null;
+}
+
+/**
+ * Selects the winning option (highest vote count) and marks the session as `completed`.
+ * Only callable when status is `voting_ended`. Only the session creator may call this.
+ */
+export async function endVotingSession(
+	db: Database | DBTransaction,
+	votingSessionId: string,
+	userId: string
+) {
+	const [session] = await db
+		.select({
+			id: votingSession.id,
+			status: votingSession.status,
+			createdBy: votingSession.createdBy
+		})
+		.from(votingSession)
+		.where(eq(votingSession.id, votingSessionId));
+
+	if (!session) {
+		throw new Error('Voting session not found');
+	}
+	if (session.status !== 'voting_ended') {
+		throw new Error('Voting session is not in voting_ended state');
+	}
+	if (session.createdBy !== userId) {
+		throw new Error('Only the session creator can finalize the session');
+	}
+
+	// Find the option with the most votes
+	const [topOption] = await db
+		.select({ votingOptionId: vote.votingOptionId, count: count() })
+		.from(vote)
+		.where(eq(vote.votingSessionId, votingSessionId))
+		.groupBy(vote.votingOptionId)
+		.orderBy(desc(count()))
+		.limit(1);
+
+	const selectedOptionId = topOption?.votingOptionId ?? null;
+
+	const [updated] = await db
+		.update(votingSession)
+		.set({
+			status: 'completed',
+			...(selectedOptionId ? { selectedOptionId } : {}),
+			updatedBy: userId
+		})
+		.where(eq(votingSession.id, votingSessionId))
+		.returning();
+
+	return updated;
 }

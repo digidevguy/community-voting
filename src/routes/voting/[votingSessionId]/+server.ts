@@ -1,7 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { z } from 'zod';
-import { castVote } from '$lib/server/voting/voting-session.service';
+import { castVote, getVotingSession } from '$lib/server/voting/voting-session.service';
 
 const VoteInput = z.object({
 	votingOptionId: z.uuid()
@@ -12,6 +12,14 @@ export const POST: RequestHandler = async ({ locals, params, request }) => {
 
 	if (!locals.user) {
 		throw error(400, 'Not logged in.');
+	}
+
+	const session = await getVotingSession(locals.db, votingSessionId);
+	if (!session) {
+		throw error(404, 'Voting session not found.');
+	}
+	if (session.status !== 'active') {
+		throw error(400, 'Voting for this session has ended.');
 	}
 
 	const body = await request.json();
