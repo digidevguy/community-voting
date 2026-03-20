@@ -7,6 +7,7 @@ DROP INDEX "voting_session_end_date_idx";--> statement-breakpoint
 ALTER TABLE "vote" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();--> statement-breakpoint
 ALTER TABLE "voting_session" ALTER COLUMN "start_date" SET DEFAULT now();--> statement-breakpoint
 ALTER TABLE "voting_session" ALTER COLUMN "start_date" SET NOT NULL;--> statement-breakpoint
+ALTER TABLE "voting_session" ADD COLUMN "game_day_date" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "voting_session" ALTER COLUMN "game_day_date" SET NOT NULL;--> statement-breakpoint
 ALTER TABLE "vote" ADD COLUMN "voting_session_id" uuid NOT NULL;--> statement-breakpoint
 ALTER TABLE "voting_session" ADD COLUMN "voting_session_type" "voting_session_type" DEFAULT 'video_game' NOT NULL;--> statement-breakpoint
