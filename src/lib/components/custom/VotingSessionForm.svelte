@@ -1,6 +1,10 @@
-<script lang="ts" generics="TForm extends { votingSessionId?: string | null; message?: string | null; success?: boolean } | null | undefined">
+<script
+	lang="ts"
+	generics="TForm extends { message?: string | null; success?: boolean; errors?: Record<string, string[]> | null } | null | undefined"
+>
 	import { enhance } from '$app/forms';
-	import { Input } from '$lib/components/ui/input/index.js';	import Label from '$lib/components/ui/label/label.svelte';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import Label from '$lib/components/ui/label/label.svelte';
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
@@ -155,14 +159,6 @@
 	}
 </script>
 
-{#if form && 'message' in form && !form.votingSessionId}
-	<div class="rounded-md bg-red-50 p-4 dark:bg-red-950">
-		<p class="text-sm font-medium text-red-800 dark:text-red-200">
-			{form.message || 'An error occurred.'}
-		</p>
-	</div>
-{/if}
-
 <form
 	{action}
 	method="POST"
@@ -192,16 +188,27 @@
 		return async ({ result, update }) => {
 			isSubmitting = false;
 			await update();
-			const votingSessionId = result.type === 'success' ? result.data?.votingSessionId : undefined;
-			if (votingSessionId) {
-				toast.success(isEditMode ? 'Voting session updated!' : 'Voting session created!');
-				selectedGames = [];
-				redirectTo = `/voting/${votingSessionId}`;
+			if (result.type === 'success') {
+				const votingSessionId = result.data?.votingSessionId;
+				if (votingSessionId) {
+					toast.success(isEditMode ? 'Voting session updated!' : 'Voting session created!');
+					selectedGames = [];
+					redirectTo = `/voting/${votingSessionId}`;
+				}
+			} else if (result.type === 'failure') {
+				toast.error((result.data?.message as string) || 'An error occurred.');
 			}
 		};
 	}}
 	class="space-y-2"
 >
+	{#if form?.success === false && form?.message}
+		<div class="rounded-md bg-red-50 p-4 dark:bg-red-950">
+			<p class="text-sm font-medium text-red-800 dark:text-red-200">
+				{form.message}
+			</p>
+		</div>
+	{/if}
 	{#if dateValidationMessage}
 		<div class="rounded-md bg-red-50 p-4 dark:bg-red-950">
 			<p class="text-sm font-medium text-red-800 dark:text-red-200">

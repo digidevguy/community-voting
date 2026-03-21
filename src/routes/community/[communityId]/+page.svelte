@@ -73,8 +73,8 @@
 							<Card.Description>{session.description}</Card.Description>
 						</div>
 						<Card.Footer class="justify-end gap-4">
-							<!-- Todo: Add this to a dialog -->
-							{#if session.hasVoted}
+							<!-- Todo: Add clearVote confirmation as a dialog -->
+							{#if session.hasVoted && !session.selectedOptionId}
 								<ClearVoteButton votingSessionId={session.id}></ClearVoteButton>
 							{/if}
 							<Button href="/voting/{session.id}">View Details</Button>

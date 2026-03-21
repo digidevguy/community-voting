@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import type { SubmitFunction } from '@sveltejs/kit';
+	import { toast } from 'svelte-sonner';
 
 	interface Props {
 		votingSessionId: string;
@@ -19,6 +20,9 @@
 			isSubmitting = false;
 			if (result.type === 'success') {
 				onCleared?.();
+			}
+			if (result.type === 'failure') {
+				toast.error((result.data?.message as string) || 'Failed to clear vote.');
 			}
 		};
 	};

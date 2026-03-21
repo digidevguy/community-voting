@@ -10,7 +10,7 @@
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
 	import { toast } from 'svelte-sonner';
 
-	let { data, form }: PageProps = $props();
+	let { data }: PageProps = $props();
 	const votingSessionDetails = $derived(data.session.votingSessionDetails);
 	const options = $derived(data.session.options);
 
@@ -95,8 +95,8 @@
 							if (result.type === 'success') {
 								toast.success('Session finalized and winner selected!');
 							} else if (result.type === 'failure') {
-								const d = result.data as { errors?: string };
-								toast.error(d?.errors ?? 'Failed to finalize session');
+								const d = result.data as { message?: string };
+								toast.error(d?.message ?? 'Failed to finalize session');
 							}
 						};
 					}}
@@ -201,28 +201,16 @@
 										await update();
 										submittingOptionId = undefined;
 										if (result.type === 'success') {
-											const data = result.data as { success: boolean; errors?: string | object };
-											if (data?.success) {
-												toast.success('Vote cast successfully!');
-											} else {
-												const message =
-													typeof data?.errors === 'string' ? data.errors : 'Failed to cast vote';
-												toast.error(message);
-											}
+											toast.success('Vote cast successfully!');
+										} else if (result.type === 'failure') {
+											const d = result.data as { message?: string };
+											toast.error(d?.message ?? 'Failed to cast vote');
 										}
 									};
 								}}
 							>
 								<input type="hidden" name="votingSessionId" value={votingSessionDetails.id ?? ''} />
 								<input type="hidden" name="votingOptionId" value={option.id ?? ''} />
-								{#if form?.errors && Array.isArray(form.errors)}
-									<div class="text-red-600">
-										<!-- Todo: address form type to address error -->
-										{#each form.errors as error}
-											<p>{error}</p>
-										{/each}
-									</div>
-								{/if}
 								<Button type="submit" disabled={submittingOptionId === option.id} class="min-w-24">
 									{submittingOptionId === option.id ? 'Voting...' : 'Vote'}
 								</Button>

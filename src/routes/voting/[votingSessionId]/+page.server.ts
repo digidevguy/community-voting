@@ -8,7 +8,6 @@ import {
 } from '$lib/server/voting/voting-session.service';
 import { castVote } from '$lib/server/voting/voting-session.service';
 import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
-import z from 'zod';
 import { vote } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 
@@ -57,10 +56,9 @@ export const actions: Actions = {
 
 		const validated = createVoteSchema.safeParse({ userId, votingSessionId, votingOptionId });
 		if (!validated.success) {
-			return {
-				success: false,
-				errors: z.treeifyError(validated.error)
-			};
+			return fail(400, {
+				message: validated.error.issues[0]?.message || 'Invalid vote data.'
+			});
 		}
 
 		// Check the session is still open for voting
@@ -69,10 +67,7 @@ export const actions: Actions = {
 			validated.data.votingSessionId
 		);
 		if (sessionData.votingSessionDetails.status !== 'active') {
-			return fail(400, {
-				success: false,
-				errors: 'Voting for this session has ended'
-			});
+			return fail(400, { message: 'Voting for this session has ended' });
 		}
 
 		try {
@@ -89,10 +84,9 @@ export const actions: Actions = {
 			};
 		} catch (err: unknown) {
 			console.error('Err: ', err);
-			return {
-				success: false,
-				errors: err instanceof Error ? err.message : 'Failed to cast vote'
-			};
+			return fail(500, {
+				message: err instanceof Error ? err.message : 'Failed to cast vote'
+			});
 		}
 	},
 	clearVote: async ({ request, locals }) => {
@@ -100,17 +94,17 @@ export const actions: Actions = {
 		const votingSessionId = formData.get('votingSessionId');
 
 		if (!votingSessionId || typeof votingSessionId !== 'string') {
-			return fail(400, { errors: ['Invalid voting session ID'] });
+			return fail(400, { message: 'Invalid voting session ID' });
 		}
 
 		if (!locals.user?.id) {
-			return fail(401, { errors: ['You must be logged in to clear your vote'] });
+			return fail(401, { message: 'You must be logged in to clear your vote' });
 		}
 
 		// Verify session is still active before allowing vote removal
 		const sessionData = await getVotingSessionWithResults(locals.db, votingSessionId);
 		if (sessionData.votingSessionDetails.status !== 'active') {
-			return fail(400, { errors: ['Voting for this session has ended'] });
+			return fail(400, { message: 'Voting for this session has ended' });
 		}
 
 		try {
@@ -121,12 +115,12 @@ export const actions: Actions = {
 			return { success: true };
 		} catch (e) {
 			console.error('Failed to clear user vote: ', e);
-			return fail(500, { error: ['Failed to clear vote. Please try again.'] });
+			return fail(500, { message: 'Failed to clear vote. Please try again.' });
 		}
 	},
 	endSession: async ({ locals, params }) => {
 		if (!locals.user?.id) {
-			return fail(401, { errors: ['You must be logged in'] });
+			return fail(401, { message: 'You must be logged in' });
 		}
 
 		const { votingSessionId } = params;
@@ -137,8 +131,7 @@ export const actions: Actions = {
 		} catch (err: unknown) {
 			console.error('Failed to end voting session: ', err);
 			return fail(400, {
-				success: false,
-				errors: err instanceof Error ? err.message : 'Failed to end voting session'
+				message: err instanceof Error ? err.message : 'Failed to end voting session'
 			});
 		}
 	}
