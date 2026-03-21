@@ -4,7 +4,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { Button } from '$lib/components/ui/button';
-	import { Check, CirclePlus, Send, Library } from '@lucide/svelte';
+	import { Check, CirclePlus, Send, Library, CalendarDays } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
 
@@ -56,22 +56,28 @@
 		<ul class="flex flex-col gap-4">
 			{#each filteredSessions as session (session.id)}
 				<li>
-					<Card.Root>
-						<!-- Add session image -->
-						<div class="space-y-2 px-6 py-4">
-							<div class="flex justify-between">
-								<div class="space-y-2">
-									<Card.Title>{session.title}</Card.Title>
-									<p>{format(session.gameDayDate, 'EEE, MMM do h:mm a')}</p>
+					<Card.Root class="transition-shadow hover:shadow-md">
+						<Card.Header>
+							<div class="flex items-start justify-between gap-4">
+								<div class="min-w-0 flex-1 space-y-1">
+									<Card.Title class="truncate text-base">{session.title}</Card.Title>
+									<p class="flex items-center gap-1.5 text-sm text-muted-foreground">
+										<CalendarDays size={14} />
+										{format(session.gameDayDate, 'EEE, MMM do h:mm a')}
+									</p>
 								</div>
-								<span
-									class="flex place-items-center rounded-full bg-green-200 p-4 {session.hasVoted
-										? 'block'
-										: 'hidden'}"><Check size={16} class="text-green-600"></Check></span
-								>
+								{#if session.hasVoted}
+									<span
+										class="flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400"
+									>
+										<Check size={12} />Voted
+									</span>
+								{/if}
 							</div>
-							<Card.Description>{session.description}</Card.Description>
-						</div>
+						</Card.Header>
+						<Card.Content>
+							<Card.Description class="line-clamp-3">{session.description}</Card.Description>
+						</Card.Content>
 						<Card.Footer class="justify-end gap-4">
 							<!-- Todo: Add clearVote confirmation as a dialog -->
 							{#if session.hasVoted && !session.selectedOptionId}
