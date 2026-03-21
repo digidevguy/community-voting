@@ -6,8 +6,10 @@
 	import type { ActionData, PageServerData } from './$types';
 	import Label from '$lib/components/ui/label/label.svelte';
 	import { toast } from 'svelte-sonner';
+	import { LoaderCircle } from '@lucide/svelte';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
+	let submitting = $state(false);
 
 	let username = $state<string | null>(null);
 	let displayName = $derived(username);
@@ -24,6 +26,7 @@
 				action="?/join"
 				method="post"
 				use:enhance={() => {
+					submitting = true;
 					return async ({ result, update }) => {
 						if (result.type === 'success') {
 							toast.success('Account created successfully!');
@@ -35,6 +38,7 @@
 							return;
 						}
 						await update();
+						submitting = false;
 					};
 				}}
 				class="space-y-2"
@@ -56,7 +60,13 @@
 					<Label for="confirmPassword">Confirm Password</Label>
 					<Input id="confirmPassword" name="confirmPassword" type="password" />
 				</div>
-				<Button type="submit" class="mt-2 w-full">Create</Button>
+				<Button type="submit" class="mt-2 w-full">
+					{#if submitting}
+						`` <LoaderCircle class="animate-spin" />
+					{:else}
+						Create
+					{/if}
+				</Button>
 				{#if form?.message}
 					<p class="text-red-600">{form?.message}</p>
 				{/if}

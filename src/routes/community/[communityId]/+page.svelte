@@ -55,74 +55,81 @@
 
 {#snippet tab(sessionType: SessionTabStatus, filteredSessions: SessionList)}
 	<Tabs.Content value={sessionType}>
-		<ul class="flex flex-col gap-4">
-			{#each filteredSessions as session (session.id)}
-				<li>
-					<Card.Root class="transition-shadow hover:shadow-md">
-						<Card.Header>
-							<div class="flex items-start justify-between gap-4">
-								<div class="min-w-0 flex-1 space-y-1">
-									<Card.Title class="truncate text-base">{session.title}</Card.Title>
-									<p class="flex items-center gap-1.5 text-sm text-muted-foreground">
-										<CalendarDays size={14} />
-										{format(session.gameDayDate, 'EEE, MMM do h:mm a')}
-									</p>
-								</div>
-								{#if session.hasVoted}
-									<span
-										class="flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400"
-									>
-										<Check size={12} />Voted
-									</span>
-								{/if}
-							</div>
-						</Card.Header>
-						<Card.Content>
-							<Card.Description class="line-clamp-3">{session.description}</Card.Description>
-							{#if session.selectedOptionId}
-								<div
-									class="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
-								>
-									<div class="flex items-center gap-2">
-										<Trophy class="h-5 w-5 shrink-0 text-amber-500" />
-										<span class="font-semibold">Winner: {session.selectedGameTitle}</span>
+		{#if filteredSessions && filteredSessions.length > 0}
+			<ul class="flex flex-col gap-4">
+				{#each filteredSessions as session (session.id)}
+					<li>
+						<Card.Root class="transition-shadow hover:shadow-md">
+							<Card.Header>
+								<div class="flex items-start justify-between gap-4">
+									<div class="min-w-0 flex-1 space-y-1">
+										<Card.Title class="truncate text-base">{session.title}</Card.Title>
+										<p class="flex items-center gap-1.5 text-sm text-muted-foreground">
+											<CalendarDays size={14} />
+											{format(session.gameDayDate, 'EEE, MMM do h:mm a')}
+										</p>
 									</div>
+									{#if session.hasVoted}
+										<span
+											class="flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400"
+										>
+											<Check size={12} />Voted
+										</span>
+									{/if}
 								</div>
-							{/if}
-						</Card.Content>
-						<Card.Footer class="justify-end gap-4">
-							<!-- Todo: Add clearVote confirmation as a dialog -->
-							{#if session.hasVoted && !session.selectedOptionId}
-								<ClearVoteButton votingSessionId={session.id}></ClearVoteButton>
-							{:else if session.selectedOptionId}
-								<form
-									action="?/renew"
-									method="post"
-									use:enhance={() => {
-										return async ({ result, update }) => {
-											if (result.type === 'failure') {
-												const message = typeof result.data?.message === 'string'
-													? result.data.message
-													: 'Unable to renew session, please try again.';
-												toast.error(message);
-											}
-											if (result.type === 'redirect') {
-												toast.success('Voting session renewed!');
-											}
-											update();
-										};
-									}}
-								>
-									<input type="hidden" value={session.id} name="votingSessionId" />
-									<Button variant="ghost" type="submit">Renew session</Button>
-								</form>
-							{/if}
-							<Button href="/voting/{session.id}">View Details</Button>
-						</Card.Footer>
-					</Card.Root>
-				</li>
-			{/each}
-		</ul>
+							</Card.Header>
+							<Card.Content>
+								<Card.Description class="line-clamp-3">{session.description}</Card.Description>
+								{#if session.selectedOptionId}
+									<div
+										class="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+									>
+										<div class="flex items-center gap-2">
+											<Trophy class="h-5 w-5 shrink-0 text-amber-500" />
+											<span class="font-semibold">Winner: {session.selectedGameTitle}</span>
+										</div>
+									</div>
+								{/if}
+							</Card.Content>
+							<Card.Footer class="justify-end gap-4">
+								<!-- Todo: Add clearVote confirmation as a dialog -->
+								{#if session.hasVoted && !session.selectedOptionId}
+									<ClearVoteButton votingSessionId={session.id}></ClearVoteButton>
+								{:else if session.selectedOptionId}
+									<form
+										action="?/renew"
+										method="post"
+										use:enhance={() => {
+											return async ({ result, update }) => {
+												if (result.type === 'failure') {
+													const message =
+														typeof result.data?.message === 'string'
+															? result.data.message
+															: 'Unable to renew session, please try again.';
+													toast.error(message);
+												}
+												if (result.type === 'redirect') {
+													toast.success('Voting session renewed!');
+												}
+												update();
+											};
+										}}
+									>
+										<input type="hidden" value={session.id} name="votingSessionId" />
+										<Button variant="ghost" type="submit">Renew session</Button>
+									</form>
+								{/if}
+								<Button href="/voting/{session.id}">View Details</Button>
+							</Card.Footer>
+						</Card.Root>
+					</li>
+				{/each}
+			</ul>
+		{:else}
+			<p class="flex min-h-32 items-center justify-center text-sm text-muted-foreground">
+				There are no {sessionType} sessions available.
+			</p>
+		{/if}
 	</Tabs.Content>
 {/snippet}
 

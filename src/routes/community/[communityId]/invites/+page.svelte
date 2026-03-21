@@ -163,5 +163,7 @@
 		</Table.Body>
 	</Table.Root>
 {:else}
-	<p class="mt-6 text-center">There are no active invites for this community.</p>
+	<p class="flex min-h-32 items-center justify-center text-sm text-muted-foreground">
+		There are no active invites for this community.
+	</p>
 {/if}

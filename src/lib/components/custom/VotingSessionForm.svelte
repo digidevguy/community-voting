@@ -10,7 +10,6 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import { CalendarDate, getLocalTimeZone } from '@internationalized/date';
-	import * as Select from '$lib/components/ui/select/index.js';
 	import * as Card from '$lib/components/ui/card';
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import Calendar from '$lib/components/ui/calendar/calendar.svelte';
@@ -50,10 +49,6 @@
 		return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
 	}
 
-	// Form data - initialized from initialData if provided (untrack captures initial-only snapshot)
-	let gameTypeValue: 'video_game' | 'board_game' | 'mixed' = $state(
-		untrack(() => initialData?.votingSessionType ?? 'video_game')
-	);
 	let searchQuery = $state('');
 	let selectedGames = $state<Array<{ id: string; title: string }>>(
 		untrack(() =>
@@ -90,14 +85,6 @@
 
 	let isEditMode = $derived(!!initialData);
 	let submitLabel = $derived(isEditMode ? 'Save Changes' : 'Create Session');
-
-	let gameTypeDisplay = $derived(
-		gameTypeValue
-			.replace(/_/g, ' ')
-			.split(' ')
-			.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-			.join(' ')
-	);
 
 	let searchResults = $derived.by(() => {
 		const query = searchQuery.trim().toLowerCase();
@@ -231,20 +218,8 @@
 			value={initialData?.description ?? ''}
 		/>
 	</div>
-	<div class="space-y-2">
-		<Label for="type">Game Type</Label>
-		<Select.Root type="single" name="votingSessionType" bind:value={gameTypeValue}>
-			<Select.Trigger class="w-full bg-background">
-				{gameTypeDisplay}
-			</Select.Trigger>
-			<Select.Content>
-				<Select.Item value="video_game">Video Games</Select.Item>
-				<Select.Item value="board_game">Board Games</Select.Item>
-				<Select.Item value="mixed">Mixed</Select.Item>
-			</Select.Content>
-		</Select.Root>
-	</div>
 
+	<input type="hidden" name="votingSessionType" value="video_game" />
 	<input type="hidden" name="startDate" value={startDateTime} />
 	<input type="hidden" name="gameDayDate" value={gameDayDateTime} />
 

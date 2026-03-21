@@ -58,7 +58,7 @@
 							<Input id="password" name="password" type="password" placeholder="Your password" />
 						</div>
 						<Button type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Submit'}</Button>
-						<p style="color: red">{form?.message ?? ''}</p>
+						<p style="text-red-500">{form?.message ?? ''}</p>
 					</form>
 				</Card.Content>
 			</Card.Root>
