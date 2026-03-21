@@ -4,9 +4,10 @@
 	import { format } from 'date-fns';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
-
 	let { data }: { data: PageData } = $props();
 </script>
+
+<Button onclick={() => history.back()}>Back</Button>
 
 {#if data.game}
 	<img src={data.game.image} alt={data.game.title} class="mx-auto mb-4 rounded-sm" />
@@ -20,7 +21,7 @@
 		{/if}
 		{#if data.game.genres}
 			<ul class="flex gap-2 p-2">
-			{#each data.game.genres as genre (genre)}
+				{#each data.game.genres as genre (genre)}
 					<li><Badge>{genre}</Badge></li>
 				{/each}
 			</ul>
