@@ -81,44 +81,49 @@
 	</Dialog.Root>
 </div>
 <Separator class="my-4" />
-<ul class="flex flex-col gap-2">
+<ul
+	class="grid grid-cols-[repeat(auto-fit,minmax(theme(spacing.64),1fr))] place-items-center gap-2"
+>
 	{#each data.collection as item (item.game.id)}
 		<li>
-			<Card.Root class="flex-row items-center justify-between p-2">
-				<h2>{item.game.title}</h2>
-				<Button href="/library/{item.game.id}" variant="secondary">View game details</Button>
-				<Dialog.Root
-					open={removeDialogOpen[item.game.id] ?? false}
-					onOpenChange={(open) => {
-						removeDialogOpen[item.game.id] = open;
-					}}
-				>
-					<Dialog.Trigger><Trash2 class="text-red-500" /></Dialog.Trigger>
-					<Dialog.Content>
-						<Dialog.Title>Delete collection item?</Dialog.Title>
-						<Dialog.Description>Are you sure you want to do this?</Dialog.Description>
-						<Dialog.Footer>
-							<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Cancel</Dialog.Close>
-							<form
-								method="POST"
-								action="?/remove"
-								use:enhance={() => {
-									return async ({ result, update }) => {
-										if (result.type === 'success') {
-											removeDialogOpen[item.game.id] = false;
-											toast.success('Game removed successfully!');
-										}
+			<Card.Root class="max-w-sm gap-0 overflow-hidden py-0">
+				<!-- <h2>{item.game.title}</h2> -->
+				<img src={item.game.image} alt={item.game.title} />
+				<Card.Footer class="my-2 flex justify-between">
+					<Button href="/library/{item.game.id}" variant="link">View game details</Button>
+					<Dialog.Root
+						open={removeDialogOpen[item.game.id] ?? false}
+						onOpenChange={(open) => {
+							removeDialogOpen[item.game.id] = open;
+						}}
+					>
+						<Dialog.Trigger><Trash2 class="text-red-500" /></Dialog.Trigger>
+						<Dialog.Content>
+							<Dialog.Title>Delete collection item?</Dialog.Title>
+							<Dialog.Description>Are you sure you want to do this?</Dialog.Description>
+							<Dialog.Footer>
+								<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Cancel</Dialog.Close>
+								<form
+									method="POST"
+									action="?/remove"
+									use:enhance={() => {
+										return async ({ result, update }) => {
+											if (result.type === 'success') {
+												removeDialogOpen[item.game.id] = false;
+												toast.success('Game removed successfully!');
+											}
 
-										await update();
-									};
-								}}
+											await update();
+										};
+									}}
+								>
+									<input type="hidden" value={item.game.id} name="gameId" />
+									<Button aria-label="Remove" variant="destructive" type="submit">Delete</Button>
+								</form></Dialog.Footer
 							>
-								<input type="hidden" value={item.game.id} name="gameId" />
-								<Button aria-label="Remove" variant="destructive" type="submit">Delete</Button>
-							</form></Dialog.Footer
-						>
-					</Dialog.Content>
-				</Dialog.Root>
+						</Dialog.Content>
+					</Dialog.Root>
+				</Card.Footer>
 			</Card.Root>
 		</li>
 	{/each}
