@@ -4,9 +4,11 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { Button } from '$lib/components/ui/button';
-	import { Check, CirclePlus, Send, Library, CalendarDays } from '@lucide/svelte';
+	import { Check, CirclePlus, Send, Library, CalendarDays, Trophy } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
+	import { enhance } from '$app/forms';
+	import { toast } from 'svelte-sonner';
 
 	let { data }: { data: PageData } = $props();
 	type Session = PageData['sessions'][number];
@@ -77,11 +79,43 @@
 						</Card.Header>
 						<Card.Content>
 							<Card.Description class="line-clamp-3">{session.description}</Card.Description>
+							{#if session.selectedOptionId}
+								<div
+									class="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+								>
+									<div class="flex items-center gap-2">
+										<Trophy class="h-5 w-5 shrink-0 text-amber-500" />
+										<span class="font-semibold">Winner: {session.selectedGameTitle}</span>
+									</div>
+								</div>
+							{/if}
 						</Card.Content>
 						<Card.Footer class="justify-end gap-4">
 							<!-- Todo: Add clearVote confirmation as a dialog -->
 							{#if session.hasVoted && !session.selectedOptionId}
 								<ClearVoteButton votingSessionId={session.id}></ClearVoteButton>
+							{:else if session.selectedOptionId}
+								<form
+									action="?/renew"
+									method="post"
+									use:enhance={() => {
+										return async ({ result, update }) => {
+											if (result.type === 'failure') {
+												const message = typeof result.data?.message === 'string'
+													? result.data.message
+													: 'Unable to renew session, please try again.';
+												toast.error(message);
+											}
+											if (result.type === 'redirect') {
+												toast.success('Voting session renewed!');
+											}
+											update();
+										};
+									}}
+								>
+									<input type="hidden" value={session.id} name="votingSessionId" />
+									<Button variant="ghost" type="submit">Renew session</Button>
+								</form>
 							{/if}
 							<Button href="/voting/{session.id}">View Details</Button>
 						</Card.Footer>

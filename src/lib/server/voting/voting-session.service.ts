@@ -375,10 +375,14 @@ export async function getCommunitySessions(
 			selectedOptionId: votingSession.selectedOptionId,
 			createdAt: votingSession.createdAt,
 			updatedBy: votingSession.updatedBy,
-			hasVoted: sql<boolean>`CASE WHEN ${vote.id} IS NOT NULL THEN true ELSE false END`
+			hasVoted: sql<boolean>`CASE WHEN ${vote.id} IS NOT NULL THEN true ELSE false END`,
+			selectedGameId: game.id,
+			selectedGameTitle: game.title
 		})
 		.from(votingSession)
 		.leftJoin(vote, and(eq(vote.votingSessionId, votingSession.id), eq(vote.userId, userId)))
+		.leftJoin(votingOption, eq(votingOption.id, votingSession.selectedOptionId))
+		.leftJoin(game, eq(game.id, votingOption.gameId))
 		.where(eq(votingSession.communityId, communityId))
 		.orderBy(votingSession.status);
 
@@ -417,6 +421,65 @@ export async function closeExpiredVotingSession(
 		.returning({ id: votingSession.id, status: votingSession.status });
 
 	return updated ?? null;
+}
+
+/**
+ * Creates a new draft session by copying an existing session's metadata and active voting options.
+ * The caller must be the original session's creator.
+ */
+export async function renewVotingSession(
+	db: Database | DBTransaction,
+	votingSessionId: string,
+	userId: string
+) {
+	const original = await db
+		.select()
+		.from(votingSession)
+		.where(eq(votingSession.id, votingSessionId))
+		.then((r) => r[0]);
+
+	if (!original) {
+		throw new Error('Voting session not found');
+	}
+	if (original.createdBy !== userId) {
+		throw new Error('Only the session creator can renew this session');
+	}
+
+	const [newSession] = await db
+		.insert(votingSession)
+		.values({
+			communityId: original.communityId,
+			title: original.title,
+			description: original.description,
+			voting_session_type: original.voting_session_type,
+			showRealTimeResults: original.showRealTimeResults,
+			allowAddingOptions: original.allowAddingOptions,
+			gameDayDate: original.gameDayDate,
+			startDate: new Date(),
+			status: 'draft',
+			createdBy: userId
+		})
+		.returning();
+
+	const originalOptions = await db
+		.select({ gameId: votingOption.gameId, order: votingOption.order })
+		.from(votingOption)
+		.where(and(eq(votingOption.votingSessionId, votingSessionId), eq(votingOption.isActive, true)));
+
+	if (originalOptions.length > 0) {
+		await db.insert(votingOption).values(
+			originalOptions.map((opt) => ({
+				votingSessionId: newSession.id,
+				gameId: opt.gameId,
+				addedBy: userId,
+				order: opt.order,
+				addedDuringVoting: false,
+				approvalStatus: 'approved' as const
+			}))
+		);
+	}
+
+	return newSession;
 }
 
 /**
