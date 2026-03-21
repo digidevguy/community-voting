@@ -191,7 +191,9 @@
 								? 'flex'
 								: 'hidden'}"
 						>
-							<Button variant="link" class="text-slate-200">Learn More</Button>
+							<Button variant="link" class="text-slate-200" href="/library/{option.gameId}"
+								>Learn More</Button
+							>
 							<form
 								action="?/vote"
 								method="POST"
