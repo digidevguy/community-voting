@@ -136,6 +136,7 @@
 </section>
 <section class="space-y-4">
 	{#if isVotingOpen && userVote}
+		<!-- TODO: Add refactored clearVote UI -->
 		<ClearVoteButton votingSessionId={votingSessionDetails.id}></ClearVoteButton>
 	{/if}
 	<ul
@@ -157,7 +158,7 @@
 						<img
 							src={option.game.image}
 							alt={option.game.title}
-							class="aspect=[460-215] w-full object-cover"
+							class="aspect-[460/215] w-full object-cover"
 						/>
 					{:else}
 						<div

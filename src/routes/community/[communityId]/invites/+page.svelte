@@ -1,7 +1,8 @@
 <script lang="ts">
-	import Button from '$lib/components/ui/button/button.svelte';
+	import Button, { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import * as InputGroup from '$lib/components/ui/input-group/index';
 	import * as Table from '$lib/components/ui/table/index';
+	import * as Dialog from '$lib/components/ui/dialog/index';
 	import { Check, CircleChevronLeft, CirclePlus, Copy, Recycle, Trash } from '@lucide/svelte';
 	import type { ActionData, PageServerData } from './$types';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
@@ -15,6 +16,8 @@
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 
 	let clearingInvites = $state(false);
+	let revokeDialogOpen = $state(false);
+	let revokeTargetId = $state<string | null>(null);
 	const invites = $derived(
 		clearingInvites
 			? data.invites.filter(
@@ -49,6 +52,29 @@
 		return { label: `${days} days`, inactive: false };
 	}
 </script>
+
+<Dialog.Root bind:open={revokeDialogOpen}>
+	<Dialog.Content>
+		<Dialog.Header>Confirm revoke</Dialog.Header>
+		<Dialog.Description>Are you sure that you want to revoke this invite?</Dialog.Description>
+		<Dialog.Footer>
+			<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>
+			<form
+				method="POST"
+				action="?/revoke"
+				use:enhance={() => {
+					return async ({ result, update }) => {
+						if (result.type === 'success') revokeDialogOpen = false;
+						await update();
+					};
+				}}
+			>
+				<input type="hidden" name="inviteId" value={revokeTargetId} />
+				<Button type="submit" variant="destructive"><Trash />Revoke</Button>
+			</form>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
 
 <h1 class="mb-4 text-xl font-semibold">Invites Dashboard</h1>
 <div class="flex justify-between">
@@ -147,16 +173,16 @@
 					<Table.Cell>{invite.useCount} / {invite.maxUses}</Table.Cell>
 					<Table.Cell>{expiry.label}</Table.Cell>
 					<Table.Cell>
-						<form method="POST" action="?/revoke" use:enhance>
-							<input type="hidden" name="inviteId" value={invite.id} />
-							<Button
-								disabled={expiry.inactive}
-								type="submit"
-								size="icon-sm"
-								variant="destructive"
-								aria-label="revoke invite"><Trash /></Button
-							>
-						</form>
+						<Button
+							disabled={expiry.inactive}
+							variant="destructive"
+							onclick={() => {
+								revokeTargetId = invite.id;
+								revokeDialogOpen = true;
+							}}
+						>
+							<Trash />
+						</Button>
 					</Table.Cell>
 				</tr>
 			{/each}

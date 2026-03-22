@@ -62,7 +62,7 @@
 				</div>
 				<Button type="submit" class="mt-2 w-full">
 					{#if submitting}
-						`` <LoaderCircle class="animate-spin" />
+						<LoaderCircle class="animate-spin" />
 					{:else}
 						Create
 					{/if}

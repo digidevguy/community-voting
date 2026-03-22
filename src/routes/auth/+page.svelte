@@ -58,7 +58,7 @@
 							<Input id="password" name="password" type="password" placeholder="Your password" />
 						</div>
 						<Button type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Submit'}</Button>
-						<p style="text-red-500">{form?.message ?? ''}</p>
+						<p class="text-red-500">{form?.message ?? ''}</p>
 					</form>
 				</Card.Content>
 			</Card.Root>
@@ -76,19 +76,19 @@
 							<Input id="email" name="email" type="email" placeholder="iami@email.com" />
 						</div>
 						<div class="grid gap-2">
-							<Label for="username">Username</Label>
-							<Input id="username" name="username" type="text" placeholder="BossMan2025" />
+							<Label for="newUsername">Username</Label>
+							<Input id="newUsername" name="username" type="text" placeholder="BossMan2025" />
 						</div>
 						<div class="grid gap-2">
 							<Label for="displayName">Display Name</Label>
 							<Input id="displayName" name="displayName" type="text" placeholder="Boss Man 2025" />
 						</div>
 						<div class="grid gap-2">
-							<Label for="password">Password</Label>
-							<Input id="password" name="password" type="password" placeholder="Your password" />
+							<Label for="newPassword">Password</Label>
+							<Input id="newPassword" name="password" type="password" placeholder="Your password" />
 						</div>
 						<div class="grid gap-2">
-							<Label for="confirmPassword">Password</Label>
+							<Label for="confirmPassword">Confirm Password</Label>
 							<Input
 								id="confirmPassword"
 								name="confirmPassword"
@@ -97,7 +97,7 @@
 							/>
 						</div>
 						<Button type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Submit'}</Button>
-						<p style="color: red">{form?.message ?? ''}</p>
+						<p class="text-red-500">{form?.message ?? ''}</p>
 					</form>
 				</Card.Content>
 			</Card.Root>
