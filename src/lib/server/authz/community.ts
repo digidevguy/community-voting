@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { getVotingSession } from '../voting/voting-session.service';
-import { confirmUserInCommunity } from '../communities/communities.service';
+import { confirmUserInCommunity, getUserCommunityRole } from '../communities/communities.service';
 
 /**
  *  * This function is a reusable authz check for voting access to a community. It checks the following:
@@ -34,6 +34,36 @@ export async function requireVotingAccess(locals: App.Locals, votingSessionId: s
 
 	if (!isUserInCommunity) {
 		throw error(403, 'User is not a member of the community');
+	}
+
+	return session;
+}
+
+/**
+ * Checks that the user can write (edit/delete) a voting session.
+ * Allowed if the user is the session creator, or a community moderator/admin.
+ */
+export async function requireSessionWriteAccess(locals: App.Locals, votingSessionId: string) {
+	if (!locals.user) {
+		throw redirect(303, '/auth');
+	}
+
+	const session = await getVotingSession(locals.db, votingSessionId);
+
+	if (!session) {
+		throw error(404, 'Voting session not found');
+	}
+
+	const userId = locals.user.id;
+
+	if (session.createdBy === userId) {
+		return session;
+	}
+
+	const role = await getUserCommunityRole(locals.db, userId, session.communityId);
+
+	if (role !== 'moderator' && role !== 'admin') {
+		throw error(403, 'Only the session creator or a community moderator/admin can perform this action');
 	}
 
 	return session;

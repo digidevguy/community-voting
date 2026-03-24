@@ -5,6 +5,7 @@ import type {
 import type { Database, DBTransaction } from '$lib/server/db';
 import {
 	community,
+	communityRole,
 	communityUser,
 	invitations,
 	invitationRedemptions,
@@ -12,10 +13,12 @@ import {
 } from '$lib/server/db/schema';
 import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 
+type CommunityRole = (typeof communityRole.enumValues)[number];
+
 export async function getCommunityInfo(db: Database | DBTransaction, communityId: string) {
 	const [communityInfo] = await db.select().from(community).where(eq(community.id, communityId));
 
-	if (!community) {
+	if (!communityInfo) {
 		throw new Error(`Could not find a community match for ${communityId}`);
 	}
 
@@ -117,6 +120,19 @@ export async function confirmUserInCommunity(
 	}
 
 	return true;
+}
+
+export async function getUserCommunityRole(
+	db: Database | DBTransaction,
+	userId: string,
+	communityId: string
+): Promise<CommunityRole | null> {
+	const [row] = await db
+		.select({ role: communityUser.role })
+		.from(communityUser)
+		.where(and(eq(communityUser.userId, userId), eq(communityUser.communityId, communityId)));
+
+	return row?.role ?? null;
 }
 
 export async function createCommunityInvite(

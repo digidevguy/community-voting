@@ -165,9 +165,7 @@ export const votingSession = pgTable(
 			.references(() => community.id),
 		title: text('title').notNull(),
 		description: text('description'),
-		createdBy: text('created_by')
-			.notNull()
-			.references(() => user.id, { onDelete: 'set null' }),
+		createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
 		voting_session_type: votingSessionType('voting_session_type').notNull().default('video_game'),
 		status: votingSessionStatus('status').notNull().default('draft'),
 		startDate: timestamp('start_date', { withTimezone: true }).notNull().defaultNow(),

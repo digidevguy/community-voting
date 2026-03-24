@@ -1,14 +1,13 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, fail, isHttpError, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from '../$types';
 import { getCommunityCollection } from '$lib/server/collections/collection.service';
 import {
-	getVotingSession,
 	getVotingSessionWithOptions,
 	syncVotingSessionOptions,
 	updateVotingSession
 } from '$lib/server/voting/voting-session.service';
 import { createVotingSessionSchema } from '$lib/server/voting/voting-session.validation';
-import { requireVotingAccess } from '$lib/server/authz/community';
+import { requireSessionWriteAccess, requireVotingAccess } from '$lib/server/authz/community';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const { votingSessionId } = params;
@@ -43,16 +42,12 @@ export const actions: Actions = {
 			return fail(400, { success: false, message: 'Mismatched voting session id.' });
 		}
 
-		const existingSession = await getVotingSession(e.locals.db, routeVotingSessionId);
-		if (!existingSession) {
-			return fail(404, { success: false, message: 'Voting session not found.' });
-		}
-
-		if (existingSession.createdBy !== userId) {
-			return fail(403, {
-				success: false,
-				message: 'Only the session creator can edit this voting session.'
-			});
+		let existingSession;
+		try {
+			existingSession = await requireSessionWriteAccess(e.locals, routeVotingSessionId);
+		} catch (err) {
+			if (isHttpError(err) && err.status !== 403) throw err;
+			return fail(403, { success: false, message: 'Only the session creator or a community moderator/admin can edit this voting session.' });
 		}
 
 		const submittedGameIds = formData

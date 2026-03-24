@@ -72,7 +72,7 @@ export async function updateVotingSession(
 			allowAddingOptions: data.allowAddingOptions,
 			updatedBy: userId
 		})
-		.where(and(eq(votingSession.id, votingSessionId), eq(votingSession.createdBy, userId)))
+		.where(eq(votingSession.id, votingSessionId))
 		.returning({ id: votingSession.id });
 
 	return result;
@@ -151,14 +151,10 @@ export async function syncVotingSessionOptions(
 	};
 }
 
-export async function deleteVotingSession(
-	db: Database | DBTransaction,
-	votingSessionId: string,
-	userId: string
-) {
+export async function deleteVotingSession(db: Database | DBTransaction, votingSessionId: string) {
 	const [id] = await db
 		.delete(votingSession)
-		.where(and(eq(votingSession.id, votingSessionId), eq(votingSession.createdBy, userId)))
+		.where(eq(votingSession.id, votingSessionId))
 		.returning({ id: votingSession.id });
 
 	return id;
