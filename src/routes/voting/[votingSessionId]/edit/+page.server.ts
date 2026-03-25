@@ -7,7 +7,7 @@ import {
 	updateVotingSession
 } from '$lib/server/voting/voting-session.service';
 import { createVotingSessionSchema } from '$lib/server/voting/voting-session.validation';
-import { requireSessionWriteAccess, requireVotingAccess } from '$lib/server/authz/community';
+import { requireSessionWriteAccess } from '$lib/server/authz/community';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const { votingSessionId } = params;
@@ -15,7 +15,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		return error(500, { message: 'Voting session not found.' });
 	}
 
-	const session = await requireVotingAccess(locals, votingSessionId);
+	const session = await requireSessionWriteAccess(locals, votingSessionId);
 
 	return {
 		sessionDetails: await getVotingSessionWithOptions(locals.db, votingSessionId),
