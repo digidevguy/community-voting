@@ -35,6 +35,7 @@ export const actions: Actions = {
 			return fail(400, { message: 'Invalid password (min 6, max 255 characters)' });
 		}
 
+		// Todo: Confirm refactor to local db
 		const results = await db.select().from(table.user).where(eq(table.user.username, username));
 
 		const existingUser = results.at(0);

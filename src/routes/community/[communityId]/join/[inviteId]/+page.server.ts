@@ -1,6 +1,7 @@
 import { createUser } from '$lib/auth/user';
 import * as auth from '$lib/server/auth';
 import {
+	confirmUserInCommunity,
 	getCommunityInfo,
 	getInviteById,
 	redeemInvite
@@ -11,18 +12,28 @@ import {
 	validatePassword,
 	validateUsername
 } from '$lib/validation';
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (locals.user) {
+	if (!locals.user) {
+		return redirect(302, '/auth');
+	}
+
+	const inCommunity = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
+	if (inCommunity) {
 		return redirect(302, '/community');
 	}
+
 	const { communityId, inviteId } = params;
+	const invite = await getInviteById(locals.db, inviteId);
+	if (!invite || invite.communityId !== communityId) {
+		throw error(404, 'Invite not found');
+	}
 
 	return {
 		community: await getCommunityInfo(locals.db, communityId),
-		invite: await getInviteById(locals.db, inviteId)
+		invite
 	};
 };
 
@@ -56,6 +67,11 @@ export const actions: Actions = {
 			return fail(400, { message: 'Passwords do not match' });
 		}
 
+		const invite = await getInviteById(locals.db, inviteId);
+		if (!invite || invite.communityId !== communityId) {
+			return fail(404, { message: 'Invite link is incorrect. Please notify the inviter.' });
+		}
+
 		let userId = '';
 		try {
 			await locals.db.transaction(async (tx) => {
@@ -70,6 +86,28 @@ export const actions: Actions = {
 		const sessionToken = auth.generateSessionToken();
 		const session = await auth.createSession(sessionToken, userId);
 		auth.setSessionTokenCookie(event, sessionToken, session.expiresAt);
+
+		return { communityId };
+	},
+	joinExisting: async (event) => {
+		const { locals, params } = event;
+		const { communityId, inviteId } = params;
+
+		if (!locals.user) {
+			return redirect(303, '/auth');
+		}
+
+		const invite = await getInviteById(locals.db, inviteId);
+		if (!invite || invite.communityId !== communityId) {
+			return fail(404, { message: 'Invite link is incorrect. Please notify the inviter.' });
+		}
+
+		try {
+			await redeemInvite(locals.db, inviteId, locals.user.id);
+		} catch (error) {
+			console.error('Registration error during invite join:', error);
+			return fail(500, { message: 'Failed to redeem invite. Please try again.' });
+		}
 
 		return { communityId };
 	}
