@@ -47,7 +47,11 @@ export const actions: Actions = {
 			existingSession = await requireSessionWriteAccess(e.locals, routeVotingSessionId);
 		} catch (err) {
 			if (isHttpError(err) && err.status !== 403) throw err;
-			return fail(403, { success: false, message: 'Only the session creator or a community moderator/admin can edit this voting session.' });
+			return fail(403, {
+				success: false,
+				message:
+					'Only the session creator or a community moderator/admin can edit this voting session.'
+			});
 		}
 
 		const submittedGameIds = formData
@@ -67,7 +71,7 @@ export const actions: Actions = {
 			votingSessionType:
 				formData.get('votingSessionType')?.toString() || existingSession.voting_session_type,
 			gameDayDate:
-				formData.get('gameDayDate')?.toString() || existingSession.gameDayDate.toISOString(),
+				formData.get('gameDayDate')?.toString() || existingSession.gameDayDate?.toISOString() || '',
 			showRealTimeResults: formData.has('showRealTimeResults')
 				? formData.get('showRealTimeResults') === 'on'
 				: existingSession.showRealTimeResults,

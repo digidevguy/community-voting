@@ -450,7 +450,7 @@ export async function renewVotingSession(
 			voting_session_type: original.voting_session_type,
 			showRealTimeResults: original.showRealTimeResults,
 			allowAddingOptions: original.allowAddingOptions,
-			gameDayDate: original.gameDayDate,
+			gameDayDate: null,
 			startDate: new Date(),
 			status: 'draft',
 			createdBy: userId

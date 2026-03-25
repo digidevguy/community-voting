@@ -66,7 +66,9 @@
 										<Card.Title class="truncate text-base">{session.title}</Card.Title>
 										<p class="flex items-center gap-1.5 text-sm text-muted-foreground">
 											<CalendarDays size={14} />
-											{format(session.gameDayDate, 'EEE, MMM do h:mm a')}
+											{session.gameDayDate
+												? format(session.gameDayDate, 'EEE, MMM do h:mm a')
+												: 'TBD'}
 										</p>
 									</div>
 									{#if session.hasVoted}
@@ -92,7 +94,6 @@
 								{/if}
 							</Card.Content>
 							<Card.Footer class="justify-end gap-4">
-								<!-- Todo: Add clearVote confirmation as a dialog -->
 								{#if session.hasVoted && !session.selectedOptionId}
 									<ClearVoteButton votingSessionId={session.id}></ClearVoteButton>
 								{:else if session.selectedOptionId}

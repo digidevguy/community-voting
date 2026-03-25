@@ -157,35 +157,33 @@ export async function getInviteById(db: Database | DBTransaction, inviteId: stri
 	return invite ?? null;
 }
 
-export async function redeemInvite(db: Database, inviteId: string, userId: string) {
-	return await db.transaction(async (tx) => {
-		// Atomically increment useCount only if the invite is still valid.
-		// The conditional WHERE prevents a race condition where two simultaneous
-		// redemptions could both pass a read-then-check approach.
-		const [invite] = await tx
-			.update(invitations)
-			.set({ useCount: sql`${invitations.useCount} + 1` })
-			.where(
-				and(
-					eq(invitations.id, inviteId),
-					eq(invitations.status, 'pending'),
-					or(isNull(invitations.expiresAt), sql`${invitations.expiresAt} > NOW()`),
-					or(isNull(invitations.maxUses), sql`${invitations.useCount} < ${invitations.maxUses}`)
-				)
+export async function redeemInvite(db: Database | DBTransaction, inviteId: string, userId: string) {
+	// Atomically increment useCount only if the invite is still valid.
+	// The conditional WHERE prevents a race condition where two simultaneous
+	// redemptions could both pass a read-then-check approach.
+	const [invite] = await db
+		.update(invitations)
+		.set({ useCount: sql`${invitations.useCount} + 1` })
+		.where(
+			and(
+				eq(invitations.id, inviteId),
+				eq(invitations.status, 'pending'),
+				or(isNull(invitations.expiresAt), sql`${invitations.expiresAt} > NOW()`),
+				or(isNull(invitations.maxUses), sql`${invitations.useCount} < ${invitations.maxUses}`)
 			)
-			.returning();
+		)
+		.returning();
 
-		if (!invite) throw new Error('Invite is invalid, expired, or fully used');
+	if (!invite) throw new Error('Invite is invalid, expired, or fully used');
 
-		if (invite.maxUses !== null && invite.useCount >= invite.maxUses) {
-			await tx.update(invitations).set({ status: 'accepted' }).where(eq(invitations.id, inviteId));
-		}
+	if (invite.maxUses !== null && invite.useCount >= invite.maxUses) {
+		await db.update(invitations).set({ status: 'accepted' }).where(eq(invitations.id, inviteId));
+	}
 
-		await joinCommunity(tx, { communityId: invite.communityId, userId });
-		await tx.insert(invitationRedemptions).values({ invitationId: inviteId, userId });
+	await joinCommunity(db, { communityId: invite.communityId, userId });
+	await db.insert(invitationRedemptions).values({ invitationId: inviteId, userId });
 
-		return invite;
-	});
+	return invite;
 }
 
 export async function getInvitesByCommunity(db: Database | DBTransaction, communityId: string) {

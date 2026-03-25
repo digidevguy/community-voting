@@ -2,7 +2,7 @@
 import { hash } from '@node-rs/argon2';
 import { encodeBase32LowerCase } from '@oslojs/encoding';
 import * as table from '$lib/server/db/schema';
-import type { Database } from '$lib/server/db';
+import type { Database, DBTransaction } from '$lib/server/db';
 
 export function generateUserId(): string {
 	// ID with 120 bits of entropy, or about the same as UUID v4.
@@ -17,7 +17,7 @@ export interface CreateUserInput {
 	password: string;
 }
 
-export async function createUser(db: Database, data: CreateUserInput): Promise<string> {
+export async function createUser(db: Database | DBTransaction, data: CreateUserInput): Promise<string> {
 	const userId = generateUserId();
 	const passwordHash = await hash(data.password, {
 		memoryCost: 19456,

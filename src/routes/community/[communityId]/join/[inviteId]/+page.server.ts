@@ -56,19 +56,15 @@ export const actions: Actions = {
 			return fail(400, { message: 'Passwords do not match' });
 		}
 
-		let userId: string;
+		let userId = '';
 		try {
-			userId = await createUser(locals.db, { username, email, displayName, password });
+			await locals.db.transaction(async (tx) => {
+				userId = await createUser(tx, { username, email, displayName, password });
+				await redeemInvite(tx, inviteId, userId);
+			});
 		} catch (error) {
 			console.error('Registration error during invite join:', error);
-			return fail(500, { message: 'Failed to create account. Please try again.' });
-		}
-
-		try {
-			await redeemInvite(locals.db, inviteId, userId);
-		} catch (error) {
-			console.error('Invite redemption error:', error);
-			return fail(400, { message: 'Invite is invalid, expired, or fully used.' });
+			return fail(500, { message: 'Failed to redeem invite. Please try again.' });
 		}
 
 		const sessionToken = auth.generateSessionToken();
