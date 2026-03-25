@@ -8,11 +8,11 @@ import {
 	getCommunitySessions,
 	renewVotingSession
 } from '$lib/server/voting/voting-session.service';
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
-		return redirect(302, '/auth');
+		throw redirect(302, '/auth');
 	}
 
 	const userInCommunity = await confirmUserInCommunity(
@@ -22,7 +22,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	);
 
 	if (!userInCommunity) {
-		return redirect(403, '/unauthorized');
+		throw error(403, 'You do not have access to this community');
 	}
 
 	return {
@@ -35,7 +35,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 export const actions: Actions = {
 	renew: async ({ request, locals, params }) => {
 		if (!locals.user) {
-			return redirect(303, '/auth');
+			throw redirect(303, '/auth');
 		}
 
 		const { communityId } = params;

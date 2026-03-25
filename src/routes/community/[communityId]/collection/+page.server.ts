@@ -1,4 +1,4 @@
-import { redirect } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from '../$types';
 import {
 	confirmUserInCommunity,
@@ -26,7 +26,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	);
 
 	if (!userInCommunity) {
-		throw redirect(403, `You do not have access to this community`);
+		throw error(403, `You do not have access to this community`);
 	}
 
 	return {
