@@ -85,10 +85,22 @@ export async function addGameToCollectionWithEnrichment(
 			)
 		);
 
-	// Todo: Check if the existingCollectionItem isActive is false, then we can just reactivate it instead of throwing an error
-
 	if (existingCollectionItem) {
-		throw new Error(`Game already exits in collection: ${gameId}`);
+		if (existingCollectionItem.isActive) {
+			throw new Error('Game already exists in collection');
+		}
+
+		const [reactivated] = await db
+			.update(communityCollections)
+			.set({ isActive: true, removedBy: null, removedAt: null })
+			.where(
+				and(
+					eq(communityCollections.communityId, communityId),
+					eq(communityCollections.gameId, gameId)
+				)
+			)
+			.returning();
+		return reactivated;
 	}
 
 	const newCollectionItem = await addGameToCollection(db, {

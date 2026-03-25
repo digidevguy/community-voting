@@ -6,6 +6,7 @@ import type {
 	CreateVotingSessionInput
 } from './voting-session.validation';
 import { isGameInCollection } from '../collections/collection.service';
+import { getUserCommunityRole } from '../communities/communities.service';
 
 export async function createVotingSession(
 	db: Database | DBTransaction,
@@ -317,7 +318,10 @@ export async function getVotingSessionWithResults(
 		.select()
 		.from(votingSession)
 		.where(eq(votingSession.id, votingSessionId))
-		.leftJoin(votingOption, eq(votingOption.votingSessionId, votingSessionId))
+		.leftJoin(
+			votingOption,
+			and(eq(votingOption.votingSessionId, votingSessionId), eq(votingOption.isActive, true))
+		)
 		.leftJoin(game, eq(votingOption.gameId, game.id));
 
 	if (results.length === 0) {
@@ -437,8 +441,14 @@ export async function renewVotingSession(
 	if (!original) {
 		throw new Error('Voting session not found');
 	}
+
 	if (original.createdBy !== userId) {
-		throw new Error('Only the session creator can renew this session');
+		const role = await getUserCommunityRole(db, userId, original.communityId);
+		if (!role || (role !== 'moderator' && role !== 'admin')) {
+			throw new Error(
+				'Only the session creator or a community moderator/admin can finalize the session'
+			);
+		}
 	}
 
 	const [newSession] = await db
@@ -490,6 +500,7 @@ export async function endVotingSession(
 	const [session] = await db
 		.select({
 			id: votingSession.id,
+			communityId: votingSession.communityId,
 			status: votingSession.status,
 			createdBy: votingSession.createdBy
 		})
@@ -502,8 +513,12 @@ export async function endVotingSession(
 	if (session.status !== 'voting_ended') {
 		throw new Error('Voting session is not in voting_ended state');
 	}
+
 	if (session.createdBy !== userId) {
-		throw new Error('Only the session creator can finalize the session');
+		const role = await getUserCommunityRole(db, userId, session.communityId);
+		if (!role || (role !== 'moderator' && role !== 'admin')) {
+			throw new Error('Only the session creator can finalize the session');
+		}
 	}
 
 	// Find the option with the most votes
