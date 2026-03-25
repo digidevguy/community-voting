@@ -2,7 +2,9 @@ import {
 	clearInactiveInvites,
 	confirmUserInCommunity,
 	createCommunityInvite,
+	getInviteById,
 	getInvitesByCommunity,
+	getUserCommunityRole,
 	revokeInvite
 } from '$lib/server/communities/communities.service';
 import { error, fail, redirect } from '@sveltejs/kit';
@@ -11,11 +13,11 @@ import { createInviteSchema } from '$lib/server/communities/communites.validatio
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
-		redirect(303, '/auth');
+		throw redirect(303, '/auth');
 	}
 	const isMember = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
 	if (!isMember) {
-		error(403, 'Forbidden');
+		throw error(403, 'Forbidden');
 	}
 
 	return {
@@ -27,11 +29,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 export const actions: Actions = {
 	clear: async ({ locals, params }) => {
 		if (!locals.user) {
-			redirect(303, '/auth');
+			throw redirect(303, '/auth');
 		}
 		const isMember = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
 		if (!isMember) {
-			error(403, 'Forbidden');
+			throw error(403, 'Forbidden');
 		}
 
 		const communityId = params.communityId;
@@ -49,11 +51,11 @@ export const actions: Actions = {
 	},
 	create: async ({ locals, request, params }) => {
 		if (!locals.user) {
-			redirect(303, '/auth');
+			throw redirect(303, '/auth');
 		}
 		const isMember = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
 		if (!isMember) {
-			error(403, 'Forbidden');
+			throw error(403, 'Forbidden');
 		}
 
 		const body = await request.formData();
@@ -85,15 +87,26 @@ export const actions: Actions = {
 	},
 	revoke: async ({ locals, request, params }) => {
 		if (!locals.user) {
-			redirect(303, '/auth');
+			throw redirect(303, '/auth');
 		}
 		const isMember = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
 		if (!isMember) {
-			error(403, 'Forbidden');
+			throw error(403, 'Forbidden');
 		}
 
 		const inviteId = (await request.formData()).get('inviteId')?.toString();
 		if (!inviteId) return fail(400, { message: 'Missing invite ID' });
+
+		const invite = await getInviteById(locals.db, inviteId);
+		if (!invite) return fail(404, { message: 'Invite not found' });
+
+		const isCreator = invite.createdBy === locals.user.id;
+		if (!isCreator) {
+			const role = await getUserCommunityRole(locals.db, locals.user.id, params.communityId);
+			if (!role || (role !== 'moderator' && role !== 'admin')) {
+				throw error(403, 'Forbidden');
+			}
+		}
 
 		try {
 			await revokeInvite(locals.db, inviteId);
