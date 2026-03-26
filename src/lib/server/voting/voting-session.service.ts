@@ -1,12 +1,12 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { game, user, vote, votingOption, votingSession } from '$lib/server/db/schema';
+import { game, vote, votingOption, votingSession } from '$lib/server/db/schema';
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import type {
 	CreateVotingOptionInput,
 	CreateVotingSessionInput
 } from './voting-session.validation';
 import { isGameInCollection } from '../collections/collection.service';
-import { getUserCommunityRole } from '../communities/communities.service';
+import { confirmUserInCommunity, getUserCommunityRole } from '../communities/communities.service';
 
 export async function createVotingSession(
 	db: Database | DBTransaction,
@@ -32,7 +32,7 @@ export async function createVotingSession(
 	return session;
 }
 
-export async function getVotingSession(db: Database, votingSessionId: string) {
+export async function getVotingSession(db: Database | DBTransaction, votingSessionId: string) {
 	const [result] = await db
 		.select()
 		.from(votingSession)
@@ -250,10 +250,12 @@ export async function publishVotingSession(
 		throw new Error('Cannot publish session without voting options');
 	}
 
-	// 2. Check if user is in community
-	const [foundUser] = await db.select().from(user).where(eq(user.id, userId));
+	const existingVotingSession = await getVotingSession(db, votingSessionId);
 
-	if (!foundUser) {
+	// 2. Check if user is in community
+	const inCommunity = await confirmUserInCommunity(db, userId, existingVotingSession.communityId);
+
+	if (!inCommunity) {
 		throw new Error('User not found');
 	}
 
