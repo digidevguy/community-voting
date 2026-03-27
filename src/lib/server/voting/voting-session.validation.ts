@@ -10,7 +10,7 @@ export const createVotingSessionSchema = z
 		gameDayDate: z.coerce.date(),
 		showRealTimeResults: z.boolean().default(true),
 		allowAddingOptions: z.boolean().default(true),
-		gameIds: z.array(z.uuid()).optional() || []
+		gameIds: z.array(z.uuid()).min(1)
 	})
 	.superRefine((data, ctx) => {
 		const now = Date.now();
@@ -40,6 +40,10 @@ export const createVotingSessionSchema = z
 		}
 	});
 
+export const updateVotingSessionSchema = createVotingSessionSchema.extend({
+	gameIds: z.array(z.uuid()).min(1).optional()
+});
+
 export const createVotingOptionSchema = z.object({
 	gameId: z.uuid(),
 	votingSessionId: z.uuid(),
@@ -56,6 +60,8 @@ export const createVoteSchema = z.object({
 });
 
 export type CreateVotingSessionInput = z.infer<typeof createVotingSessionSchema>;
+
+export type UpdateVotingSessionInput = z.infer<typeof updateVotingSessionSchema>;
 
 export type CreateVotingOptionInput = z.infer<typeof createVotingOptionSchema>;
 

@@ -1,16 +1,18 @@
 import { z } from 'zod';
 
+const userIdSchema = z.string().regex(/^[a-z2-7]{24}$/);
+
 export const createCommunitySchema = z.object({
 	title: z.string(),
 	description: z.string().min(50),
 	headerImage: z.url(),
 	updatedAt: z.coerce.date().optional(),
-	createdBy: z.uuid()
+	createdBy: userIdSchema
 });
 
 export const createCommunityUserSchema = z.object({
 	communityId: z.uuid(),
-	userId: z.uuid(),
+	userId: userIdSchema,
 	role: z.enum(['member', 'moderator', 'admin']).optional()
 });
 

@@ -6,7 +6,7 @@ import {
 	syncVotingSessionOptions,
 	updateVotingSession
 } from '$lib/server/voting/voting-session.service';
-import { createVotingSessionSchema } from '$lib/server/voting/voting-session.validation';
+import { updateVotingSessionSchema } from '$lib/server/voting/voting-session.validation';
 import { requireSessionWriteAccess } from '$lib/server/authz/community';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -60,7 +60,7 @@ export const actions: Actions = {
 			.filter(Boolean);
 		const hasGameIdsField = formData.has('gameIds');
 
-		const validationResult = createVotingSessionSchema.safeParse({
+		const validationResult = updateVotingSessionSchema.safeParse({
 			title: formData.get('title')?.toString() || existingSession.title,
 			description:
 				formData.get('description')?.toString() ?? (existingSession.description || undefined),

@@ -35,7 +35,7 @@ export const votingSessionType = pgEnum('voting_session_type', [
 export const approvalStatus = pgEnum('approval_status', ['pending', 'approved', 'rejected']);
 
 export const notificationType = pgEnum('notification_type', [
-	'vote_stated',
+	'vote_started',
 	'vote_ended',
 	'new_option_added',
 	'vote_reminder'
