@@ -245,7 +245,9 @@ export async function removeVotingOptionFromSession(
 	const [id] = await db
 		.update(votingOption)
 		.set({ isActive: false, reviewedBy: userId })
-		.where(eq(votingOption.id, votingOptionId))
+		.where(
+			and(eq(votingOption.id, votingOptionId), eq(votingOption.votingSessionId, votingSessionId))
+		)
 		.returning({ id: votingOption.id });
 
 	return id;
