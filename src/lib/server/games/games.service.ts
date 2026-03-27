@@ -1,16 +1,13 @@
 import { STEAM_API_DETAILS_URL } from '$env/static/private';
 import type { Database, DBTransaction } from '$lib/server/db';
 import { game } from '$lib/server/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { GameDetailsInput } from './games.validation';
 import type { Category, Genre, SteamGameResponse } from '$lib/types';
 
 // Find a games details from DB
 export async function findGameDetails(db: Database | DBTransaction, gameId: string) {
-	const [gameDetails] = await db
-		.select()
-		.from(game)
-		.where(eq(game.id, gameId));
+	const [gameDetails] = await db.select().from(game).where(eq(game.id, gameId));
 
 	return gameDetails;
 }
@@ -24,7 +21,7 @@ export async function updateGameDetails(
 	const [updatedGame] = await db
 		.update(game)
 		.set(data)
-		.where(sql`${game.steamAppId} = ${gameId}`)
+		.where(eq(game.steamAppId, parseInt(gameId, 10)))
 		.returning();
 
 	return updatedGame;
@@ -55,7 +52,7 @@ export async function enrichGameData(
 			apiDataComplete: true,
 			updatedAt: new Date()
 		})
-		.where(sql`${game.steamAppId} = ${gameId}`)
+		.where(eq(game.steamAppId, parseInt(gameId, 10)))
 		.returning();
 
 	if (!updatedGame) {
