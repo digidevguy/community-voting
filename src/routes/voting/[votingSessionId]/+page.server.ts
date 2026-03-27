@@ -4,6 +4,7 @@ import {
 	closeExpiredVotingSession,
 	endVotingSession,
 	getUserVoteForSession,
+	getVotingSessionParticipants,
 	getVotingSessionWithResults
 } from '$lib/server/voting/voting-session.service';
 import { castVote } from '$lib/server/voting/voting-session.service';
@@ -39,7 +40,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	return {
 		session: sessionData,
-		userVote: await getUserVoteForSession(locals.db, locals.user.id, votingSessionId)
+		userVote: await getUserVoteForSession(locals.db, locals.user.id, votingSessionId),
+		participants: await getVotingSessionParticipants(locals.db, votingSessionId)
 	};
 };
 

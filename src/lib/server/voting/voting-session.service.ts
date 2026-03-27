@@ -1,5 +1,5 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { game, vote, votingOption, votingSession } from '$lib/server/db/schema';
+import { game, user, vote, votingOption, votingSession } from '$lib/server/db/schema';
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import type {
 	CreateVotingOptionInput,
@@ -53,6 +53,22 @@ export async function getVotingSessionWithOptions(db: Database, votingSessionId:
 		.where(and(eq(votingOption.votingSessionId, votingSessionId), eq(votingOption.isActive, true)));
 
 	return { session, options };
+}
+
+export async function getVotingSessionParticipants(db: Database, votingSessionId: string) {
+	try {
+		const results = await db
+			.select({ displayName: user.displayName })
+			.from(vote)
+			.where(eq(vote.votingSessionId, votingSessionId))
+			.innerJoin(user, eq(user.id, vote.userId));
+
+		return results.map((r) => r.displayName);
+	} catch (error) {
+		throw new Error(
+			`Failed to get voting session users: ${error instanceof Error ? error.message : String(error)}`
+		);
+	}
 }
 
 export async function updateVotingSession(
