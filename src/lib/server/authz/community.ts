@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { getVotingSession } from '../voting/voting-session.service';
-import { confirmUserInCommunity, getUserCommunityRole } from '../communities/communities.service';
+import { getUserCommunityRole } from '../communities/communities.service';
 
 /**
  *  * This function is a reusable authz check for voting access to a community. It checks the following:
@@ -22,18 +22,21 @@ export async function requireVotingAccess(locals: App.Locals, votingSessionId: s
 		throw error(404, 'Voting session not found');
 	}
 
-	if (session.status === 'active' && session.gameDayDate && session.gameDayDate < new Date()) {
-		throw error(403, 'Voting session has expired');
+	const role = await getUserCommunityRole(locals.db, locals.user.id, session.communityId);
+
+	if (!role) {
+		throw error(403, 'User is not a member of the community');
 	}
 
-	const isUserInCommunity = await confirmUserInCommunity(
-		locals.db,
-		locals.user.id,
-		session.communityId
-	);
+	const isPrivileged =
+		session.createdBy === locals.user.id || role === 'moderator' || role === 'admin';
 
-	if (!isUserInCommunity) {
-		throw error(403, 'User is not a member of the community');
+	if (session.status === 'draft' && !isPrivileged) {
+		throw error(403, 'This session is not yet published');
+	}
+
+	if (session.status === 'active' && session.gameDayDate && session.gameDayDate < new Date()) {
+		throw error(403, 'Voting session has expired');
 	}
 
 	return session;
@@ -67,6 +70,13 @@ export async function requireSessionWriteAccess(locals: App.Locals, votingSessio
 			403,
 			'Only the session creator or a community moderator/admin can perform this action'
 		);
+	}
+
+	if (session.status === 'draft') {
+		const isCreator = session.createdBy === userId;
+		if (!isCreator && role !== 'moderator' && role !== 'admin') {
+			throw error(403, 'This session is not yet published');
+		}
 	}
 
 	return session;
