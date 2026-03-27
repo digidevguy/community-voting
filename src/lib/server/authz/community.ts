@@ -22,7 +22,7 @@ export async function requireVotingAccess(locals: App.Locals, votingSessionId: s
 		throw error(404, 'Voting session not found');
 	}
 
-	if (session.gameDayDate && session.gameDayDate < new Date()) {
+	if (session.status === 'active' && session.gameDayDate && session.gameDayDate < new Date()) {
 		throw error(403, 'Voting session has expired');
 	}
 
@@ -63,7 +63,10 @@ export async function requireSessionWriteAccess(locals: App.Locals, votingSessio
 	const role = await getUserCommunityRole(locals.db, userId, session.communityId);
 
 	if (role !== 'moderator' && role !== 'admin') {
-		throw error(403, 'Only the session creator or a community moderator/admin can perform this action');
+		throw error(
+			403,
+			'Only the session creator or a community moderator/admin can perform this action'
+		);
 	}
 
 	return session;
