@@ -11,16 +11,16 @@ import { castVote } from '$lib/server/voting/voting-session.service';
 import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
 import { vote } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
+import { requireVotingAccess } from '$lib/server/authz/community';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		throw redirect(303, '/auth');
-	}
 	const { votingSessionId } = params;
 
 	if (!votingSessionId) {
 		return error(500, 'Voting session not found');
 	}
+
+	await requireVotingAccess(locals, votingSessionId);
 
 	const sessionData = await getVotingSessionWithResults(locals.db, votingSessionId);
 
@@ -34,7 +34,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		// Re-fetch so the UI gets the updated status
 		return {
 			session: await getVotingSessionWithResults(locals.db, votingSessionId),
-			userVote: await getUserVoteForSession(locals.db, locals.user.id, votingSessionId)
+			userVote: await getUserVoteForSession(locals.db, locals.user.id, votingSessionId),
+			participants: await getVotingSessionParticipants(locals.db, votingSessionId)
 		};
 	}
 
