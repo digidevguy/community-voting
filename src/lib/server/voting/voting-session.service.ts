@@ -24,7 +24,7 @@ export async function createVotingSession(
 			gameDayDate: data.gameDayDate,
 			showRealTimeResults: data.showRealTimeResults,
 			allowAddingOptions: data.allowAddingOptions,
-			status: 'active',
+			status: 'draft',
 			createdBy: userId
 		})
 		.returning();

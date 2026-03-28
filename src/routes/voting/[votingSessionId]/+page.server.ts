@@ -11,7 +11,7 @@ import { castVote } from '$lib/server/voting/voting-session.service';
 import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
 import { vote } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
-import { requireVotingAccess } from '$lib/server/authz/community';
+import { requireSessionWriteAccess, requireVotingAccess } from '$lib/server/authz/community';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const { votingSessionId } = params;
@@ -54,9 +54,11 @@ export const actions: Actions = {
 		const votingOptionId = formData.get('votingOptionId');
 		const userId = e.locals.user?.id;
 
-		if (!userId) {
-			throw redirect(303, '/auth');
+		if (!votingSessionId || typeof votingSessionId !== 'string') {
+			return fail(400, { message: 'Invalid voting session ID' });
 		}
+
+		await requireVotingAccess(e.locals, votingSessionId);
 
 		const validated = createVoteSchema.safeParse({ userId, votingSessionId, votingOptionId });
 		if (!validated.success) {
@@ -101,9 +103,7 @@ export const actions: Actions = {
 			return fail(400, { message: 'Invalid voting session ID' });
 		}
 
-		if (!locals.user?.id) {
-			return fail(401, { message: 'You must be logged in to clear your vote' });
-		}
+		await requireVotingAccess(locals, votingSessionId);
 
 		// Verify session is still active before allowing vote removal
 		const sessionData = await getVotingSessionWithResults(locals.db, votingSessionId);
@@ -114,7 +114,7 @@ export const actions: Actions = {
 		try {
 			await locals.db
 				.delete(vote)
-				.where(and(eq(vote.votingSessionId, votingSessionId), eq(vote.userId, locals.user.id)));
+				.where(and(eq(vote.votingSessionId, votingSessionId), eq(vote.userId, locals.user!.id)));
 
 			return { success: true };
 		} catch (e) {
@@ -123,14 +123,12 @@ export const actions: Actions = {
 		}
 	},
 	endSession: async ({ locals, params }) => {
-		if (!locals.user?.id) {
-			return fail(401, { message: 'You must be logged in' });
-		}
-
 		const { votingSessionId } = params;
 
+		const session = await requireSessionWriteAccess(locals, votingSessionId);
+
 		try {
-			await endVotingSession(locals.db, votingSessionId, locals.user.id);
+			await endVotingSession(locals.db, session.id, locals.user!.id);
 			return { success: true };
 		} catch (err: unknown) {
 			console.error('Failed to end voting session: ', err);
