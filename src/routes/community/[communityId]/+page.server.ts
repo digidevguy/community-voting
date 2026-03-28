@@ -1,7 +1,8 @@
 import type { Actions, PageServerLoad } from './$types';
 import {
 	getCommunityInfo,
-	confirmUserInCommunity
+	confirmUserInCommunity,
+	getUserCommunityRole
 } from '$lib/server/communities/communities.service';
 import { getCommunityCollectionCount } from '$lib/server/collections/collection.service';
 import {
@@ -25,11 +26,22 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		throw error(403, 'You do not have access to this community');
 	}
 
-	return {
-		community: await getCommunityInfo(locals.db, params.communityId),
-		sessions: await getCommunitySessions(locals.db, params.communityId, locals.user.id),
-		collectionCount: await getCommunityCollectionCount(locals.db, params.communityId)
-	};
+	const userId = locals.user.id;
+	const { communityId } = params;
+
+	const [community, allSessions, collectionCount, userRole] = await Promise.all([
+		getCommunityInfo(locals.db, communityId),
+		getCommunitySessions(locals.db, communityId, userId),
+		getCommunityCollectionCount(locals.db, communityId),
+		getUserCommunityRole(locals.db, userId, communityId)
+	]);
+
+	const isPrivileged = userRole === 'moderator' || userRole === 'admin';
+	const sessions = allSessions.filter(
+		(s) => s.status !== 'draft' || s.createdBy === userId || isPrivileged
+	);
+
+	return { community, sessions, collectionCount, userRole };
 };
 
 export const actions: Actions = {

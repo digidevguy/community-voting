@@ -4,7 +4,7 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { Button } from '$lib/components/ui/button';
-	import { Check, CirclePlus, Send, Library, CalendarDays, Trophy } from '@lucide/svelte';
+	import { Check, CirclePlus, Send, Library, CalendarDays, Trophy, Users } from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
 	import { enhance } from '$app/forms';
@@ -13,13 +13,18 @@
 	let { data }: { data: PageData } = $props();
 	type Session = PageData['sessions'][number];
 	type SessionList = PageData['sessions'];
-	type SessionTabStatus = 'active' | 'completed' | 'archived';
+	type SessionTabStatus = 'active' | 'completed' | 'archived' | 'draft';
 
+	const draftSessions: SessionList = $derived(
+		data.sessions.filter((session: Session) => session.status === 'draft')
+	);
 	const activeSessions: SessionList = $derived(
 		data.sessions.filter((session: Session) => session.status === 'active')
 	);
 	const completedSessions: SessionList = $derived(
-		data.sessions.filter((session: Session) => session.status === 'completed')
+		data.sessions.filter(
+			(session: Session) => session.status === 'completed' || session.status === 'voting_ended'
+		)
 	);
 	const archivedSessions: SessionList = $derived(
 		data.sessions.filter((session: Session) => session.status === 'archived')
@@ -64,12 +69,19 @@
 								<div class="flex items-start justify-between gap-4">
 									<div class="min-w-0 flex-1 space-y-1">
 										<Card.Title class="truncate text-base">{session.title}</Card.Title>
-										<p class="flex items-center gap-1.5 text-sm text-muted-foreground">
-											<CalendarDays size={14} />
-											{session.gameDayDate
-												? format(session.gameDayDate, 'EEE, MMM do h:mm a')
-												: 'TBD'}
-										</p>
+										<div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+											<p class="flex items-center gap-1.5 text-sm text-muted-foreground">
+												<CalendarDays size={14} />
+												{session.gameDayDate
+													? format(session.gameDayDate, 'EEE, MMM do h:mm a')
+													: 'TBD'}
+											</p>
+											<p class="flex items-center gap-1.5 text-sm text-muted-foreground">
+												<Users size={14} />
+												{session.totalVotes}
+												{session.totalVotes === 1 ? 'vote' : 'votes'}
+											</p>
+										</div>
 									</div>
 									{#if session.hasVoted}
 										<span
@@ -94,33 +106,37 @@
 								{/if}
 							</Card.Content>
 							<Card.Footer class="justify-end gap-4">
-								{#if session.hasVoted && !session.selectedOptionId}
-									<ClearVoteButton votingSessionId={session.id}></ClearVoteButton>
-								{:else if session.selectedOptionId}
-									<form
-										action="?/renew"
-										method="post"
-										use:enhance={() => {
-											return async ({ result, update }) => {
-												if (result.type === 'failure') {
-													const message =
-														typeof result.data?.message === 'string'
-															? result.data.message
-															: 'Unable to renew session, please try again.';
-													toast.error(message);
-												}
-												if (result.type === 'redirect') {
-													toast.success('Voting session renewed!');
-												}
-												update();
-											};
-										}}
-									>
-										<input type="hidden" value={session.id} name="votingSessionId" />
-										<Button variant="ghost" type="submit">Renew session</Button>
-									</form>
+								{#if sessionType === 'draft'}
+									<Button href="/voting/{session.id}/edit">Edit Draft</Button>
+								{:else}
+									{#if session.hasVoted && !session.selectedOptionId}
+										<ClearVoteButton votingSessionId={session.id}></ClearVoteButton>
+									{:else if session.selectedOptionId}
+										<form
+											action="?/renew"
+											method="post"
+											use:enhance={() => {
+												return async ({ result, update }) => {
+													if (result.type === 'failure') {
+														const message =
+															typeof result.data?.message === 'string'
+																? result.data.message
+																: 'Unable to renew session, please try again.';
+														toast.error(message);
+													}
+													if (result.type === 'redirect') {
+														toast.success('Voting session renewed!');
+													}
+													update();
+												};
+											}}
+										>
+											<input type="hidden" value={session.id} name="votingSessionId" />
+											<Button variant="ghost" type="submit">Renew session</Button>
+										</form>
+									{/if}
+									<Button href="/voting/{session.id}">View Details</Button>
 								{/if}
-								<Button href="/voting/{session.id}">View Details</Button>
 							</Card.Footer>
 						</Card.Root>
 					</li>
@@ -139,8 +155,17 @@
 		<Tabs.Trigger value="active">Active</Tabs.Trigger>
 		<Tabs.Trigger value="completed">Completed</Tabs.Trigger>
 		<Tabs.Trigger value="archived">Archived</Tabs.Trigger>
+		{#if draftSessions.length > 0}
+			<Tabs.Trigger value="draft"
+				>Drafts <Badge
+					class="ml-1 h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
+					variant="secondary">{draftSessions.length}</Badge
+				></Tabs.Trigger
+			>
+		{/if}
 	</Tabs.List>
 	{@render tab('active', activeSessions)}
 	{@render tab('completed', completedSessions)}
 	{@render tab('archived', archivedSessions)}
+	{@render tab('draft', draftSessions)}
 </Tabs.Root>

@@ -396,6 +396,7 @@ export async function getCommunitySessions(
 			createdAt: votingSession.createdAt,
 			updatedBy: votingSession.updatedBy,
 			hasVoted: sql<boolean>`CASE WHEN ${vote.id} IS NOT NULL THEN true ELSE false END`,
+			totalVotes: sql<number>`(SELECT COUNT(*)::int FROM ${vote} WHERE ${vote.votingSessionId} = ${votingSession.id})`,
 			selectedGameId: game.id,
 			selectedGameTitle: game.title
 		})
