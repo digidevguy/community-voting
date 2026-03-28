@@ -6,7 +6,7 @@ import type {
 	CreateVotingSessionInput
 } from './voting-session.validation';
 import { isGameInCollection } from '../collections/collection.service';
-import { confirmUserInCommunity, getUserCommunityRole } from '../communities/communities.service';
+import { getUserCommunityRole } from '../communities/communities.service';
 
 export async function createVotingSession(
 	db: Database | DBTransaction,
@@ -258,7 +258,27 @@ export async function publishVotingSession(
 	votingSessionId: string,
 	userId: string
 ) {
-	// 1. Validate session has games
+	const existingSession = await getVotingSession(db, votingSessionId);
+
+	if (!existingSession) {
+		throw new Error('Voting session not found');
+	}
+
+	if (existingSession.status !== 'draft') {
+		throw new Error('Only draft sessions can be published');
+	}
+
+	// Only the session creator, or a community moderator/admin, may publish
+	if (existingSession.createdBy !== userId) {
+		const role = await getUserCommunityRole(db, userId, existingSession.communityId);
+		if (role !== 'moderator' && role !== 'admin') {
+			throw new Error(
+				'Only the session creator or a community moderator/admin can publish this session'
+			);
+		}
+	}
+
+	// Validate session has games
 	const hasGames = await db
 		.select()
 		.from(votingOption)
@@ -268,16 +288,6 @@ export async function publishVotingSession(
 		throw new Error('Cannot publish session without voting options');
 	}
 
-	const existingVotingSession = await getVotingSession(db, votingSessionId);
-
-	// 2. Check if user is in community
-	const inCommunity = await confirmUserInCommunity(db, userId, existingVotingSession.communityId);
-
-	if (!inCommunity) {
-		throw new Error('User not found');
-	}
-
-	// 3. Update status to 'active'
 	const [updatedVotingSessionStatus] = await db
 		.update(votingSession)
 		.set({ status: 'active', updatedBy: userId })

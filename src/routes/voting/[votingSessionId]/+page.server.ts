@@ -32,6 +32,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	) {
 		await closeExpiredVotingSession(locals.db, votingSessionId);
 		// Re-fetch so the UI gets the updated status
+		// Todo: Fix possible null TS error.
 		return {
 			session: await getVotingSessionWithResults(locals.db, votingSessionId),
 			userVote: await getUserVoteForSession(locals.db, locals.user.id, votingSessionId),

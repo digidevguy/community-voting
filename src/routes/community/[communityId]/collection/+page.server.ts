@@ -2,10 +2,12 @@ import { error, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from '../$types';
 import {
 	confirmUserInCommunity,
-	getCommunityInfo
+	getCommunityInfo,
+	getUserCommunityRole
 } from '$lib/server/communities/communities.service';
 import {
 	addGameToCollectionWithEnrichment,
+	deleteGameFromCollection,
 	getCommunityCollection,
 	isGameInCollection,
 	softRemoveGameFromCollection
@@ -113,10 +115,20 @@ export const actions: Actions = {
 		if (!gameId) {
 			return fail(400, { message: 'Invalid game selected' });
 		}
-		console.log('Removing game from collection:', { communityId, gameId, userId: locals.user.id });
+
+		const role = await getUserCommunityRole(locals.db, locals.user.id, communityId);
+
+		if (!role) {
+			return error(403, 'Unauthorized');
+		}
 
 		try {
-			await softRemoveGameFromCollection(locals.db, communityId, locals.user.id, gameId);
+			if (role !== 'member') {
+				await deleteGameFromCollection(locals.db, communityId, gameId);
+			} else {
+				await softRemoveGameFromCollection(locals.db, communityId, locals.user.id, gameId);
+			}
+
 			return { success: true };
 		} catch (error) {
 			console.error(
