@@ -61,7 +61,6 @@ export const actions: Actions = {
 		}
 
 		try {
-			console.log('Adding game to collection:', { communityId, gameId, userId: locals.user.id });
 			const addedCollectionItem = await addGameToCollectionWithEnrichment(
 				locals.db,
 				communityId,
@@ -82,16 +81,13 @@ export const actions: Actions = {
 			throw redirect(303, '/auth');
 		}
 
-		console.log('Game search requested by user:', locals.user.id);
 		const formData = await request.formData();
 		const searchTerm = formData.get('searchTerm')?.toString().trim() || '';
 
-		console.log('Query input:', searchTerm);
 		if (!searchTerm || searchTerm.length < 2) {
 			return fail(400, { message: 'Query must be at least 2 characters long.' });
 		}
 
-		console.log('Searching for games with query:', searchTerm);
 		const games = await locals.db
 			.select({
 				id: game.id,
@@ -103,7 +99,6 @@ export const actions: Actions = {
 			.where(ilike(game.title, `%${searchTerm}%`))
 			.limit(10);
 
-		console.log(`Found ${games.length} games matching query "${searchTerm}"`);
 		return {
 			games
 		};

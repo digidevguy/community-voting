@@ -6,7 +6,7 @@
 	import type { ActionData, PageServerData } from './$types';
 	import Label from '$lib/components/ui/label/label.svelte';
 	import { toast } from 'svelte-sonner';
-	import { LoaderCircle } from '@lucide/svelte';
+	import { LoaderCircle, Users } from '@lucide/svelte';
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 	let submitting = $state(false);
@@ -15,38 +15,60 @@
 	let displayName = $derived(username);
 </script>
 
-<div class="flex min-h-screen flex-col items-center justify-center">
-	<Card.Root>
-		<Card.Header>
-			<Card.Title>Welcome to the {data.community.title} Community!</Card.Title>
-			{#if data.isAuthenticated}
-				<Card.Description>Let's make an account!</Card.Description>
-			{/if}
+<div class="-mt-6 flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4">
+	<Card.Root class="w-full max-w-md shadow-lg">
+		<Card.Header class="space-y-3 pb-4 text-center">
+			<div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+				<Users class="h-6 w-6 text-primary" />
+			</div>
+			<div>
+				<Card.Title class="text-2xl font-bold">{data.community.title}</Card.Title>
+				<Card.Description class="mt-1 text-sm">
+					{#if data.isAuthenticated}
+						You've been invited to join this community.
+					{:else}
+						Create an account to join this community.
+					{/if}
+				</Card.Description>
+			</div>
 		</Card.Header>
-		<Card.Content>
+
+		<Card.Content class="pt-2">
 			{#if data.isAuthenticated}
-				<form
-					method="POST"
-					action="?/joinExisting"
-					use:enhance={() => {
-						submitting = true;
-						return async ({ result, update }) => {
-							if (result.type === 'success') {
-								toast.success('Account linked to community!');
-								await applyAction({
-									type: 'redirect',
-									status: 303,
-									location: `/community/${data.community.id}`
-								});
-								return;
-							}
-							await update();
-							submitting = false;
-						};
-					}}
-				>
-					<Button type="submit">Join</Button>
-				</form>
+				<div class="space-y-4">
+					<p class="text-center text-sm text-muted-foreground">
+						Click below to join <strong>{data.community.title}</strong> with your existing account.
+					</p>
+					<form
+						method="POST"
+						action="?/joinExisting"
+						use:enhance={() => {
+							submitting = true;
+							return async ({ result, update }) => {
+								if (result.type === 'success') {
+									toast.success('Joined community successfully!');
+									await applyAction({
+										type: 'redirect',
+										status: 303,
+										location: `/community/${data.community.id}`
+									});
+									return;
+								}
+								await update();
+								submitting = false;
+							};
+						}}
+					>
+						<Button type="submit" class="w-full" disabled={submitting}>
+							{#if submitting}
+								<LoaderCircle class="mr-2 h-4 w-4 animate-spin" />
+								Joining...
+							{:else}
+								Join Community
+							{/if}
+						</Button>
+					</form>
+				</div>
 			{:else}
 				<form
 					action="?/join"
@@ -67,35 +89,50 @@
 							submitting = false;
 						};
 					}}
-					class="space-y-2"
+					class="space-y-4"
 				>
 					<div class="space-y-2">
 						<Label for="username">Username</Label>
-						<Input id="username" name="username" bind:value={username} />
+						<Input
+							id="username"
+							name="username"
+							placeholder="e.g. gamer123"
+							bind:value={username}
+						/>
 					</div>
 					<input type="hidden" id="displayName" name="displayName" bind:value={displayName} />
 					<div class="space-y-2">
 						<Label for="email">Email</Label>
-						<Input id="email" name="email" />
+						<Input id="email" name="email" type="email" placeholder="you@example.com" />
 					</div>
 					<div class="space-y-2">
 						<Label for="password">Password</Label>
-						<Input id="password" name="password" type="password" />
+						<Input id="password" name="password" type="password" placeholder="Min. 8 characters" />
 					</div>
 					<div class="space-y-2">
 						<Label for="confirmPassword">Confirm Password</Label>
-						<Input id="confirmPassword" name="confirmPassword" type="password" />
+						<Input
+							id="confirmPassword"
+							name="confirmPassword"
+							type="password"
+							placeholder="Re-enter your password"
+						/>
 					</div>
-					<Button type="submit" class="mt-2 w-full">
+
+					{#if form?.message}
+						<p class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+							{form.message}
+						</p>
+					{/if}
+
+					<Button type="submit" class="w-full" disabled={submitting}>
 						{#if submitting}
-							<LoaderCircle class="animate-spin" />
+							<LoaderCircle class="mr-2 h-4 w-4 animate-spin" />
+							Creating account...
 						{:else}
-							Create
+							Create Account &amp; Join
 						{/if}
 					</Button>
-					{#if form?.message}
-						<p class="text-red-600">{form?.message}</p>
-					{/if}
 				</form>
 			{/if}
 		</Card.Content>
