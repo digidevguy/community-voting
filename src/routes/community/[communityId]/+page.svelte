@@ -31,18 +31,18 @@
 	);
 </script>
 
-<h1 class="mb-4 text-xl font-semibold">{data.community.title}</h1>
+<h1 class="mb-3 text-xl font-semibold sm:mb-4 sm:text-2xl">{data.community.title}</h1>
 
 <nav aria-label="Community submenu" class="py-2">
-	<ul class="flex justify-end gap-4">
+	<ul class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
 		<li>
-			<Button href="/community/{data.community.id}/invites" variant="outline"
-				><Send></Send>Invites</Button
+			<Button class="w-full sm:w-auto" href="/community/{data.community.id}/invites" variant="outline"
+				><Send /><span>Invites</span></Button
 			>
 		</li>
 		<li>
-			<Button href="/community/{data.community.id}/collection" variant="outline"
-				><Library></Library>Manage collection<Badge
+			<Button class="w-full sm:w-auto" href="/community/{data.community.id}/collection" variant="outline"
+				><Library /><span>Collection</span><Badge
 					class="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
 					variant="secondary"
 				>
@@ -51,8 +51,8 @@
 			>
 		</li>
 		<li>
-			<Button href="/voting/create/{data.community.id}" variant="outline"
-				><CirclePlus></CirclePlus>Create new voting session</Button
+			<Button class="w-full sm:w-auto" href="/voting/create/{data.community.id}" variant="outline"
+				><CirclePlus /><span>New voting session</span></Button
 			>
 		</li>
 	</ul>
@@ -105,9 +105,9 @@
 									</div>
 								{/if}
 							</Card.Content>
-							<Card.Footer class="justify-end gap-4">
+							<Card.Footer class="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
 								{#if sessionType === 'draft'}
-									<Button href="/voting/{session.id}/edit">Edit Draft</Button>
+									<Button class="w-full sm:w-auto" href="/voting/{session.id}/edit">Edit Draft</Button>
 								{:else}
 									{#if session.hasVoted && !session.selectedOptionId}
 										<ClearVoteButton votingSessionId={session.id}></ClearVoteButton>
@@ -132,10 +132,10 @@
 											}}
 										>
 											<input type="hidden" value={session.id} name="votingSessionId" />
-											<Button variant="ghost" type="submit">Renew session</Button>
+											<Button class="w-full sm:w-auto" variant="ghost" type="submit">Renew session</Button>
 										</form>
 									{/if}
-									<Button href="/voting/{session.id}">View Details</Button>
+									<Button class="w-full sm:w-auto" href="/voting/{session.id}">View Details</Button>
 								{/if}
 							</Card.Footer>
 						</Card.Root>
@@ -151,19 +151,21 @@
 {/snippet}
 
 <Tabs.Root value="active">
-	<Tabs.List>
-		<Tabs.Trigger value="active">Active</Tabs.Trigger>
-		<Tabs.Trigger value="completed">Completed</Tabs.Trigger>
-		<Tabs.Trigger value="archived">Archived</Tabs.Trigger>
-		{#if draftSessions.length > 0}
-			<Tabs.Trigger value="draft"
-				>Drafts <Badge
-					class="ml-1 h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
-					variant="secondary">{draftSessions.length}</Badge
-				></Tabs.Trigger
-			>
-		{/if}
-	</Tabs.List>
+	<div class="overflow-x-auto">
+		<Tabs.List class="w-max min-w-full">
+			<Tabs.Trigger value="active">Active</Tabs.Trigger>
+			<Tabs.Trigger value="completed">Completed</Tabs.Trigger>
+			<Tabs.Trigger value="archived">Archived</Tabs.Trigger>
+			{#if draftSessions.length > 0}
+				<Tabs.Trigger value="draft"
+					>Drafts <Badge
+						class="ml-1 h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
+						variant="secondary">{draftSessions.length}</Badge
+					></Tabs.Trigger
+				>
+			{/if}
+		</Tabs.List>
+	</div>
 	{@render tab('active', activeSessions)}
 	{@render tab('completed', completedSessions)}
 	{@render tab('archived', archivedSessions)}
