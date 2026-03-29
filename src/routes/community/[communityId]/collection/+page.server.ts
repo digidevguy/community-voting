@@ -44,6 +44,11 @@ export const actions: Actions = {
 		}
 
 		const communityId = params.communityId;
+		const isMember = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
+		if (!isMember) {
+			return fail(403, { message: 'Not a member of this community' });
+		}
+
 		const formData = await request.formData();
 		const gameId = formData.get('gameId')?.toString();
 		if (!gameId) {

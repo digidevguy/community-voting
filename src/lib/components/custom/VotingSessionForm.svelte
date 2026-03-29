@@ -377,7 +377,7 @@
 	<Button type="submit" disabled={isSubmitting}>{submitLabel}</Button>
 </form>
 
-{#if isDraft && initialData?.id}
+{#if isDraft}
 	<Separator class="my-4" />
 
 	<div class="space-y-3">
@@ -405,7 +405,7 @@
 				};
 			}}
 		>
-			<input type="hidden" name="votingSessionId" value={initialData.id} />
+			<input type="hidden" name="votingSessionId" value={initialData!.id} />
 			<Button type="submit" disabled={isPublishing || selectedGames.length === 0}>
 				{isPublishing ? 'Publishing…' : 'Publish Session'}
 			</Button>
