@@ -16,29 +16,33 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		return redirect(302, '/auth');
-	}
-
-	const inCommunity = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
-	if (inCommunity) {
-		return redirect(302, '/community');
-	}
-
 	const { communityId, inviteId } = params;
+
 	const invite = await getInviteById(locals.db, inviteId);
 	if (!invite || invite.communityId !== communityId) {
 		throw error(404, 'Invite not found');
 	}
 
+	if (locals.user) {
+		const inCommunity = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
+		if (inCommunity) {
+			return redirect(302, '/community');
+		}
+	}
+
 	return {
 		community: await getCommunityInfo(locals.db, communityId),
-		invite
+		invite,
+		isAuthenticated: !!locals.user
 	};
 };
 
 export const actions: Actions = {
 	join: async (event) => {
+		if (event.locals.user) {
+			return fail(400, { message: 'You are are already logged in. Use the join button instead.' });
+		}
+
 		const { locals, request, params } = event;
 		const { communityId, inviteId } = params;
 
