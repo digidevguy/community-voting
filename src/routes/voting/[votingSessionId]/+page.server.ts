@@ -5,7 +5,8 @@ import {
 	endVotingSession,
 	getUserVoteForSession,
 	getVotingSessionParticipants,
-	getVotingSessionWithResults
+	getVotingSessionWithResults,
+	publishVotingSession
 } from '$lib/server/voting/voting-session.service';
 import { castVote } from '$lib/server/voting/voting-session.service';
 import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
@@ -48,17 +49,40 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions: Actions = {
-	vote: async (e) => {
-		const formData = await e.request.formData();
+	publish: async ({ request, locals }) => {
+		const formData = await request.formData();
 		const votingSessionId = formData.get('votingSessionId');
-		const votingOptionId = formData.get('votingOptionId');
-		const userId = e.locals.user?.id;
 
 		if (!votingSessionId || typeof votingSessionId !== 'string') {
 			return fail(400, { message: 'Invalid voting session ID' });
 		}
 
-		await requireVotingAccess(e.locals, votingSessionId);
+		await requireSessionWriteAccess(locals, votingSessionId);
+
+		try {
+			const { status } = await publishVotingSession(locals.db, votingSessionId, locals.user!.id);
+			if (status === 'active') {
+				return { success: true };
+			}
+			return fail(500, { message: 'Session did not transition to active' });
+		} catch (error) {
+			console.error('Error publishing session', error);
+			return fail(500, {
+				message: error instanceof Error ? error.message : 'Failed to publish session'
+			});
+		}
+	},
+	vote: async ({ request, locals }) => {
+		const formData = await request.formData();
+		const votingSessionId = formData.get('votingSessionId');
+		const votingOptionId = formData.get('votingOptionId');
+		const userId = locals.user?.id;
+
+		if (!votingSessionId || typeof votingSessionId !== 'string') {
+			return fail(400, { message: 'Invalid voting session ID' });
+		}
+
+		await requireVotingAccess(locals, votingSessionId);
 
 		const validated = createVoteSchema.safeParse({ userId, votingSessionId, votingOptionId });
 		if (!validated.success) {
@@ -69,7 +93,7 @@ export const actions: Actions = {
 
 		// Check the session is still open for voting
 		const sessionData = await getVotingSessionWithResults(
-			e.locals.db,
+			locals.db,
 			validated.data.votingSessionId
 		);
 		if (sessionData.votingSessionDetails.status !== 'active') {
@@ -78,7 +102,7 @@ export const actions: Actions = {
 
 		try {
 			const result = await castVote(
-				e.locals.db,
+				locals.db,
 				validated.data.userId,
 				validated.data.votingSessionId,
 				validated.data.votingOptionId
