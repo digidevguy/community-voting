@@ -35,14 +35,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		// Todo: Fix possible null TS error.
 		return {
 			session: await getVotingSessionWithResults(locals.db, votingSessionId),
-			userVote: await getUserVoteForSession(locals.db, locals.user.id, votingSessionId),
+			userVote: await getUserVoteForSession(locals.db, locals.user!.id, votingSessionId),
 			participants: await getVotingSessionParticipants(locals.db, votingSessionId)
 		};
 	}
 
 	return {
 		session: sessionData,
-		userVote: await getUserVoteForSession(locals.db, locals.user.id, votingSessionId),
+		userVote: await getUserVoteForSession(locals.db, locals.user!.id, votingSessionId),
 		participants: await getVotingSessionParticipants(locals.db, votingSessionId)
 	};
 };

@@ -31,12 +31,13 @@ export const actions: Actions = {
 		if (!locals.user) {
 			throw redirect(303, '/auth');
 		}
-		const isMember = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
-		if (!isMember) {
-			throw error(403, 'Forbidden');
-		}
 
 		const communityId = params.communityId;
+		const role = await getUserCommunityRole(locals.db, locals.user.id, communityId);
+
+		if (role !== 'admin' && role !== 'moderator') {
+			throw error(403, 'Forbidden');
+		}
 
 		try {
 			await clearInactiveInvites(locals.db, communityId);
