@@ -5,8 +5,7 @@ import {
 	endVotingSession,
 	getUserVoteForSession,
 	getVotingSessionParticipants,
-	getVotingSessionWithResults,
-	publishVotingSession
+	getVotingSessionWithResults
 } from '$lib/server/voting/voting-session.service';
 import { castVote } from '$lib/server/voting/voting-session.service';
 import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
@@ -49,29 +48,6 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions: Actions = {
-	publish: async ({ request, locals }) => {
-		const formData = await request.formData();
-		const votingSessionId = formData.get('votingSessionId');
-
-		if (!votingSessionId || typeof votingSessionId !== 'string') {
-			return fail(400, { message: 'Invalid voting session ID' });
-		}
-
-		await requireSessionWriteAccess(locals, votingSessionId);
-
-		try {
-			const { status } = await publishVotingSession(locals.db, votingSessionId, locals.user!.id);
-			if (status === 'active') {
-				return { success: true };
-			}
-			return fail(500, { message: 'Session did not transition to active' });
-		} catch (error) {
-			console.error('Error publishing session', error);
-			return fail(500, {
-				message: error instanceof Error ? error.message : 'Failed to publish session'
-			});
-		}
-	},
 	vote: async ({ request, locals }) => {
 		const formData = await request.formData();
 		const votingSessionId = formData.get('votingSessionId');

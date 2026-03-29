@@ -129,11 +129,7 @@ export const actions: Actions = {
 			await Promise.all(Array.from({ length: concurrency }, () => worker()));
 			console.log(`Voting options save complete, Errors: ${errors.length}`);
 
-			return {
-				status: 200,
-				message: 'Voting session was created successfully',
-				votingSessionId: session.id
-			};
+			throw redirect(303, `/voting/${session.id}/edit`);
 		} catch (err: unknown) {
 			return fail(500, {
 				success: false,

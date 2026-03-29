@@ -3,7 +3,8 @@ import { game, user, vote, votingOption, votingSession } from '$lib/server/db/sc
 import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import type {
 	CreateVotingOptionInput,
-	CreateVotingSessionInput
+	CreateVotingSessionInput,
+	UpdateVotingSessionInput
 } from './voting-session.validation';
 import { isGameInCollection } from '../collections/collection.service';
 import { getUserCommunityRole } from '../communities/communities.service';
@@ -74,7 +75,7 @@ export async function getVotingSessionParticipants(db: Database, votingSessionId
 export async function updateVotingSession(
 	db: Database | DBTransaction,
 	votingSessionId: string,
-	data: CreateVotingSessionInput,
+	data: UpdateVotingSessionInput,
 	userId: string
 ) {
 	const [result] = await db
