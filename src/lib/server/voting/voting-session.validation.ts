@@ -42,11 +42,9 @@ const baseVotingSessionSchema = z.object({
 
 export const createVotingSessionSchema = baseVotingSessionSchema.superRefine(dateRefinement);
 
-export const updateVotingSessionSchema = baseVotingSessionSchema
-	.extend({
-		gameIds: z.array(z.uuid()).min(1).optional()
-	})
-	.superRefine(dateRefinement);
+export const updateVotingSessionSchema = baseVotingSessionSchema.extend({
+	gameIds: z.array(z.uuid()).min(1).optional()
+});
 
 export const createVotingOptionSchema = z.object({
 	gameId: z.uuid(),

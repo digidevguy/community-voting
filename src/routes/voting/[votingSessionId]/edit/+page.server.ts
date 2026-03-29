@@ -38,11 +38,12 @@ export const actions: Actions = {
 
 		try {
 			await deleteVotingSession(locals.db, votingSessionId);
-			return redirect(303, `/community/${session.communityId}`);
 		} catch (err) {
 			console.error('Failed to delete voting session:', err);
 			return fail(500, { message: 'Unable to delete voting session' });
 		}
+
+		return redirect(303, `/community/${session.communityId}`);
 	},
 	edit: async (e) => {
 		const userId = e.locals.user?.id;

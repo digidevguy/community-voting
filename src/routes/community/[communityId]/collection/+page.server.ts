@@ -119,7 +119,7 @@ export const actions: Actions = {
 		const role = await getUserCommunityRole(locals.db, locals.user.id, communityId);
 
 		if (!role) {
-			return error(403, 'Unauthorized');
+			return fail(403, { message: 'Unauthorized' });
 		}
 
 		try {

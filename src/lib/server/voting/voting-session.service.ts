@@ -279,11 +279,11 @@ export async function publishVotingSession(
 		}
 	}
 
-	// Validate session has games
+	// Validate session has active games
 	const hasGames = await db
 		.select()
 		.from(votingOption)
-		.where(eq(votingOption.votingSessionId, votingSessionId));
+		.where(and(eq(votingOption.votingSessionId, votingSessionId), eq(votingOption.isActive, true)));
 
 	if (!hasGames || hasGames.length === 0) {
 		throw new Error('Cannot publish session without voting options');

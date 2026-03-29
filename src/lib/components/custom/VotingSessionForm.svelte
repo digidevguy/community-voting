@@ -156,13 +156,13 @@
 	use:enhance={({ cancel }) => {
 		dateValidationMessage = null;
 
-		if (hasPastStartDateTime) {
+		if (!isEditMode && hasPastStartDateTime) {
 			dateValidationMessage = 'Voting start date/time cannot be in the past.';
 			cancel();
 			return;
 		}
 
-		if (hasPastGameDayDateTime) {
+		if (!isEditMode && hasPastGameDayDateTime) {
 			dateValidationMessage = 'Game day date/time cannot be in the past.';
 			cancel();
 			return;
