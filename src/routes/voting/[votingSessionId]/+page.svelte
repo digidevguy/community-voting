@@ -22,12 +22,14 @@
 	let expandedCardId = $state<string | undefined>();
 
 	const isVotingOpen = $derived(votingSessionDetails.status === 'active');
+	const isDraft = $derived(votingSessionDetails.status === 'draft');
 	const isEnded = $derived(
 		votingSessionDetails.status === 'voting_ended' || votingSessionDetails.status === 'completed'
 	);
 	const winnerOptionId = $derived(votingSessionDetails.selectedOptionId);
 	const winnerOption = $derived(options.find((o) => o.id === winnerOptionId));
 	const isCreator = $derived(data.user?.id === votingSessionDetails.createdBy);
+	const canEdit = $derived(isCreator || data.userRole === 'moderator' || data.userRole === 'admin');
 	const formattedStatus = $derived(
 		votingSessionDetails.status
 			.split('_')
@@ -57,7 +59,7 @@
 			<Button href="/community/{votingSessionDetails.communityId}" variant="outline">
 				<CircleChevronLeft></CircleChevronLeft>Back
 			</Button>
-			{#if isVotingOpen && isCreator}
+			{#if (isVotingOpen || isDraft) && canEdit}
 				<Button href="/voting/{votingSessionDetails.id}/edit" variant="outline">
 					<Pencil />Edit
 				</Button>

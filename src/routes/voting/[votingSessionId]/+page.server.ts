@@ -12,6 +12,7 @@ import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
 import { vote } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { requireSessionWriteAccess, requireVotingAccess } from '$lib/server/authz/community';
+import { getUserCommunityRole } from '$lib/server/communities/communities.service';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const { votingSessionId } = params;
@@ -32,18 +33,28 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	) {
 		await closeExpiredVotingSession(locals.db, votingSessionId);
 		// Re-fetch so the UI gets the updated status
-		// Todo: Fix possible null TS error.
+		const refreshedSession = await getVotingSessionWithResults(locals.db, votingSessionId);
 		return {
-			session: await getVotingSessionWithResults(locals.db, votingSessionId),
+			session: refreshedSession,
 			userVote: await getUserVoteForSession(locals.db, locals.user!.id, votingSessionId),
-			participants: await getVotingSessionParticipants(locals.db, votingSessionId)
+			participants: await getVotingSessionParticipants(locals.db, votingSessionId),
+			userRole: await getUserCommunityRole(
+				locals.db,
+				locals.user!.id,
+				refreshedSession.votingSessionDetails.communityId
+			)
 		};
 	}
 
 	return {
 		session: sessionData,
 		userVote: await getUserVoteForSession(locals.db, locals.user!.id, votingSessionId),
-		participants: await getVotingSessionParticipants(locals.db, votingSessionId)
+		participants: await getVotingSessionParticipants(locals.db, votingSessionId),
+		userRole: await getUserCommunityRole(
+			locals.db,
+			locals.user!.id,
+			sessionData.votingSessionDetails.communityId
+		)
 	};
 };
 

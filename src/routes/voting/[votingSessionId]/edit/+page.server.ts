@@ -79,6 +79,10 @@ export const actions: Actions = {
 			.map((id) => id.toString())
 			.filter(Boolean);
 		const hasGameIdsField = formData.has('gameIds');
+		// Only sync games for draft sessions — active/ended sessions cannot have their game list changed.
+		// The form always submits gameIds (hidden inputs), so we must ignore them for non-draft sessions
+		// rather than rejecting the entire request.
+		const shouldSyncGames = hasGameIdsField && existingSession.status === 'draft';
 
 		const validationResult = updateVotingSessionSchema.safeParse({
 			title: formData.get('title')?.toString() || existingSession.title,
@@ -99,7 +103,7 @@ export const actions: Actions = {
 				? formData.get('allowAddingOptions') === 'on'
 				: existingSession.allowAddingOptions,
 			communityId: existingSession.communityId,
-			gameIds: hasGameIdsField ? submittedGameIds : undefined
+			gameIds: shouldSyncGames ? submittedGameIds : undefined
 		});
 
 		if (!validationResult.success) {
@@ -111,7 +115,7 @@ export const actions: Actions = {
 
 		const validated = validationResult.data;
 
-		if (hasGameIdsField) {
+		if (shouldSyncGames) {
 			const collection = await getCommunityCollection(e.locals.db, existingSession.communityId);
 			const collectionGameIds = new Set(collection.map((item) => item.game.id));
 			const invalidGames = (validated.gameIds || []).filter((id) => !collectionGameIds.has(id));
@@ -137,7 +141,7 @@ export const actions: Actions = {
 					throw new Error('Voting session update failed.');
 				}
 
-				if (hasGameIdsField) {
+				if (shouldSyncGames) {
 					await syncVotingSessionOptions(tx, routeVotingSessionId, validated.gameIds || [], userId);
 				}
 			});
