@@ -1,7 +1,7 @@
 import { STEAM_API_DETAILS_URL } from '$env/static/private';
 import type { Database, DBTransaction } from '$lib/server/db';
 import { game } from '$lib/server/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, ilike } from 'drizzle-orm';
 import type { GameDetailsInput } from './games.validation';
 import type { Category, Genre, SteamGameResponse } from '$lib/types';
 
@@ -10,6 +10,18 @@ export async function findGameDetails(db: Database | DBTransaction, gameId: stri
 	const [gameDetails] = await db.select().from(game).where(eq(game.id, gameId));
 
 	return gameDetails;
+}
+
+export async function searchGamesByTitle(
+	db: Database | DBTransaction,
+	searchTerm: string,
+	limit = 10
+) {
+	return db
+		.select({ id: game.id, title: game.title, steamAppId: game.steamAppId, type: game.type })
+		.from(game)
+		.where(ilike(game.title, `%${searchTerm}%`))
+		.limit(limit);
 }
 
 // Update game details

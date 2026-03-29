@@ -2,7 +2,8 @@ import type { Actions, PageServerLoad } from './$types';
 import {
 	getCommunityInfo,
 	confirmUserInCommunity,
-	getUserCommunityRole
+	getUserCommunityRole,
+	isPrivilegedRole
 } from '$lib/server/communities/communities.service';
 import { getCommunityCollectionCount } from '$lib/server/collections/collection.service';
 import {
@@ -36,7 +37,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		getUserCommunityRole(locals.db, userId, communityId)
 	]);
 
-	const isPrivileged = userRole === 'moderator' || userRole === 'admin';
+	const isPrivileged = isPrivilegedRole(userRole);
 	const sessions = allSessions.filter(
 		(s) => s.status !== 'draft' || s.createdBy === userId || isPrivileged
 	);

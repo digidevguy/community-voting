@@ -1,9 +1,7 @@
-import { createVotingSession } from '$lib/server/voting/voting-session.service';
+import { createVotingSessionWithOptions } from '$lib/server/voting/voting-session.service';
 import { createVotingSessionSchema } from '$lib/server/voting/voting-session.validation';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import type { DBTransaction } from '$lib/server/db';
-import { votingOption } from '$lib/server/db/schema';
 import { confirmUserInCommunity } from '$lib/server/communities/communities.service';
 import {
 	getCommunityCollection,
@@ -81,13 +79,10 @@ export const actions: Actions = {
 		const validated = validationResult.data;
 
 		if (validated.gameIds && validated.gameIds.length > 0) {
-			const invalidGames: string[] = [];
-			for (const gameId of validated.gameIds) {
-				const inCollection = await isGameInCollection(locals.db, communityId, gameId);
-				if (!inCollection) {
-					invalidGames.push(gameId);
-				}
-			}
+			const inCollectionResults = await Promise.all(
+				validated.gameIds.map((gameId) => isGameInCollection(locals.db, communityId, gameId))
+			);
+			const invalidGames = validated.gameIds.filter((_, i) => !inCollectionResults[i]);
 
 			if (invalidGames.length > 0) {
 				return fail(400, {
@@ -99,37 +94,8 @@ export const actions: Actions = {
 
 		let sessionId: string;
 		try {
-			const session = await createVotingSession(locals.db, validated, user.id);
+			const session = await createVotingSessionWithOptions(locals.db, validated, user.id);
 			sessionId = session.id;
-
-			const gameIds = validated.gameIds || [];
-			const errors: string[] = [];
-			const concurrency = 4;
-
-			async function worker() {
-				while (true) {
-					const gameId = gameIds.shift();
-					if (!gameId) break;
-					try {
-						await locals.db.transaction(async (tx: DBTransaction) => {
-							await tx.insert(votingOption).values({
-								gameId,
-								votingSessionId: session.id,
-								addedBy: user.id,
-								addedDuringVoting: false,
-								approvalStatus: 'approved'
-							});
-						});
-					} catch (err: unknown) {
-						const msg = err instanceof Error ? err.message : String(err);
-						errors.push(msg);
-						console.error('Voting option error: ', msg);
-					}
-				}
-			}
-
-			await Promise.all(Array.from({ length: concurrency }, () => worker()));
-			console.log(`Voting options save complete, Errors: ${errors.length}`);
 		} catch (err: unknown) {
 			return fail(500, {
 				success: false,

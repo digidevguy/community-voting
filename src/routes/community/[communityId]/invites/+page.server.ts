@@ -5,6 +5,7 @@ import {
 	getInviteById,
 	getInvitesByCommunity,
 	getUserCommunityRole,
+	isPrivilegedRole,
 	revokeInvite
 } from '$lib/server/communities/communities.service';
 import { error, fail, redirect } from '@sveltejs/kit';
@@ -36,7 +37,7 @@ export const actions: Actions = {
 		const communityId = params.communityId;
 		const role = await getUserCommunityRole(locals.db, locals.user.id, communityId);
 
-		if (role !== 'admin' && role !== 'moderator') {
+		if (!isPrivilegedRole(role)) {
 			throw error(403, 'Forbidden');
 		}
 
@@ -105,7 +106,7 @@ export const actions: Actions = {
 		const isCreator = invite.createdBy === locals.user.id;
 		if (!isCreator) {
 			const role = await getUserCommunityRole(locals.db, locals.user.id, params.communityId);
-			if (!role || (role !== 'moderator' && role !== 'admin')) {
+			if (!isPrivilegedRole(role)) {
 				throw error(403, 'Forbidden');
 			}
 		}

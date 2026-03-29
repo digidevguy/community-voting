@@ -15,6 +15,11 @@ import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
 
 type CommunityRole = (typeof communityRole.enumValues)[number];
 
+/** Returns true if the role has moderator-level or higher privileges. */
+export function isPrivilegedRole(role: CommunityRole | null): boolean {
+	return role === 'moderator' || role === 'admin';
+}
+
 export async function getCommunityInfo(db: Database | DBTransaction, communityId: string) {
 	const [communityInfo] = await db.select().from(community).where(eq(community.id, communityId));
 

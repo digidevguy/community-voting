@@ -9,12 +9,10 @@ import {
 	addGameToCollectionWithEnrichment,
 	deleteGameFromCollection,
 	getCommunityCollection,
-	isGameInCollection,
 	softRemoveGameFromCollection
 } from '$lib/server/collections/collection.service';
+import { searchGamesByTitle } from '$lib/server/games/games.service';
 import { fail } from '@sveltejs/kit';
-import { game } from '$lib/server/db/schema';
-import { ilike } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -55,11 +53,6 @@ export const actions: Actions = {
 			return fail(400, { message: 'Invalid game selected' });
 		}
 
-		const isInCollection = await isGameInCollection(locals.db, communityId, gameId);
-		if (isInCollection) {
-			return fail(400, { message: 'Game is already in the collection' });
-		}
-
 		try {
 			const addedCollectionItem = await addGameToCollectionWithEnrichment(
 				locals.db,
@@ -69,6 +62,9 @@ export const actions: Actions = {
 			);
 			return { success: true, addedCollectionItem };
 		} catch (error) {
+			if (error instanceof Error && error.message === 'Game already exists in collection') {
+				return fail(400, { message: 'Game is already in the collection' });
+			}
 			console.error(
 				'Error adding game to collection:',
 				error instanceof Error ? error.message : error
@@ -88,20 +84,9 @@ export const actions: Actions = {
 			return fail(400, { message: 'Query must be at least 2 characters long.' });
 		}
 
-		const games = await locals.db
-			.select({
-				id: game.id,
-				title: game.title,
-				steamAppId: game.steamAppId,
-				type: game.type
-			})
-			.from(game)
-			.where(ilike(game.title, `%${searchTerm}%`))
-			.limit(10);
+		const games = await searchGamesByTitle(locals.db, searchTerm);
 
-		return {
-			games
-		};
+		return { games };
 	},
 	remove: async ({ locals, params, request }) => {
 		if (!locals.user) {

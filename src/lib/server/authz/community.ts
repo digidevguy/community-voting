@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import { getVotingSession } from '../voting/voting-session.service';
-import { getUserCommunityRole } from '../communities/communities.service';
+import { getUserCommunityRole, isPrivilegedRole } from '../communities/communities.service';
 
 /**
  *  * This function is a reusable authz check for voting access to a community. It checks the following:
@@ -28,8 +28,7 @@ export async function requireVotingAccess(locals: App.Locals, votingSessionId: s
 		throw error(403, 'User is not a member of the community');
 	}
 
-	const isPrivileged =
-		session.createdBy === locals.user.id || role === 'moderator' || role === 'admin';
+	const isPrivileged = session.createdBy === locals.user.id || isPrivilegedRole(role);
 
 	if (session.status === 'draft' && !isPrivileged) {
 		throw error(403, 'This session is not yet published');
@@ -65,7 +64,7 @@ export async function requireSessionWriteAccess(locals: App.Locals, votingSessio
 
 	const role = await getUserCommunityRole(locals.db, userId, session.communityId);
 
-	if (role !== 'moderator' && role !== 'admin') {
+	if (!isPrivilegedRole(role)) {
 		throw error(
 			403,
 			'Only the session creator or a community moderator/admin can perform this action'

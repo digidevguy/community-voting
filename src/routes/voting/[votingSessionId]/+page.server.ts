@@ -1,16 +1,15 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
 import {
+	castVote,
+	clearVoteForSession,
 	closeExpiredVotingSession,
 	endVotingSession,
 	getUserVoteForSession,
 	getVotingSessionParticipants,
 	getVotingSessionWithResults
 } from '$lib/server/voting/voting-session.service';
-import { castVote } from '$lib/server/voting/voting-session.service';
 import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
-import { vote } from '$lib/server/db/schema';
-import { and, eq } from 'drizzle-orm';
 import { requireSessionWriteAccess, requireVotingAccess } from '$lib/server/authz/community';
 import { getUserCommunityRole } from '$lib/server/communities/communities.service';
 
@@ -123,10 +122,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			await locals.db
-				.delete(vote)
-				.where(and(eq(vote.votingSessionId, votingSessionId), eq(vote.userId, locals.user!.id)));
-
+			await clearVoteForSession(locals.db, locals.user!.id, votingSessionId);
 			return { success: true };
 		} catch (e) {
 			console.error('Failed to clear user vote: ', e);

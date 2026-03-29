@@ -7,7 +7,25 @@ import type {
 	UpdateVotingSessionInput
 } from './voting-session.validation';
 import { isGameInCollection } from '../collections/collection.service';
-import { getUserCommunityRole } from '../communities/communities.service';
+import { getUserCommunityRole, isPrivilegedRole } from '../communities/communities.service';
+
+/**
+ * Throws if `userId` is neither the session creator nor a privileged community member.
+ * Accepts a minimal session shape to avoid redundant DB fetches.
+ */
+async function assertCanManageSession(
+	db: Database | DBTransaction,
+	userId: string,
+	session: { createdBy: string | null; communityId: string }
+) {
+	if (session.createdBy === userId) return;
+	const role = await getUserCommunityRole(db, userId, session.communityId);
+	if (!isPrivilegedRole(role)) {
+		throw new Error(
+			'Only the session creator or a community moderator/admin can perform this action'
+		);
+	}
+}
 
 export async function createVotingSession(
 	db: Database | DBTransaction,
@@ -31,6 +49,34 @@ export async function createVotingSession(
 		.returning();
 
 	return session;
+}
+
+/**
+ * Creates a voting session and its initial voting options atomically within a transaction.
+ * `data.gameIds` must already be validated as belonging to the community collection.
+ */
+export async function createVotingSessionWithOptions(
+	db: Database,
+	data: CreateVotingSessionInput,
+	userId: string
+) {
+	return db.transaction(async (tx) => {
+		const session = await createVotingSession(tx, data, userId);
+
+		if (data.gameIds && data.gameIds.length > 0) {
+			await tx.insert(votingOption).values(
+				data.gameIds.map((gameId) => ({
+					gameId,
+					votingSessionId: session.id,
+					addedBy: userId,
+					addedDuringVoting: false,
+					approvalStatus: 'approved' as const
+				}))
+			);
+		}
+
+		return session;
+	});
 }
 
 export async function getVotingSession(db: Database | DBTransaction, votingSessionId: string) {
@@ -270,14 +316,7 @@ export async function publishVotingSession(
 	}
 
 	// Only the session creator, or a community moderator/admin, may publish
-	if (existingSession.createdBy !== userId) {
-		const role = await getUserCommunityRole(db, userId, existingSession.communityId);
-		if (role !== 'moderator' && role !== 'admin') {
-			throw new Error(
-				'Only the session creator or a community moderator/admin can publish this session'
-			);
-		}
-	}
+	await assertCanManageSession(db, userId, existingSession);
 
 	// Validate session has active games
 	const hasGames = await db
@@ -338,6 +377,16 @@ export async function removeVoteByOption(
 		.returning();
 
 	return deleted;
+}
+
+export async function clearVoteForSession(
+	db: Database | DBTransaction,
+	userId: string,
+	votingSessionId: string
+) {
+	await db
+		.delete(vote)
+		.where(and(eq(vote.userId, userId), eq(vote.votingSessionId, votingSessionId)));
 }
 
 export async function getVotingSessionWithResults(
@@ -474,14 +523,7 @@ export async function renewVotingSession(
 		throw new Error('Voting session not found');
 	}
 
-	if (original.createdBy !== userId) {
-		const role = await getUserCommunityRole(db, userId, original.communityId);
-		if (!role || (role !== 'moderator' && role !== 'admin')) {
-			throw new Error(
-				'Only the session creator or a community moderator/admin can finalize the session'
-			);
-		}
-	}
+	await assertCanManageSession(db, userId, original);
 
 	const [newSession] = await db
 		.insert(votingSession)
@@ -546,12 +588,7 @@ export async function endVotingSession(
 		throw new Error('Voting session is not in voting_ended state');
 	}
 
-	if (session.createdBy !== userId) {
-		const role = await getUserCommunityRole(db, userId, session.communityId);
-		if (!role || (role !== 'moderator' && role !== 'admin')) {
-			throw new Error('Only the session creator can finalize the session');
-		}
-	}
+	await assertCanManageSession(db, userId, session);
 
 	// Find the option with the most votes
 	const [topOption] = await db
