@@ -97,8 +97,10 @@ export const actions: Actions = {
 			}
 		}
 
+		let sessionId: string;
 		try {
 			const session = await createVotingSession(locals.db, validated, user.id);
+			sessionId = session.id;
 
 			const gameIds = validated.gameIds || [];
 			const errors: string[] = [];
@@ -128,13 +130,13 @@ export const actions: Actions = {
 
 			await Promise.all(Array.from({ length: concurrency }, () => worker()));
 			console.log(`Voting options save complete, Errors: ${errors.length}`);
-
-			throw redirect(303, `/voting/${session.id}/edit`);
 		} catch (err: unknown) {
 			return fail(500, {
 				success: false,
 				message: err instanceof Error ? err.message : 'An unexpected error occurred'
 			});
 		}
+
+		return redirect(303, `/voting/${sessionId}/edit`);
 	}
 };
