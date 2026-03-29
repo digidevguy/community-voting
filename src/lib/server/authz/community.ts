@@ -72,12 +72,5 @@ export async function requireSessionWriteAccess(locals: App.Locals, votingSessio
 		);
 	}
 
-	if (session.status === 'draft') {
-		const isCreator = session.createdBy === userId;
-		if (!isCreator && role !== 'moderator' && role !== 'admin') {
-			throw error(403, 'This session is not yet published');
-		}
-	}
-
 	return session;
 }

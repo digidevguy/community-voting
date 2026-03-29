@@ -5,7 +5,8 @@ import {
 	getVotingSessionWithOptions,
 	syncVotingSessionOptions,
 	updateVotingSession,
-	publishVotingSession
+	publishVotingSession,
+	deleteVotingSession
 } from '$lib/server/voting/voting-session.service';
 import { updateVotingSessionSchema } from '$lib/server/voting/voting-session.validation';
 import { requireSessionWriteAccess } from '$lib/server/authz/community';
@@ -25,6 +26,24 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions: Actions = {
+	delete: async ({ locals, request }) => {
+		const formData = await request.formData();
+		const votingSessionId = formData.get('votingSessionId');
+
+		if (!votingSessionId || typeof votingSessionId !== 'string') {
+			return fail(400, { message: 'Invalid voting session ID' });
+		}
+
+		const session = await requireSessionWriteAccess(locals, votingSessionId);
+
+		try {
+			await deleteVotingSession(locals.db, votingSessionId);
+			return redirect(303, `/community/${session.communityId}`);
+		} catch (err) {
+			console.error('Failed to delete voting session:', err);
+			return fail(500, { message: 'Unable to delete voting session' });
+		}
+	},
 	edit: async (e) => {
 		const userId = e.locals.user?.id;
 		if (!userId) {
