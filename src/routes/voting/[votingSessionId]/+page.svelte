@@ -196,10 +196,8 @@
 								class="aspect-[460/215] w-full object-cover"
 							/>
 						{:else}
-							<div
-								class="flex aspect-[460/215] w-full items-center justify-center bg-gray-200 p-4 dark:bg-gray-800"
-							>
-								<p class="text-center text-sm text-gray-600 dark:text-gray-400">
+							<div class="flex aspect-[460/215] w-full items-center justify-center bg-muted p-4">
+								<p class="text-center text-sm text-muted-foreground">
 									{option.game?.title || 'No image available'}
 								</p>
 							</div>

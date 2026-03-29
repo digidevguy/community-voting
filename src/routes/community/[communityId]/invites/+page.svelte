@@ -18,6 +18,7 @@
 	let clearingInvites = $state(false);
 	let revokeDialogOpen = $state(false);
 	let revokeTargetId = $state<string | null>(null);
+	let role = $derived(data.role);
 	const invites = $derived(
 		clearingInvites
 			? data.invites.filter(
@@ -102,28 +103,30 @@
 			<input type="hidden" name="maxUses" value="1" />
 			<Button variant="outline" type="submit"><CirclePlus></CirclePlus>Create</Button>
 		</form>
-		<form
-			action="?/clear"
-			method="POST"
-			use:enhance={() => {
-				return async ({ result, update }) => {
-					if (result.type === 'failure') {
-						toast.error(String(result.data?.message ?? 'Failed to clear inactive invites'));
+		{#if role === 'admin' || role === 'moderator'}
+			<form
+				action="?/clear"
+				method="POST"
+				use:enhance={() => {
+					return async ({ result, update }) => {
+						if (result.type === 'failure') {
+							toast.error(String(result.data?.message ?? 'Failed to clear inactive invites'));
+							await update();
+							return;
+						}
+						if (result.type === 'success') {
+							clearingInvites = true;
+							await new Promise((r) => setTimeout(r, 200));
+							toast.success('Cleared all inactive invites!');
+						}
 						await update();
-						return;
-					}
-					if (result.type === 'success') {
-						clearingInvites = true;
-						await new Promise((r) => setTimeout(r, 200));
-						toast.success('Cleared all inactive invites!');
-					}
-					await update();
-					clearingInvites = false;
-				};
-			}}
-		>
-			<Button type="submit" variant="outline"><Recycle />Clear inactive</Button>
-		</form>
+						clearingInvites = false;
+					};
+				}}
+			>
+				<Button type="submit" variant="outline"><Recycle />Clear inactive</Button>
+			</form>
+		{/if}
 	</div>
 </div>
 

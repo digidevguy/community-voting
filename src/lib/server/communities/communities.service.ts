@@ -226,7 +226,12 @@ export async function clearInactiveInvites(db: Database | DBTransaction, communi
 		.where(
 			and(
 				eq(invitations.communityId, communityId),
-				or(eq(invitations.status, 'expired'), eq(invitations.status, 'revoked'))
+				or(
+					eq(invitations.status, 'expired'),
+					eq(invitations.status, 'revoked'),
+					eq(invitations.status, 'accepted'),
+					and(eq(invitations.status, 'pending'), sql`${invitations.expiresAt} < NOW()`)
+				)
 			)
 		)
 		.returning({ id: invitations.id });
