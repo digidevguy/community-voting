@@ -61,7 +61,7 @@ export const actions: Actions = {
 			return fail(400, { message: 'Invalid display name' });
 		}
 		if (!validatePassword(password)) {
-			return fail(400, { message: 'Invalid password (min 6, max 255 characters)' });
+			return fail(400, { message: 'Invalid password (min 8, max 255 characters)' });
 		}
 		if (password !== confirmPassword) {
 			return fail(400, { message: 'Passwords do not match' });

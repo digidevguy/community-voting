@@ -32,7 +32,7 @@ export const actions: Actions = {
 			});
 		}
 		if (!validatePassword(password)) {
-			return fail(400, { message: 'Invalid password (min 6, max 255 characters)' });
+			return fail(400, { message: 'Invalid password (min 8, max 255 characters)' });
 		}
 
 		// Todo: Confirm refactor to local db
