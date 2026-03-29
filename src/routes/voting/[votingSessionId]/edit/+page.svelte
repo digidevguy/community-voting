@@ -11,12 +11,14 @@
 	const options = $derived(data.sessionDetails.options);
 
 	const initialData = $derived({
+		id: session.id,
 		title: session.title,
 		description: session.description ?? undefined,
 		votingSessionType: session.voting_session_type as 'video_game' | 'board_game' | 'mixed',
 		startDate: session.startDate,
 		gameDayDate: session.gameDayDate,
-		selectedGameIds: options.map((o) => o.gameId)
+		selectedGameIds: options.map((o) => o.gameId),
+		status: session.status
 	});
 </script>
 

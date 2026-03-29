@@ -10,19 +10,21 @@
 	import Button from '$lib/components/ui/button/button.svelte';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import { CalendarDate, getLocalTimeZone } from '@internationalized/date';
-	import * as Card from '$lib/components/ui/card';
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import Calendar from '$lib/components/ui/calendar/calendar.svelte';
 	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
-
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import XIcon from '@lucide/svelte/icons/x';
 	interface InitialData {
+		id?: string;
 		title?: string;
 		description?: string;
 		votingSessionType?: 'video_game' | 'board_game' | 'mixed';
 		startDate?: Date | string | null;
 		gameDayDate?: Date | string | null;
 		selectedGameIds?: string[];
+		status?: 'draft' | 'active' | 'voting_ended' | 'completed' | 'archived' | 'cancelled';
 	}
 
 	let {
@@ -71,6 +73,7 @@
 
 	// UI state
 	let isSubmitting = $state(false);
+	let isPublishing = $state(false);
 	let dateValidationMessage = $state<string | null>(null);
 	let startDateOpen = $state(false);
 	let gameDayOpen = $state(false);
@@ -84,6 +87,7 @@
 	});
 
 	let isEditMode = $derived(!!initialData);
+	let isDraft = $derived(initialData?.status === 'draft');
 	let submitLabel = $derived(isEditMode ? 'Save Changes' : 'Create Session');
 
 	let searchResults = $derived.by(() => {
@@ -189,6 +193,9 @@
 	}}
 	class="space-y-2"
 >
+	{#if initialData?.id}
+		<input type="hidden" name="votingSessionId" value={initialData.id} />
+	{/if}
 	{#if form?.success === false && form?.message}
 		<div class="rounded-md bg-red-50 p-4 dark:bg-red-950">
 			<p class="text-sm font-medium text-red-800 dark:text-red-200">
@@ -224,7 +231,7 @@
 	<input type="hidden" name="gameDayDate" value={gameDayDateTime} />
 
 	<!-- Voting start date -->
-	<div class="flex justify-between">
+	<div class="flex flex-wrap gap-6">
 		<div class="flex flex-col gap-2">
 			<h2 class="text-lg font-semibold">Voting start date</h2>
 			<div class="flex gap-4">
@@ -309,47 +316,104 @@
 		<input type="hidden" name="gameIds" value={game.id} />
 	{/each}
 
+	<Separator class="my-4" />
+
+	<div class="flex flex-col space-y-4">
+		<h2 class="text-xl font-semibold">Add Games</h2>
+		<Input id="search" placeholder="Search games in this collection…" bind:value={searchQuery} />
+
+		{#if searchQuery.trim()}
+			{#if searchResults.length > 0}
+				<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+					{#each searchResults as game (game.id)}
+						<div
+							class="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 text-sm"
+						>
+							<div class="min-w-0">
+								<p class="truncate font-medium">{game.title}</p>
+								<Badge variant="secondary" class="mt-0.5 capitalize">
+									{game.type.replace('_', ' ')}
+								</Badge>
+							</div>
+							<Button size="sm" class="shrink-0" onclick={() => addGame(game)}>Add</Button>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground">No matching games in this collection.</p>
+			{/if}
+		{:else}
+			<p class="text-sm text-muted-foreground">Start typing to search the community collection.</p>
+		{/if}
+
+		<div>
+			<h3 class="mb-2 font-semibold">
+				Selected Games {#if selectedGames.length > 0}({selectedGames.length}){/if}
+			</h3>
+			{#if selectedGames.length > 0}
+				<div class="flex flex-wrap gap-2">
+					{#each selectedGames as game (game.id)}
+						<span
+							class="inline-flex items-center gap-1.5 rounded-full border bg-secondary px-3 py-1 text-sm font-medium text-secondary-foreground"
+						>
+							{game.title}
+							<button
+								type="button"
+								class="rounded-full p-0.5 hover:bg-muted-foreground/20"
+								aria-label="Remove {game.title}"
+								onclick={() => removeGame(game.id)}
+							>
+								<XIcon class="size-3" />
+							</button>
+						</span>
+					{/each}
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground">No games selected yet.</p>
+			{/if}
+		</div>
+	</div>
+
 	<Button type="submit" disabled={isSubmitting}>{submitLabel}</Button>
 </form>
 
-<Separator class="my-4" />
+{#if isDraft && initialData?.id}
+	<Separator class="my-4" />
 
-<div class="flex flex-col space-y-4">
-	<h2 class="text-xl font-semibold">Add Games</h2>
-	<div class="flex gap-2">
-		<Input id="search" name="query" placeholder="Search for games..." bind:value={searchQuery} />
-	</div>
-
-	{#if searchResults.length > 0}
-		<div class="space-y-2">
-			{#each searchResults as game (game.id)}
-				<Card.Root class="py-2">
-					<Card.Content>
-						<div class="flex items-center justify-between">
-							<Card.Title class="text-base">{game.title}</Card.Title>
-							<Button size="sm" onclick={() => addGame(game)}>Add</Button>
-						</div>
-					</Card.Content>
-				</Card.Root>
-			{/each}
-		</div>
-	{:else}
-		<p>No matching games in this community collection.</p>
-	{/if}
-
-	{#if selectedGames.length > 0}
+	<div class="space-y-3">
 		<div>
-			<h3 class="mb-2 font-semibold">Selected Games ({selectedGames.length})</h3>
-			<ul class="space-y-2">
-				{#each selectedGames as game (game.id)}
-					<li class="flex items-center justify-between rounded border p-2">
-						<span>{game.title}</span>
-						<Button size="sm" variant="destructive" onclick={() => removeGame(game.id)}>
-							Remove
-						</Button>
-					</li>
-				{/each}
-			</ul>
+			<h2 class="text-xl font-semibold">Publish Session</h2>
+			<p class="mt-1 text-sm text-muted-foreground">
+				Publishing makes this session available for community members to vote on. This cannot be
+				undone.
+			</p>
 		</div>
-	{/if}
-</div>
+		<form
+			action="?/publish"
+			method="POST"
+			use:enhance={() => {
+				isPublishing = true;
+				return async ({ result, update }) => {
+					isPublishing = false;
+					await update();
+					if (result.type === 'success') {
+						toast.success('Session published!');
+						redirectTo = `/voting/${initialData?.id}`;
+					} else if (result.type === 'failure') {
+						toast.error((result.data?.message as string) || 'Failed to publish session.');
+					}
+				};
+			}}
+		>
+			<input type="hidden" name="votingSessionId" value={initialData.id} />
+			<Button type="submit" disabled={isPublishing || selectedGames.length === 0}>
+				{isPublishing ? 'Publishing…' : 'Publish Session'}
+			</Button>
+			{#if selectedGames.length === 0}
+				<p class="mt-2 text-sm text-amber-600 dark:text-amber-400">
+					Add at least one game before publishing.
+				</p>
+			{/if}
+		</form>
+	</div>
+{/if}
