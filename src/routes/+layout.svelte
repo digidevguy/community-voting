@@ -11,6 +11,10 @@
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { LogIn, LogOut, Menu } from '@lucide/svelte';
+	import { dev } from '$app/environment';
+	import { injectAnalytics } from '@vercel/analytics/sveltekit';
+
+	injectAnalytics({ mode: dev ? 'development' : 'production' });
 
 	let { children, data }: LayoutProps = $props();
 
