@@ -14,7 +14,9 @@
 	type Session = PageData['sessions'][number];
 	type SessionList = PageData['sessions'];
 	type SessionTabStatus = 'active' | 'completed' | 'archived' | 'draft';
+	type UserRole = PageData['userRole'];
 
+	const role: UserRole = $derived(data.userRole);
 	const draftSessions: SessionList = $derived(
 		data.sessions.filter((session: Session) => session.status === 'draft')
 	);
@@ -31,6 +33,15 @@
 	);
 </script>
 
+{#if data.community.header_image}
+	<div class="-mx-4 -mt-4 mb-6 overflow-hidden sm:-mx-6 md:-mx-8 lg:rounded-sm">
+		<img
+			src={data.community.header_image}
+			alt="{data.community.title} banner"
+			class="h-40 w-full object-cover md:h-56"
+		/>
+	</div>
+{/if}
 <h1 class="mb-3 text-xl font-semibold sm:mb-4 sm:text-2xl">{data.community.title}</h1>
 <p class="mb-4 text-sm text-muted-foreground">{data.community.description}</p>
 
@@ -167,7 +178,9 @@
 		<Tabs.List class="w-max min-w-full">
 			<Tabs.Trigger value="active">Active</Tabs.Trigger>
 			<Tabs.Trigger value="completed">Completed</Tabs.Trigger>
-			<Tabs.Trigger value="archived">Archived</Tabs.Trigger>
+			{#if role === 'moderator' || role === 'admin'}
+				<Tabs.Trigger value="archived">Archived</Tabs.Trigger>
+			{/if}
 			{#if draftSessions.length > 0}
 				<Tabs.Trigger value="draft"
 					>Drafts <Badge
