@@ -17,7 +17,7 @@
 
 	{#await data.communities}
 		<ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{#each Array.from({ length: 3 }) as _}
+			{#each Array.from({ length: 3 }) as _ (_)}
 				<li class="h-44 animate-pulse rounded-lg bg-muted"></li>
 			{/each}
 		</ul>
@@ -31,10 +31,19 @@
 				<p class="text-xs text-muted-foreground">Ask a friend for an invite link to get started.</p>
 			</div>
 		{:else}
-			<ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+			<ul class="grid gap-4 sm:grid-cols-2">
 				{#each communities as item (item.community.id)}
 					<li>
-						<Card.Root class="flex h-full flex-col transition-shadow hover:shadow-md">
+						<Card.Root
+							class="flex h-full flex-col overflow-hidden transition-shadow hover:shadow-md"
+						>
+							{#if item.community.header_image}
+								<img
+									src={item.community.header_image}
+									alt="{item.community.title} banner"
+									class="-mt-6 h-32 w-full object-cover"
+								/>
+							{/if}
 							<Card.Header class="flex-1">
 								<div class="flex items-start justify-between gap-2">
 									<Card.Title class="text-base leading-snug">{item.community.title}</Card.Title>

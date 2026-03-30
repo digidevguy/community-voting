@@ -32,16 +32,22 @@
 </script>
 
 <h1 class="mb-3 text-xl font-semibold sm:mb-4 sm:text-2xl">{data.community.title}</h1>
+<p class="mb-4 text-sm text-muted-foreground">{data.community.description}</p>
 
 <nav aria-label="Community submenu" class="py-2">
 	<ul class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
 		<li>
-			<Button class="w-full sm:w-auto" href="/community/{data.community.id}/invites" variant="outline"
-				><Send /><span>Invites</span></Button
+			<Button
+				class="w-full sm:w-auto"
+				href="/community/{data.community.id}/invites"
+				variant="outline"><Send /><span>Invites</span></Button
 			>
 		</li>
 		<li>
-			<Button class="w-full sm:w-auto" href="/community/{data.community.id}/collection" variant="outline"
+			<Button
+				class="w-full sm:w-auto"
+				href="/community/{data.community.id}/collection"
+				variant="outline"
 				><Library /><span>Collection</span><Badge
 					class="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
 					variant="secondary"
@@ -105,9 +111,13 @@
 									</div>
 								{/if}
 							</Card.Content>
-							<Card.Footer class="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
+							<Card.Footer
+								class="flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-4"
+							>
 								{#if sessionType === 'draft'}
-									<Button class="w-full sm:w-auto" href="/voting/{session.id}/edit">Edit Draft</Button>
+									<Button class="w-full sm:w-auto" href="/voting/{session.id}/edit"
+										>Edit Draft</Button
+									>
 								{:else}
 									{#if session.hasVoted && !session.selectedOptionId}
 										<ClearVoteButton votingSessionId={session.id}></ClearVoteButton>
@@ -132,7 +142,9 @@
 											}}
 										>
 											<input type="hidden" value={session.id} name="votingSessionId" />
-											<Button class="w-full sm:w-auto" variant="ghost" type="submit">Renew session</Button>
+											<Button class="w-full sm:w-auto" variant="ghost" type="submit"
+												>Renew session</Button
+											>
 										</form>
 									{/if}
 									<Button class="w-full sm:w-auto" href="/voting/{session.id}">View Details</Button>
