@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { DBTransaction } from '$lib/server/db';
 import { sql } from 'drizzle-orm';
-import { STEAM_API_KEY } from '$env/static/private';
+import { STEAM_API_KEY } from '$env/dynamic/private';
 
 const CHUNK_SIZE = 2000;
 const CONCURRENCY = 4;
