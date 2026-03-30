@@ -55,7 +55,8 @@ export const actions: Actions = {
 
 		if (!validateUsername(username)) {
 			return fail(400, {
-				message: 'Invalid username (min 3, max 31 characters, alphanumeric only)'
+				message:
+					'Invalid username (min 3, max 31 characters, lowercase letters, numbers, hyphens, and underscores only)'
 			});
 		}
 		if (!validateEmail(email)) {

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { validateUsername, validatePassword, validateEmail, validateDisplayName } from './validation';
+import {
+	validateUsername,
+	validatePassword,
+	validateEmail,
+	validateDisplayName
+} from './validation';
 
 describe('validateUsername', () => {
 	it('accepts valid usernames', () => {
@@ -18,9 +23,11 @@ describe('validateUsername', () => {
 	});
 
 	it('rejects usernames with disallowed characters', () => {
-		expect(validateUsername('alice!')).toBe(false);
 		expect(validateUsername('Alice')).toBe(false); // uppercase
+		expect(validateUsername('alice!')).toBe(false); // special character
 		expect(validateUsername('ali ce')).toBe(false); // space
+		expect(validateUsername('ali\x00ce')).toBe(false); // null byte
+		expect(validateUsername('аlice')).toBe(false); // Cyrillic lookalike
 	});
 
 	it('rejects non-string values', () => {

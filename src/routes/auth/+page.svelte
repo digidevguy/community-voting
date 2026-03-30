@@ -54,7 +54,7 @@
 						<form action="?/login" method="POST" use:enhance={handleSubmit} class="grid gap-4">
 							<div class="grid gap-2">
 								<Label for="username">Username</Label>
-								<Input id="username" name="username" type="text" placeholder="BossMan2025" />
+								<Input id="username" name="username" type="text" placeholder="bossman2025" />
 							</div>
 							<div class="grid gap-2">
 								<Label for="password">Password</Label>
@@ -84,7 +84,10 @@
 							</div>
 							<div class="grid gap-2">
 								<Label for="newUsername">Username</Label>
-								<Input id="newUsername" name="username" type="text" placeholder="BossMan2025" />
+								<Input id="newUsername" name="username" type="text" placeholder="bossman2025" />
+								<p class="text-xs text-muted-foreground">
+									Lowercase letters, numbers, hyphens, and underscores only.
+								</p>
 							</div>
 							<div class="grid gap-2">
 								<Label for="displayName">Display Name</Label>

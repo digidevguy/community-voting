@@ -10,9 +10,6 @@
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 	let submitting = $state(false);
-
-	let username = $state<string | null>(null);
-	let displayName = $derived(username);
 </script>
 
 <div class="-mt-6 flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4">
@@ -93,14 +90,15 @@
 				>
 					<div class="space-y-2">
 						<Label for="username">Username</Label>
-						<Input
-							id="username"
-							name="username"
-							placeholder="e.g. gamer123"
-							bind:value={username}
-						/>
+						<Input id="username" name="username" placeholder="e.g. gamer123" />
+						<p class="text-xs text-muted-foreground">
+							Lowercase letters, numbers, hyphens, and underscores only.
+						</p>
 					</div>
-					<input type="hidden" id="displayName" name="displayName" bind:value={displayName} />
+					<div class="space-y-2">
+						<Label for="displayName">Display Name</Label>
+						<Input id="displayName" name="displayName" placeholder="e.g. Gamer 123" />
+					</div>
 					<div class="space-y-2">
 						<Label for="email">Email</Label>
 						<Input id="email" name="email" type="email" placeholder="you@example.com" />
