@@ -2,7 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import type { DBTransaction } from '$lib/server/db';
 import { sql } from 'drizzle-orm';
-import { STEAM_API_KEY } from '$env/dynamic/private';
+import { env } from '$env/dynamic/private';
 
 const CHUNK_SIZE = 2000;
 const CONCURRENCY = 4;
@@ -20,7 +20,7 @@ export const POST: RequestHandler = async ({ locals }) => {
 	console.log('Starting Steam app list sync...');
 
 	while (true) {
-		const url = `https://api.steampowered.com/IStoreService/GetAppList/v1/?key=${STEAM_API_KEY}&max_results=50000&last_appid=${lastAppId}`;
+		const url = `https://api.steampowered.com/IStoreService/GetAppList/v1/?key=${env.STEAM_API_KEY}&max_results=50000&last_appid=${lastAppId}`;
 
 		const res = await fetch(url);
 

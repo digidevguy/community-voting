@@ -1,5 +1,5 @@
 import type { RequestHandler } from './$types';
-import { STEAM_API_DETAILS_URL } from '$env/dynamic/private';
+import { env } from '$env/dynamic/private';
 import { gameDetailsInputSchema } from '$lib/server/games/games.validation';
 import { error, json } from '@sveltejs/kit';
 import {
@@ -22,13 +22,13 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 		return json(existingGame);
 	}
 
-	if (!STEAM_API_DETAILS_URL) {
+	if (!env.STEAM_API_DETAILS_URL) {
 		throw error(500, 'Server misconfiguration: missing STEAM_API_DETAILS_URL');
 	}
 
 	let steamApp;
 	try {
-		steamApp = await fetchSteamGameData(STEAM_API_DETAILS_URL, gameId);
+		steamApp = await fetchSteamGameData(env.STEAM_API_DETAILS_URL, gameId);
 	} catch (err) {
 		console.error(`Steam API fetch failed for gameId ${gameId}:`, err);
 		throw error(502, 'Failed to fetch game details from Steam API');

@@ -1,4 +1,4 @@
-import { STEAM_API_DETAILS_URL } from '$env/dynamic/private';
+import { env } from '$env/dynamic/private';
 import type { Database, DBTransaction } from '$lib/server/db';
 import { game } from '$lib/server/db/schema';
 import { eq, ilike } from 'drizzle-orm';
@@ -44,11 +44,11 @@ export async function enrichGameData(
 	db: Database | DBTransaction,
 	gameId: string
 ) {
-	if (!STEAM_API_DETAILS_URL) {
+	if (!env.STEAM_API_DETAILS_URL) {
 		throw new Error('Server misconfiguration: missing STEAM_API_DETAILS_URL');
 	}
 
-	const appData = await fetchSteamGameData(STEAM_API_DETAILS_URL, gameId);
+	const appData = await fetchSteamGameData(env.STEAM_API_DETAILS_URL, gameId);
 
 	if (!appData) {
 		throw new Error('Game not found on Steam');
