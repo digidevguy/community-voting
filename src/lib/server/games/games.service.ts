@@ -1,4 +1,4 @@
-import { STEAM_API_DETAILS_URL } from '$env/static/private';
+import { STEAM_API_DETAILS_URL } from '$env/dynamic/private';
 import type { Database, DBTransaction } from '$lib/server/db';
 import { game } from '$lib/server/db/schema';
 import { eq, ilike } from 'drizzle-orm';

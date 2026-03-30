@@ -1,5 +1,5 @@
 import type { RequestHandler } from './$types';
-import { STEAM_API_DETAILS_URL } from '$env/static/private';
+import { STEAM_API_DETAILS_URL } from '$env/dynamic/private';
 import { gameDetailsInputSchema } from '$lib/server/games/games.validation';
 import { error, json } from '@sveltejs/kit';
 import {
