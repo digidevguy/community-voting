@@ -57,10 +57,11 @@
 				use:enhance={() => {
 					isDeleting = true;
 					return async ({ result, update }) => {
-						isDeleting = false;
 						if (result.type === 'redirect') {
 							toast.success('Voting session deleted.');
+							await update();
 						} else {
+							isDeleting = false;
 							await update();
 							toast.error(
 								(result.type === 'failure' && (result.data?.message as string)) ||
