@@ -3,16 +3,9 @@ import postgres from 'postgres';
 import * as schema from './schema';
 import { env } from '$env/dynamic/private';
 
-const isProduction = env.NODE_ENV === 'production';
-const databaseUrl = isProduction ? env.PRODUCTION_DATABASE_URL : env.DEV_DATABASE_URL;
+if (!env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
 
-if (!databaseUrl) {
-	throw new Error(
-		isProduction ? 'PRODUCTION_DATABASE_URL is not set' : 'DEV_DATABASE_URL is not set'
-	);
-}
-
-const client = postgres(databaseUrl);
+const client = postgres(env.DATABASE_URL);
 
 export const db = drizzle(client, { schema });
 
