@@ -2,13 +2,13 @@
 	import { applyAction, enhance } from '$app/forms';
 	import * as Card from '$lib/components/ui/card/index';
 	import Button from '$lib/components/ui/button/button.svelte';
-	import Input from '$lib/components/ui/input/input.svelte';
-	import type { ActionData, PageServerData } from './$types';
-	import Label from '$lib/components/ui/label/label.svelte';
+	import type { PageServerData } from './$types';
 	import { toast } from 'svelte-sonner';
 	import { LoaderCircle, Users } from '@lucide/svelte';
+	import { page } from '$app/state';
+	import { signIn } from '$lib/auth-client';
 
-	let { data, form }: { data: PageServerData; form: ActionData } = $props();
+	let { data }: { data: PageServerData } = $props();
 	let submitting = $state(false);
 </script>
 
@@ -67,71 +67,11 @@
 					</form>
 				</div>
 			{:else}
-				<form
-					action="?/join"
-					method="post"
-					use:enhance={() => {
-						submitting = true;
-						return async ({ result, update }) => {
-							if (result.type === 'success') {
-								toast.success('Account created successfully!');
-								await applyAction({
-									type: 'redirect',
-									status: 303,
-									location: `/community/${result.data?.communityId}`
-								});
-								return;
-							}
-							await update();
-							submitting = false;
-						};
-					}}
-					class="space-y-4"
+				<Button
+					onclick={() => signIn.social({ provider: 'discord', callbackURL: page.url.pathname })}
 				>
-					<div class="space-y-2">
-						<Label for="username">Username</Label>
-						<Input id="username" name="username" placeholder="e.g. gamer123" />
-						<p class="text-xs text-muted-foreground">
-							Lowercase letters, numbers, hyphens, and underscores only.
-						</p>
-					</div>
-					<div class="space-y-2">
-						<Label for="displayName">Display Name</Label>
-						<Input id="displayName" name="displayName" placeholder="e.g. Gamer 123" />
-					</div>
-					<div class="space-y-2">
-						<Label for="email">Email</Label>
-						<Input id="email" name="email" type="email" placeholder="you@example.com" />
-					</div>
-					<div class="space-y-2">
-						<Label for="password">Password</Label>
-						<Input id="password" name="password" type="password" placeholder="Min. 8 characters" />
-					</div>
-					<div class="space-y-2">
-						<Label for="confirmPassword">Confirm Password</Label>
-						<Input
-							id="confirmPassword"
-							name="confirmPassword"
-							type="password"
-							placeholder="Re-enter your password"
-						/>
-					</div>
-
-					{#if form?.message}
-						<p class="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-							{form.message}
-						</p>
-					{/if}
-
-					<Button type="submit" class="w-full" disabled={submitting}>
-						{#if submitting}
-							<LoaderCircle class="mr-2 h-4 w-4 animate-spin" />
-							Creating account...
-						{:else}
-							Create Account &amp; Join
-						{/if}
-					</Button>
-				</form>
+					Continue with Discord
+				</Button>
 			{/if}
 		</Card.Content>
 	</Card.Root>

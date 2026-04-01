@@ -9,6 +9,7 @@
 	import * as Sheet from '$lib/components/ui/sheet/index';
 	import { resolve } from '$app/paths';
 	import { signOut } from '$lib/auth-client';
+	import { toast } from 'svelte-sonner';
 	import { LogIn, LogOut, Menu } from '@lucide/svelte';
 	import { dev } from '$app/environment';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
@@ -44,7 +45,8 @@
 				variant="ghost"
 				onclick={async () => {
 					await signOut();
-					window.location.href = '/auth';
+					toast.success('Signed out successfully!');
+					setTimeout(() => (window.location.href = '/auth'), 500);
 				}}
 			>
 				<LogOut />
@@ -100,7 +102,8 @@
 							class="w-full justify-start"
 							onclick={async () => {
 								await signOut();
-								window.location.href = '/auth';
+								toast.success('Signed out successfully!');
+								setTimeout(() => (window.location.href = '/auth'), 500);
 							}}
 						>
 							<LogOut />Sign out
