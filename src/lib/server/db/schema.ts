@@ -52,21 +52,15 @@ export const invitationStatus = pgEnum('invitation_status', [
 
 // Auth and User Management
 
-export const user = pgTable(
-	'user',
-	{
-		id: text('id').primaryKey(),
-		age: integer('age'),
-		username: text('username').notNull().unique(),
-		email: text('email').notNull().unique(),
-		avatar: text('avatar'),
-		displayName: text('display_name').notNull().unique(),
-		passwordHash: text('password_hash').notNull(),
-		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
-	},
-	(table) => [index('username_idx').on(table.username), index('email_idx').on(table.email)]
-);
+export const user = pgTable('user', {
+	id: text('id').primaryKey(),
+	email: text('email').notNull().unique(),
+	image: text('image'),
+	name: text('name').notNull(),
+	emailVerified: boolean('email_verified').notNull().default(false),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
 
 export const session = pgTable(
 	'session',
@@ -75,6 +69,10 @@ export const session = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => user.id, { onDelete: 'cascade' }),
+		token: text('token').notNull().unique(),
+		ipAddress: text('ip_address'),
+		userAgent: text('user_agent'),
+		updatedAt: timestamp('updated_at').notNull(),
 		expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }).notNull(),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 	},
@@ -83,6 +81,33 @@ export const session = pgTable(
 		index('expires_at_idx').on(table.expiresAt)
 	]
 );
+
+export const account = pgTable('account', {
+	id: text('id').primaryKey(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	accountId: text('account_id').notNull(),
+	providerId: text('provider_id').notNull(),
+	accessToken: text('access_token'),
+	refreshToken: text('refresh_token'),
+	accessTokenExpiresAt: timestamp('access_token_expires_at'),
+	refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+	scope: text('scope'),
+	idToken: text('id_token'),
+	password: text('password'),
+	createdAt: timestamp('created_at').notNull(),
+	updatedAt: timestamp('updated_at').notNull()
+});
+
+export const verification = pgTable('verification', {
+	id: text('id').primaryKey(),
+	identifier: text('identifier').notNull(),
+	value: text('value').notNull(),
+	expiresAt: timestamp('expires_at').notNull(),
+	createdAt: timestamp('created_at'),
+	updatedAt: timestamp('updated_at')
+});
 
 // Core tables
 
