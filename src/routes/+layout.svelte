@@ -7,9 +7,8 @@
 	import DarkModeToggle from '$lib/components/custom/DarkModeToggle.svelte';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import * as Sheet from '$lib/components/ui/sheet/index';
-	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
-	import { toast } from 'svelte-sonner';
+	import { signOut } from '$lib/auth-client';
 	import { LogIn, LogOut, Menu } from '@lucide/svelte';
 	import { dev } from '$app/environment';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
@@ -41,20 +40,15 @@
 		</nav>
 
 		{#if data?.user}
-			<form
-				action="/auth?/logout"
-				method="POST"
-				use:enhance={() => {
-					return async ({ result, update }) => {
-						await update();
-						if (result.type === 'redirect') {
-							toast.success('Signed out successfully!');
-						}
-					};
+			<Button
+				variant="ghost"
+				onclick={async () => {
+					await signOut();
+					window.location.href = '/auth';
 				}}
 			>
-				<Button type="submit" variant="ghost"><LogOut /></Button>
-			</form>
+				<LogOut />
+			</Button>
 		{:else}
 			<Button variant="ghost" href="/auth"><LogIn /></Button>
 		{/if}
@@ -101,23 +95,16 @@
 
 				<Sheet.Footer class="border-t px-4 py-4">
 					{#if data?.user}
-						<form
-							action="/auth?/logout"
-							method="POST"
-							use:enhance={() => {
-								return async ({ result, update }) => {
-									await update();
-									if (result.type === 'redirect') {
-										mobileMenuOpen = false;
-										toast.success('Signed out successfully!');
-									}
-								};
+						<Button
+							variant="ghost"
+							class="w-full justify-start"
+							onclick={async () => {
+								await signOut();
+								window.location.href = '/auth';
 							}}
 						>
-							<Button type="submit" variant="ghost" class="w-full justify-start">
-								<LogOut />Sign out
-							</Button>
-						</form>
+							<LogOut />Sign out
+						</Button>
 					{:else}
 						<Button
 							variant="ghost"
