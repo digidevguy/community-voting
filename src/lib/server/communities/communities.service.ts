@@ -197,7 +197,7 @@ export async function getInvitesByCommunity(db: Database | DBTransaction, commun
 			id: invitations.id,
 			communityId: invitations.communityId,
 			createdAt: invitations.createdAt,
-			createdBy: user.displayName,
+			createdBy: user.name,
 			status: invitations.status,
 			expiresAt: invitations.expiresAt,
 			maxUses: invitations.maxUses,

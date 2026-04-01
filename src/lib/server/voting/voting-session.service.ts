@@ -105,12 +105,12 @@ export async function getVotingSessionWithOptions(db: Database, votingSessionId:
 export async function getVotingSessionParticipants(db: Database, votingSessionId: string) {
 	try {
 		const results = await db
-			.select({ displayName: user.displayName })
+			.select({ name: user.name })
 			.from(vote)
 			.where(eq(vote.votingSessionId, votingSessionId))
 			.innerJoin(user, eq(user.id, vote.userId));
 
-		return results.map((r) => r.displayName);
+		return results.map((r) => r.name);
 	} catch (error) {
 		throw new Error(
 			`Failed to get voting session users: ${error instanceof Error ? error.message : String(error)}`
