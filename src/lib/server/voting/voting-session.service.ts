@@ -27,6 +27,37 @@ async function assertCanManageSession(
 	}
 }
 
+async function requireVotingSession(db: Database | DBTransaction, votingSessionId: string) {
+	const session = await getVotingSession(db, votingSessionId);
+	if (!session) {
+		throw new Error('Voting session not found');
+	}
+	return session;
+}
+
+async function getActiveVotingOptions(db: Database | DBTransaction, votingSessionId: string) {
+	return db
+		.select()
+		.from(votingOption)
+		.where(and(eq(votingOption.votingSessionId, votingSessionId), eq(votingOption.isActive, true)));
+}
+
+async function resolveWinner(
+	db: Database | DBTransaction,
+	votingSessionId: string
+): Promise<string | null> {
+	const topOptions = await db
+		.select({ votingOptionId: vote.votingOptionId, voteCount: count() })
+		.from(vote)
+		.where(eq(vote.votingSessionId, votingSessionId))
+		.groupBy(vote.votingOptionId)
+		.orderBy(desc(count()))
+		.limit(2);
+
+	const isTie = topOptions.length >= 2 && topOptions[0].voteCount === topOptions[1].voteCount;
+	return topOptions.length > 0 && !isTie ? topOptions[0].votingOptionId : null;
+}
+
 export async function createVotingSession(
 	db: Database | DBTransaction,
 	data: CreateVotingSessionInput,
@@ -89,15 +120,9 @@ export async function getVotingSession(db: Database | DBTransaction, votingSessi
 }
 
 export async function getVotingSessionWithOptions(db: Database, votingSessionId: string) {
-	const session = await getVotingSession(db, votingSessionId);
-	if (!session) {
-		throw new Error('Voting session not found');
-	}
+	const session = await requireVotingSession(db, votingSessionId);
 
-	const options = await db
-		.select()
-		.from(votingOption)
-		.where(and(eq(votingOption.votingSessionId, votingSessionId), eq(votingOption.isActive, true)));
+	const options = await getActiveVotingOptions(db, votingSessionId);
 
 	return { session, options };
 }
@@ -305,11 +330,7 @@ export async function publishVotingSession(
 	votingSessionId: string,
 	userId: string
 ) {
-	const existingSession = await getVotingSession(db, votingSessionId);
-
-	if (!existingSession) {
-		throw new Error('Voting session not found');
-	}
+	const existingSession = await requireVotingSession(db, votingSessionId);
 
 	if (existingSession.status !== 'draft') {
 		throw new Error('Only draft sessions can be published');
@@ -319,10 +340,7 @@ export async function publishVotingSession(
 	await assertCanManageSession(db, userId, existingSession);
 
 	// Validate session has active games
-	const hasGames = await db
-		.select()
-		.from(votingOption)
-		.where(and(eq(votingOption.votingSessionId, votingSessionId), eq(votingOption.isActive, true)));
+	const hasGames = await getActiveVotingOptions(db, votingSessionId);
 
 	if (!hasGames || hasGames.length === 0) {
 		throw new Error('Cannot publish session without voting options');
@@ -513,15 +531,7 @@ export async function renewVotingSession(
 	votingSessionId: string,
 	userId: string
 ) {
-	const original = await db
-		.select()
-		.from(votingSession)
-		.where(eq(votingSession.id, votingSessionId))
-		.then((r) => r[0]);
-
-	if (!original) {
-		throw new Error('Voting session not found');
-	}
+	const original = await requireVotingSession(db, votingSessionId);
 
 	await assertCanManageSession(db, userId, original);
 
@@ -541,10 +551,7 @@ export async function renewVotingSession(
 		})
 		.returning();
 
-	const originalOptions = await db
-		.select({ gameId: votingOption.gameId, order: votingOption.order })
-		.from(votingOption)
-		.where(and(eq(votingOption.votingSessionId, votingSessionId), eq(votingOption.isActive, true)));
+	const originalOptions = await getActiveVotingOptions(db, votingSessionId);
 
 	if (originalOptions.length > 0) {
 		await db.insert(votingOption).values(
@@ -585,16 +592,7 @@ export async function finalizeExpiredSessions(db: Database) {
 				.set({ status: 'voting_ended' })
 				.where(and(eq(votingSession.id, id), eq(votingSession.status, 'active')));
 
-			// Find the winning option
-			const [topOption] = await tx
-				.select({ votingOptionId: vote.votingOptionId, voteCount: count() })
-				.from(vote)
-				.where(eq(vote.votingSessionId, id))
-				.groupBy(vote.votingOptionId)
-				.orderBy(desc(count()))
-				.limit(1);
-
-			const selectedOptionId = topOption?.votingOptionId ?? null;
+			const selectedOptionId = await resolveWinner(tx, id);
 
 			// Transition voting_ended → completed
 			await tx
@@ -621,35 +619,15 @@ export async function endVotingSession(
 	votingSessionId: string,
 	userId: string
 ) {
-	const [session] = await db
-		.select({
-			id: votingSession.id,
-			communityId: votingSession.communityId,
-			status: votingSession.status,
-			createdBy: votingSession.createdBy
-		})
-		.from(votingSession)
-		.where(eq(votingSession.id, votingSessionId));
+	const session = await requireVotingSession(db, votingSessionId);
 
-	if (!session) {
-		throw new Error('Voting session not found');
-	}
 	if (session.status !== 'voting_ended') {
 		throw new Error('Voting session is not in voting_ended state');
 	}
 
 	await assertCanManageSession(db, userId, session);
 
-	// Find the option with the most votes
-	const [topOption] = await db
-		.select({ votingOptionId: vote.votingOptionId, count: count() })
-		.from(vote)
-		.where(eq(vote.votingSessionId, votingSessionId))
-		.groupBy(vote.votingOptionId)
-		.orderBy(desc(count()))
-		.limit(1);
-
-	const selectedOptionId = topOption?.votingOptionId ?? null;
+	const selectedOptionId = await resolveWinner(db, votingSessionId);
 
 	const [updated] = await db
 		.update(votingSession)

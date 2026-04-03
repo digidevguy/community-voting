@@ -28,8 +28,24 @@
 	);
 	const winnerOptionId = $derived(votingSessionDetails.selectedOptionId);
 	const winnerOption = $derived(options.find((o) => o.id === winnerOptionId));
+	/** Session completed with no votes cast at all. */
+	const isNoWinner = $derived(
+		votingSessionDetails.status === 'completed' && !winnerOptionId && totalVoteCount === 0
+	);
+	/** Session completed but the top vote count was shared by multiple options. */
+	const maxVoteCount = $derived(
+		options.length > 0 ? Math.max(...options.map((o) => o.voteCount)) : 0
+	);
+	const isTie = $derived(
+		votingSessionDetails.status === 'completed' && !winnerOptionId && totalVoteCount > 0
+	);
+	const tiedOptions = $derived(isTie ? options.filter((o) => o.voteCount === maxVoteCount) : []);
 	const isCreator = $derived(data.user?.id === votingSessionDetails.createdBy);
 	const canEdit = $derived(isCreator || data.userRole === 'moderator' || data.userRole === 'admin');
+	const canDeclareWinner = $derived(
+		votingSessionDetails.status === 'voting_ended' &&
+			(isCreator || data.userRole === 'moderator' || data.userRole === 'admin')
+	);
 	const formattedStatus = $derived(
 		votingSessionDetails.status
 			.split('_')
@@ -86,17 +102,49 @@
 	</section>
 
 	{#if isEnded}
-		<div
-			class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
-		>
-			{#if votingSessionDetails.status === 'completed' && winnerOption}
+		{#if votingSessionDetails.status === 'completed' && winnerOption}
+			<!-- Completed with a winner -->
+			<div
+				class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+			>
 				<div class="flex items-center gap-2">
 					<Trophy class="h-5 w-5 shrink-0 text-amber-500" />
 					<span class="font-semibold">Winner: {winnerOption.game?.title ?? 'Unknown game'}</span>
 				</div>
-			{:else}
-				<p class="font-semibold">Voting has ended. The winner has not been selected yet.</p>
-				{#if isCreator}
+			</div>
+		{:else if isTie}
+			<!-- Completed but tied — multiple options share the top vote count -->
+			<div
+				class="rounded-lg border border-slate-300 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+			>
+				<p class="font-semibold">It's a tie! No winner was declared.</p>
+				<p class="mt-1 text-sm">
+					The following games were tied with {maxVoteCount}
+					{maxVoteCount === 1 ? 'vote' : 'votes'} each:
+				</p>
+				<ul class="mt-2 flex flex-wrap gap-2">
+					{#each tiedOptions as opt (opt.id)}
+						<li>
+							<Badge variant="secondary">{opt.game?.title ?? 'Unknown game'}</Badge>
+						</li>
+					{/each}
+				</ul>
+			</div>
+		{:else if isNoWinner}
+			<!-- Completed but no winner — session expired with no votes -->
+			<div
+				class="rounded-lg border border-slate-300 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+			>
+				<p class="font-semibold">No winner was found for this session.</p>
+				<p class="mt-1 text-sm">The session expired without any votes being cast.</p>
+			</div>
+		{:else}
+			<!-- voting_ended — waiting for winner to be declared -->
+			<div
+				class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+			>
+				<p class="font-semibold">Voting has ended. The winner has not been declared yet.</p>
+				{#if canDeclareWinner}
 					<form
 						action="?/endSession"
 						method="POST"
@@ -113,12 +161,12 @@
 						}}
 					>
 						<Button type="submit" class="mt-2" variant="default">
-							<Trophy class="mr-1 h-4 w-4" />Select Winner & Finalize
+							<Trophy class="mr-1 h-4 w-4" />Declare Winner & Finalize
 						</Button>
 					</form>
 				{/if}
-			{/if}
-		</div>
+			</div>
+		{/if}
 	{/if}
 
 	<Separator />
