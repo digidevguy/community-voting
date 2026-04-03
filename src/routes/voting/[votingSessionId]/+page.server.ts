@@ -1,5 +1,6 @@
 import type { Actions, PageServerLoad } from './$types';
 import { error, fail } from '@sveltejs/kit';
+import type { ActionFailure } from '@sveltejs/kit';
 import {
 	castVote,
 	clearVoteForSession,
@@ -12,6 +13,44 @@ import {
 import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
 import { requireSessionWriteAccess, requireVotingAccess } from '$lib/server/authz/community';
 import { getUserCommunityRole } from '$lib/server/communities/communities.service';
+import type { Database } from '$lib/server/db';
+
+function getVotingSessionId(
+	formData: FormData
+):
+	| { error: ActionFailure<{ message: string }>; votingSessionId: null }
+	| { error: null; votingSessionId: string } {
+	const votingSessionId = formData.get('votingSessionId');
+	if (!votingSessionId || typeof votingSessionId !== 'string') {
+		return { error: fail(400, { message: 'Invalid voting session ID' }), votingSessionId: null };
+	}
+	return { error: null, votingSessionId };
+}
+
+async function requireOpenVotingSession(
+	db: Database,
+	votingSessionId: string
+): Promise<
+	| { error: ActionFailure<{ message: string }>; sessionData: null }
+	| { error: null; sessionData: Awaited<ReturnType<typeof getVotingSessionWithResults>> }
+> {
+	const sessionData = await getVotingSessionWithResults(db, votingSessionId);
+	const { status, startDate } = sessionData.votingSessionDetails;
+
+	if (status !== 'active') {
+		return {
+			error: fail(400, { message: 'Voting for this session has ended' }),
+			sessionData: null
+		};
+	}
+	if (startDate && new Date(startDate) > new Date()) {
+		return {
+			error: fail(400, { message: 'Voting for this session has not started yet' }),
+			sessionData: null
+		};
+	}
+	return { error: null, sessionData };
+}
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const { votingSessionId } = params;
@@ -42,13 +81,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 export const actions: Actions = {
 	vote: async ({ request, locals }) => {
 		const formData = await request.formData();
-		const votingSessionId = formData.get('votingSessionId');
+		const { error: idError, votingSessionId } = getVotingSessionId(formData);
+		if (idError) return idError;
+
 		const votingOptionId = formData.get('votingOptionId');
 		const userId = locals.user?.id;
-
-		if (!votingSessionId || typeof votingSessionId !== 'string') {
-			return fail(400, { message: 'Invalid voting session ID' });
-		}
 
 		await requireVotingAccess(locals, votingSessionId);
 
@@ -59,14 +96,11 @@ export const actions: Actions = {
 			});
 		}
 
-		// Check the session is still open for voting
-		const sessionData = await getVotingSessionWithResults(
+		const { error: sessionError } = await requireOpenVotingSession(
 			locals.db,
 			validated.data.votingSessionId
 		);
-		if (sessionData.votingSessionDetails.status !== 'active') {
-			return fail(400, { message: 'Voting for this session has ended' });
-		}
+		if (sessionError) return sessionError;
 
 		try {
 			const result = await castVote(
@@ -89,19 +123,13 @@ export const actions: Actions = {
 	},
 	clearVote: async ({ request, locals }) => {
 		const formData = await request.formData();
-		const votingSessionId = formData.get('votingSessionId');
-
-		if (!votingSessionId || typeof votingSessionId !== 'string') {
-			return fail(400, { message: 'Invalid voting session ID' });
-		}
+		const { error: idError, votingSessionId } = getVotingSessionId(formData);
+		if (idError) return idError;
 
 		await requireVotingAccess(locals, votingSessionId);
 
-		// Verify session is still active before allowing vote removal
-		const sessionData = await getVotingSessionWithResults(locals.db, votingSessionId);
-		if (sessionData.votingSessionDetails.status !== 'active') {
-			return fail(400, { message: 'Voting for this session has ended' });
-		}
+		const { error: sessionError } = await requireOpenVotingSession(locals.db, votingSessionId);
+		if (sessionError) return sessionError;
 
 		try {
 			await clearVoteForSession(locals.db, locals.user!.id, votingSessionId);
