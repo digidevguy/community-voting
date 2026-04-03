@@ -1,6 +1,6 @@
 import type { Database, DBTransaction } from '$lib/server/db';
 import { game, user, vote, votingOption, votingSession } from '$lib/server/db/schema';
-import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import type {
 	CreateVotingOptionInput,
 	CreateVotingSessionInput,
@@ -560,6 +560,56 @@ export async function renewVotingSession(
 	}
 
 	return newSession;
+}
+
+/**
+ * Finds all `active` voting sessions whose `gameDayDate` has passed and, for each, transitions them to `voting_ended` then immediately to `completed` with the winning option set.
+ * Safe to call on a schedule — sessions already past `active` are skipped.
+ * Returns a summary of how many sessions were processed.
+ */
+export async function finalizeExpiredSessions(db: Database) {
+	const now = new Date();
+
+	const expiredSessions = await db
+		.select({ id: votingSession.id })
+		.from(votingSession)
+		.where(and(eq(votingSession.status, 'active'), lt(votingSession.gameDayDate, now)));
+
+	let finalized = 0;
+
+	for (const { id } of expiredSessions) {
+		await db.transaction(async (tx) => {
+			// Transition active → voting_ended
+			await tx
+				.update(votingSession)
+				.set({ status: 'voting_ended' })
+				.where(and(eq(votingSession.id, id), eq(votingSession.status, 'active')));
+
+			// Find the winning option
+			const [topOption] = await tx
+				.select({ votingOptionId: vote.votingOptionId, voteCount: count() })
+				.from(vote)
+				.where(eq(vote.votingSessionId, id))
+				.groupBy(vote.votingOptionId)
+				.orderBy(desc(count()))
+				.limit(1);
+
+			const selectedOptionId = topOption?.votingOptionId ?? null;
+
+			// Transition voting_ended → completed
+			await tx
+				.update(votingSession)
+				.set({
+					status: 'completed',
+					...(selectedOptionId ? { selectedOptionId } : {})
+				})
+				.where(and(eq(votingSession.id, id), eq(votingSession.status, 'voting_ended')));
+		});
+
+		finalized++;
+	}
+
+	return { finalized, total: expiredSessions.length };
 }
 
 /**

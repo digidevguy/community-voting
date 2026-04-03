@@ -34,10 +34,6 @@ export async function requireVotingAccess(locals: App.Locals, votingSessionId: s
 		throw error(403, 'This session is not yet published');
 	}
 
-	if (session.status === 'active' && session.gameDayDate && session.gameDayDate < new Date()) {
-		throw error(403, 'Voting session has expired');
-	}
-
 	return session;
 }
 

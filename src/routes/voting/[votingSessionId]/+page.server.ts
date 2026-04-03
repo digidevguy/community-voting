@@ -3,8 +3,8 @@ import { error, fail } from '@sveltejs/kit';
 import {
 	castVote,
 	clearVoteForSession,
-	closeExpiredVotingSession,
 	endVotingSession,
+	finalizeExpiredSessions,
 	getUserVoteForSession,
 	getVotingSessionParticipants,
 	getVotingSessionWithResults
@@ -22,28 +22,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	await requireVotingAccess(locals, votingSessionId);
 
-	const sessionData = await getVotingSessionWithResults(locals.db, votingSessionId);
+	// Fallback
+	await finalizeExpiredSessions(locals.db);
 
-	// Auto-transition active sessions whose game day has passed to voting_ended
-	if (
-		sessionData.votingSessionDetails.status === 'active' &&
-		sessionData.votingSessionDetails.gameDayDate &&
-		sessionData.votingSessionDetails.gameDayDate <= new Date()
-	) {
-		await closeExpiredVotingSession(locals.db, votingSessionId);
-		// Re-fetch so the UI gets the updated status
-		const refreshedSession = await getVotingSessionWithResults(locals.db, votingSessionId);
-		return {
-			session: refreshedSession,
-			userVote: await getUserVoteForSession(locals.db, locals.user!.id, votingSessionId),
-			participants: await getVotingSessionParticipants(locals.db, votingSessionId),
-			userRole: await getUserCommunityRole(
-				locals.db,
-				locals.user!.id,
-				refreshedSession.votingSessionDetails.communityId
-			)
-		};
-	}
+	const sessionData = await getVotingSessionWithResults(locals.db, votingSessionId);
 
 	return {
 		session: sessionData,
