@@ -58,16 +58,20 @@
 		return new CalendarDate(d.getFullYear(), d.getMonth() + 1, d.getDate());
 	}
 
+	function formatHHMM(h: number, m: number): string {
+		return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
+	}
+
 	function toTimeString(date: Date | string | null | undefined): string {
 		if (!date) return '10:30:00';
 		const d = typeof date === 'string' ? new Date(date) : date;
-		return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:00`;
+		return formatHHMM(d.getHours(), d.getMinutes());
 	}
 
 	function currentTimeString(): string {
 		const nowMs = Math.ceil(Date.now() / 60_000) * 60_000;
 		const d = new Date(nowMs);
-		return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:00`;
+		return formatHHMM(d.getHours(), d.getMinutes());
 	}
 
 	// Combine a CalendarDate + "HH:MM:SS" into an ISO string without mutating a Date instance
@@ -106,15 +110,13 @@
 		)
 	);
 
-	// Game night — custom date picker (create mode, after toggling)
-	let gameDayDate = $state<CalendarDate | undefined>(undefined);
-	let gameDayTime = $state('18:00:00');
-
-	// Game night — edit mode
-	let editGameDayDate = $state<CalendarDate | undefined>(
+	// Game night date/time — shared between create (custom picker) and edit modes
+	let gameDayDate = $state<CalendarDate | undefined>(
 		untrack(() => toCalendarDate(initialData?.gameDayDate))
 	);
-	let editGameDayTime = $state(untrack(() => toTimeString(initialData?.gameDayDate)));
+	let gameDayTime = $state(
+		untrack(() => (initialData?.gameDayDate ? toTimeString(initialData.gameDayDate) : '18:00:00'))
+	);
 
 	// Duration selector (create mode default)
 	let selectedDurationStr = $state('1440'); // 1 day
@@ -155,11 +157,7 @@
 	});
 
 	let gameDayISOString = $derived.by(() => {
-		if (isEditMode) {
-			if (!editGameDayDate || !editGameDayTime) return undefined;
-			return calDateTimeToISO(editGameDayDate, editGameDayTime);
-		}
-		if (useCustomGameDay) {
+		if (isEditMode || useCustomGameDay) {
 			if (!gameDayDate || !gameDayTime) return undefined;
 			return calDateTimeToISO(gameDayDate, gameDayTime);
 		}
@@ -194,6 +192,17 @@
 	let isGameDayBeforeStartDateTime = $derived.by(() => {
 		if (!startISOString || !gameDayISOString) return false;
 		return new Date(gameDayISOString).getTime() < new Date(startISOString).getTime();
+	});
+
+	// min attribute for time inputs — only meaningful when the selected date is today or same as start
+	let minStartTime = $derived.by(() => {
+		if (!startDate) return undefined;
+		return startDate.compare(today(getLocalTimeZone())) === 0 ? currentTimeString() : undefined;
+	});
+
+	let minGameDayTime = $derived.by(() => {
+		if (!gameDayDate || !startDate || (!isEditMode && !useCustomGameDay)) return undefined;
+		return gameDayDate.compare(startDate) === 0 ? startTime : undefined;
 	});
 
 	function addGame(game: { id: string; title: string }) {
@@ -341,6 +350,7 @@
 						<Input
 							class="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 							step="60"
+							min={minStartTime}
 							bind:value={startTime}
 							type="time"
 						/>
@@ -359,8 +369,8 @@
 								<Popover.Trigger>
 									{#snippet child({ props })}
 										<Button {...props} class="w-32 justify-between font-normal" variant="outline">
-											{editGameDayDate
-												? editGameDayDate.toDate(getLocalTimeZone()).toLocaleDateString()
+											{gameDayDate
+												? gameDayDate.toDate(getLocalTimeZone()).toLocaleDateString()
 												: 'Select date'}
 											<ChevronDownIcon />
 										</Button>
@@ -369,7 +379,7 @@
 								<Popover.Content class="w-auto overflow-hidden p-0" align="start">
 									<Calendar
 										type="single"
-										bind:value={editGameDayDate}
+										bind:value={gameDayDate}
 										onValueChange={() => (gameDayOpen = false)}
 										captionLayout="dropdown"
 										minValue={today(getLocalTimeZone())}
@@ -382,7 +392,8 @@
 							<Input
 								class="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 								step="60"
-								bind:value={editGameDayTime}
+								min={minGameDayTime}
+								bind:value={gameDayTime}
 								type="time"
 							/>
 						</div>
@@ -446,6 +457,7 @@
 							<Input
 								class="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
 								step="60"
+								min={minGameDayTime}
 								bind:value={gameDayTime}
 								type="time"
 							/>
