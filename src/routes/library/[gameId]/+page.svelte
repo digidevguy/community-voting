@@ -21,6 +21,9 @@
 				<img
 					src={data.game.image}
 					alt={data.game.title}
+					width="460"
+					height="215"
+					decoding="async"
 					class="w-full rounded-lg object-cover sm:w-48 sm:self-start"
 				/>
 			{/if}

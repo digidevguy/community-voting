@@ -88,7 +88,15 @@
 		<li>
 			<Card.Root class="max-w-sm gap-0 overflow-hidden py-0">
 				<!-- <h2>{item.game.title}</h2> -->
-				<img src={item.game.image} alt={item.game.title} />
+				<img
+					src={item.game.image}
+					alt={item.game.title}
+					width="460"
+					height="215"
+					loading="lazy"
+					decoding="async"
+					class="aspect-[460/215] w-full object-cover"
+				/>
 				<Card.Footer class="my-2 flex justify-between">
 					<Button href="/library/{item.game.id}" variant="link">View game details</Button>
 					<Dialog.Root

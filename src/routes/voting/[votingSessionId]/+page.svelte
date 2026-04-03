@@ -241,6 +241,10 @@
 							<img
 								src={option.game.image}
 								alt={option.game.title}
+								width="460"
+								height="215"
+								loading="lazy"
+								decoding="async"
 								class="aspect-[460/215] w-full object-cover"
 							/>
 						{:else}
