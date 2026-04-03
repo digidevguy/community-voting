@@ -1,5 +1,5 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { and, count, eq } from 'drizzle-orm';
+import { and, asc, count, eq } from 'drizzle-orm';
 import { communityCollections, game, type CommunityCollection } from '$lib/server/db/schema';
 import type { CreateCommunityCollectionInput } from './collection.validation';
 import { enrichGameData } from '../games/games.service';
@@ -27,7 +27,8 @@ export async function getCommunityCollection(db: Database | DBTransaction, commu
 				eq(communityCollections.isActive, true),
 				eq(communityCollections.communityId, communityId)
 			)
-		);
+		)
+		.orderBy(asc(game.title));
 
 	return collection;
 }

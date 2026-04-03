@@ -1,4 +1,7 @@
-import { createVotingSessionWithOptions } from '$lib/server/voting/voting-session.service';
+import {
+	createVotingSessionWithOptions,
+	publishVotingSession
+} from '$lib/server/voting/voting-session.service';
 import { createVotingSessionSchema } from '$lib/server/voting/voting-session.validation';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
@@ -32,77 +35,107 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	};
 };
 
+async function parseCreateBody(body: FormData, communityId: string, db: App.Locals['db']) {
+	const gameIds = body.getAll('gameIds').map((id) => id.toString());
+
+	const validationResult = createVotingSessionSchema.safeParse({
+		title: body.get('title')?.toString() || '',
+		description: body.get('description')?.toString() || undefined,
+		startDate: body.get('startDate')?.toString() || undefined,
+		votingSessionType: body.get('votingSessionType')?.toString() || undefined,
+		gameDayDate: body.get('gameDayDate')?.toString() || '',
+		showRealTimeResults: body.get('showRealTimeResults') === 'on',
+		allowAddingOptions: body.get('allowAddingOptions') === 'on',
+		communityId,
+		gameIds
+	});
+
+	if (!validationResult.success) {
+		return {
+			error: fail(400, {
+				success: false,
+				message: validationResult.error.issues[0]?.message || 'Invalid voting session data.'
+			})
+		};
+	}
+
+	const validated = validationResult.data;
+
+	if (validated.gameIds && validated.gameIds.length > 0) {
+		const inCollectionResults = await Promise.all(
+			validated.gameIds.map((gameId) => isGameInCollection(db, communityId, gameId))
+		);
+		const invalidGames = validated.gameIds.filter((_, i) => !inCollectionResults[i]);
+
+		if (invalidGames.length > 0) {
+			return {
+				error: fail(400, {
+					success: false,
+					message: `The following games are not in the community collection: ${invalidGames.join(', ')}`
+				})
+			};
+		}
+	}
+
+	return { data: validated };
+}
+
 export const actions: Actions = {
 	create: async ({ params, locals, request }) => {
-		if (!locals.user) {
-			throw redirect(303, '/auth');
-		}
+		if (!locals.user) throw redirect(303, '/auth');
 		const user = locals.user;
-
 		const { communityId } = params;
 
-		if (!communityId) {
-			return error(400, { message: 'The matching community could not be found.' });
-		}
+		if (!communityId) return error(400, { message: 'The matching community could not be found.' });
 
 		const isUserInCommunity = await confirmUserInCommunity(locals.db, user.id, communityId);
-
 		if (!isUserInCommunity) {
 			return error(403, {
 				message: 'You must be a member of this community to create a voting session.'
 			});
 		}
 
-		const body = await request.formData();
+		const parsed = await parseCreateBody(await request.formData(), communityId, locals.db);
+		if ('error' in parsed) return parsed.error;
 
-		const gameIds = body.getAll('gameIds')?.map((id) => id.toString()) || [];
-
-		const validationResult = createVotingSessionSchema.safeParse({
-			title: body.get('title')?.toString() || '',
-			description: body.get('description')?.toString() || undefined,
-			startDate: body.get('startDate')?.toString() || undefined,
-			votingSessionType: body.get('votingSessionType')?.toString() || undefined,
-			gameDayDate: body.get('gameDayDate')?.toString() || '',
-			showRealTimeResults: body.get('showRealTimeResults') === 'on',
-			allowAddingOptions: body.get('allowAddingOptions') === 'on',
-			communityId,
-			gameIds
-		});
-
-		if (!validationResult.success) {
-			return fail(400, {
-				success: false,
-				message: validationResult.error.issues[0]?.message || 'Invalid voting session data.'
-			});
-		}
-
-		const validated = validationResult.data;
-
-		if (validated.gameIds && validated.gameIds.length > 0) {
-			const inCollectionResults = await Promise.all(
-				validated.gameIds.map((gameId) => isGameInCollection(locals.db, communityId, gameId))
-			);
-			const invalidGames = validated.gameIds.filter((_, i) => !inCollectionResults[i]);
-
-			if (invalidGames.length > 0) {
-				return fail(400, {
-					success: false,
-					message: `The following games are not in the community collection: ${invalidGames.join(', ')}`
-				});
-			}
-		}
-
-		let sessionId: string;
 		try {
-			const session = await createVotingSessionWithOptions(locals.db, validated, user.id);
-			sessionId = session.id;
+			await createVotingSessionWithOptions(locals.db, parsed.data, user.id);
 		} catch (err: unknown) {
 			return fail(500, {
 				success: false,
 				message: err instanceof Error ? err.message : 'An unexpected error occurred'
 			});
 		}
+		return redirect(303, `/community/${communityId}`);
+	},
 
-		return redirect(303, `/voting/${sessionId}/edit`);
+	createAndPublish: async ({ params, locals, request }) => {
+		if (!locals.user) throw redirect(303, '/auth');
+		const user = locals.user;
+		const { communityId } = params;
+
+		if (!communityId) return error(400, { message: 'The matching community could not be found.' });
+
+		const isUserInCommunity = await confirmUserInCommunity(locals.db, user.id, communityId);
+		if (!isUserInCommunity) {
+			return error(403, {
+				message: 'You must be a member of this community to create a voting session.'
+			});
+		}
+
+		const parsed = await parseCreateBody(await request.formData(), communityId, locals.db);
+		if ('error' in parsed) return parsed.error;
+
+		let session;
+		try {
+			session = await createVotingSessionWithOptions(locals.db, parsed.data, user.id);
+			await publishVotingSession(locals.db, session.id, user.id);
+		} catch (err: unknown) {
+			return fail(500, {
+				success: false,
+				message: err instanceof Error ? err.message : 'An unexpected error occurred'
+			});
+		}
+		return redirect(303, `/voting/${session.id}`);
 	}
 };

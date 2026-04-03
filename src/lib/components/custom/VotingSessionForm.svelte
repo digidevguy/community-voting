@@ -2,20 +2,22 @@
 	lang="ts"
 	generics="TForm extends { message?: string | null; success?: boolean; errors?: Record<string, string[]> | null } | null | undefined"
 >
-	import { enhance } from '$app/forms';
+	import { enhance, applyAction } from '$app/forms';
 	import { Input } from '$lib/components/ui/input/index.js';
+	import * as Select from '$lib/components/ui/select';
 	import Label from '$lib/components/ui/label/label.svelte';
 	import Textarea from '$lib/components/ui/textarea/textarea.svelte';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import { CalendarDate, getLocalTimeZone } from '@internationalized/date';
+	import { CalendarDate, getLocalTimeZone, today } from '@internationalized/date';
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import Calendar from '$lib/components/ui/calendar/calendar.svelte';
 	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import XIcon from '@lucide/svelte/icons/x';
+
 	interface InitialData {
 		id?: string;
 		title?: string;
@@ -39,6 +41,17 @@
 		form: TForm;
 	} = $props();
 
+	const DURATION_OPTIONS = [
+		{ label: '1 hour', minutes: 60 },
+		{ label: '2 hours', minutes: 120 },
+		{ label: '4 hours', minutes: 240 },
+		{ label: '8 hours', minutes: 480 },
+		{ label: '1 day', minutes: 1440 },
+		{ label: '2 days', minutes: 2880 },
+		{ label: '3 days', minutes: 4320 },
+		{ label: '1 week', minutes: 10080 }
+	] as const;
+
 	function toCalendarDate(date: Date | string | null | undefined): CalendarDate | undefined {
 		if (!date) return undefined;
 		const d = typeof date === 'string' ? new Date(date) : date;
@@ -48,7 +61,27 @@
 	function toTimeString(date: Date | string | null | undefined): string {
 		if (!date) return '10:30:00';
 		const d = typeof date === 'string' ? new Date(date) : date;
-		return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+		return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:00`;
+	}
+
+	function currentTimeString(): string {
+		const nowMs = Math.ceil(Date.now() / 60_000) * 60_000;
+		const d = new Date(nowMs);
+		return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:00`;
+	}
+
+	// Combine a CalendarDate + "HH:MM:SS" into an ISO string without mutating a Date instance
+	function calDateTimeToISO(calDate: CalendarDate, timeStr: string): string {
+		const base = calDate.toDate(getLocalTimeZone());
+		const [h, m, s] = timeStr.split(':').map(Number);
+		return new Date(
+			base.getFullYear(),
+			base.getMonth(),
+			base.getDate(),
+			h,
+			m,
+			s || 0
+		).toISOString();
 	}
 
 	let searchQuery = $state('');
@@ -62,33 +95,42 @@
 				: []
 		)
 	);
+
+	// Start date — defaults to today's CalendarDate for new sessions
 	let startDate = $state<CalendarDate | undefined>(
-		untrack(() => toCalendarDate(initialData?.startDate))
+		untrack(() => toCalendarDate(initialData?.startDate) ?? today(getLocalTimeZone()))
 	);
-	let gameDayDate = $state<CalendarDate | undefined>(
+	let startTime = $state(
+		untrack(() =>
+			initialData?.startDate ? toTimeString(initialData.startDate) : currentTimeString()
+		)
+	);
+
+	// Game night — custom date picker (create mode, after toggling)
+	let gameDayDate = $state<CalendarDate | undefined>(undefined);
+	let gameDayTime = $state('18:00:00');
+
+	// Game night — edit mode
+	let editGameDayDate = $state<CalendarDate | undefined>(
 		untrack(() => toCalendarDate(initialData?.gameDayDate))
 	);
-	let startTime = $state(untrack(() => toTimeString(initialData?.startDate)));
-	let gameDayTime = $state(untrack(() => toTimeString(initialData?.gameDayDate)));
+	let editGameDayTime = $state(untrack(() => toTimeString(initialData?.gameDayDate)));
 
-	// UI state
-	let isSubmitting = $state(false);
-	let isPublishing = $state(false);
-	let dateValidationMessage = $state<string | null>(null);
+	// Duration selector (create mode default)
+	let selectedDurationStr = $state('1440'); // 1 day
+	let useCustomGameDay = $state(false);
+
+	// Popover open states
 	let startDateOpen = $state(false);
 	let gameDayOpen = $state(false);
-	let redirectTo = $state<string | null>(null);
 
-	$effect(() => {
-		if (!redirectTo) return;
-		const target = redirectTo;
-		const timer = setTimeout(() => window.location.assign(target), 2000);
-		return () => clearTimeout(timer);
-	});
+	// UI state
+	let submittingAction = $state<'draft' | 'publish' | 'edit-save' | null>(null);
+	let isPublishing = $state(false);
+	let dateValidationMessage = $state<string | null>(null);
 
 	let isEditMode = $derived(!!initialData);
 	let isDraft = $derived(initialData?.status === 'draft');
-	let submitLabel = $derived(isEditMode ? 'Save Changes' : 'Create Session');
 
 	let searchResults = $derived.by(() => {
 		const query = searchQuery.trim().toLowerCase();
@@ -107,35 +149,51 @@
 			.map((game) => ({ id: game.id, title: game.title, type: game.type }));
 	});
 
-	let startDateTime = $derived.by(() => {
+	let startISOString = $derived.by(() => {
 		if (!startDate || !startTime) return undefined;
-		const date = startDate.toDate(getLocalTimeZone());
-		const [hours, minutes, seconds] = startTime.split(':').map(Number);
-		date.setHours(hours, minutes, seconds || 0);
-		return date.toISOString();
+		return calDateTimeToISO(startDate, startTime);
 	});
 
-	let gameDayDateTime = $derived.by(() => {
-		if (!gameDayDate || !gameDayTime) return undefined;
-		const date = gameDayDate.toDate(getLocalTimeZone());
-		const [hours, minutes, seconds] = gameDayTime.split(':').map(Number);
-		date.setHours(hours, minutes, seconds || 0);
-		return date.toISOString();
+	let gameDayISOString = $derived.by(() => {
+		if (isEditMode) {
+			if (!editGameDayDate || !editGameDayTime) return undefined;
+			return calDateTimeToISO(editGameDayDate, editGameDayTime);
+		}
+		if (useCustomGameDay) {
+			if (!gameDayDate || !gameDayTime) return undefined;
+			return calDateTimeToISO(gameDayDate, gameDayTime);
+		}
+		// Duration mode: startISO + offset
+		if (!startISOString) return undefined;
+		return new Date(
+			new Date(startISOString).getTime() + Number(selectedDurationStr) * 60_000
+		).toISOString();
+	});
+
+	let gameDayPreview = $derived.by(() => {
+		if (!gameDayISOString || isEditMode || useCustomGameDay) return null;
+		return new Date(gameDayISOString).toLocaleString(undefined, {
+			weekday: 'short',
+			month: 'short',
+			day: 'numeric',
+			hour: 'numeric',
+			minute: '2-digit'
+		});
 	});
 
 	let hasPastStartDateTime = $derived.by(() => {
-		if (!startDateTime) return false;
-		return new Date(startDateTime).getTime() < Date.now();
+		if (!startISOString) return false;
+		return new Date(startISOString).getTime() < Date.now();
 	});
 
 	let hasPastGameDayDateTime = $derived.by(() => {
-		if (!gameDayDateTime) return false;
-		return new Date(gameDayDateTime).getTime() < Date.now();
+		if (!gameDayISOString) return false;
+		return new Date(gameDayISOString).getTime() < Date.now();
 	});
 
 	let isGameDayBeforeStartDateTime = $derived.by(() => {
-		if (!startDateTime || !gameDayDateTime) return false;
-		return new Date(gameDayDateTime).getTime() < new Date(startDateTime).getTime();
+		if (!startISOString || !gameDayISOString) return false;
+		return new Date(gameDayISOString).getTime() < new Date(startISOString).getTime();
 	});
 
 	function addGame(game: { id: string; title: string }) {
@@ -153,7 +211,7 @@
 <form
 	{action}
 	method="POST"
-	use:enhance={({ cancel }) => {
+	use:enhance={({ cancel, submitter }) => {
 		dateValidationMessage = null;
 
 		if (!isEditMode && hasPastStartDateTime) {
@@ -175,23 +233,39 @@
 			return;
 		}
 
-		isSubmitting = true;
+		if (isEditMode) {
+			submittingAction = 'edit-save';
+		} else {
+			submittingAction = submitter?.getAttribute('formaction')?.includes('createAndPublish')
+				? 'publish'
+				: 'draft';
+		}
 		return async ({ result, update }) => {
-			isSubmitting = false;
-			await update();
-			if (result.type === 'success') {
-				const votingSessionId = result.data?.votingSessionId;
-				if (votingSessionId) {
-					toast.success(isEditMode ? 'Voting session updated!' : 'Voting session created!');
+			const action = submittingAction;
+			submittingAction = null;
+			if (result.type === 'redirect') {
+				// create / createAndPublish actions
+				const message =
+					action === 'publish' ? 'Session published successfully!' : 'Session saved as draft.';
+				toast.success(message);
+				await applyAction(result);
+			} else if (result.type === 'success') {
+				// edit action returns success with votingSessionId
+				const target = result.data?.votingSessionId
+					? `/voting/${result.data.votingSessionId}`
+					: null;
+				toast.success('Voting session updated!');
+				if (target) {
 					selectedGames = [];
-					redirectTo = `/voting/${votingSessionId}`;
+					window.location.assign(target);
 				}
 			} else if (result.type === 'failure') {
 				toast.error((result.data?.message as string) || 'An error occurred.');
+				await update();
 			}
 		};
 	}}
-	class="space-y-2"
+	class="space-y-6"
 >
 	{#if initialData?.id}
 		<input type="hidden" name="votingSessionId" value={initialData.id} />
@@ -227,87 +301,164 @@
 	</div>
 
 	<input type="hidden" name="votingSessionType" value="video_game" />
-	<input type="hidden" name="startDate" value={startDateTime} />
-	<input type="hidden" name="gameDayDate" value={gameDayDateTime} />
+	<input type="hidden" name="startDate" value={startISOString} />
+	<input type="hidden" name="gameDayDate" value={gameDayISOString} />
 
-	<!-- Voting start date -->
-	<div class="flex flex-wrap gap-6">
-		<div class="flex flex-col gap-2">
-			<h2 class="text-lg font-semibold">Voting start date</h2>
-			<div class="flex gap-4">
-				<div class="flex flex-col gap-3">
-					<Label for="startDate-date" class="px-1">Date</Label>
-					<Popover.Root bind:open={startDateOpen}>
-						<Popover.Trigger id="startDate">
-							{#snippet child({ props })}
-								<Button {...props} class="w-32 justify-between font-normal" variant="outline">
-									{startDate
-										? startDate.toDate(getLocalTimeZone()).toLocaleDateString()
-										: 'Select date'}
-									<ChevronDownIcon />
-								</Button>
-							{/snippet}
-						</Popover.Trigger>
-						<Popover.Content class="w-auto overflow-hidden p-0" align="start">
-							<Calendar
-								type="single"
-								bind:value={startDate}
-								onValueChange={() => (startDateOpen = false)}
-								captionLayout="dropdown"
-							/>
-						</Popover.Content>
-					</Popover.Root>
-				</div>
-				<div class="flex flex-col gap-3">
-					<Label class="px-1" id="startDateTime">Time</Label>
-					<Input
-						class="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-						step="1"
-						bind:value={startTime}
-						type="time"
-						id="startDateTime"
-					/>
+	<!-- Date configuration -->
+	<div class="rounded-lg border p-4">
+		<h2 class="mb-4 text-base font-semibold">Schedule</h2>
+		<div class="flex flex-wrap gap-8">
+			<!-- Voting opens -->
+			<div class="flex flex-col gap-3">
+				<p class="text-sm font-medium">Voting opens</p>
+				<div class="flex gap-4">
+					<div class="flex flex-col gap-2">
+						<Label class="px-1">Date</Label>
+						<Popover.Root bind:open={startDateOpen}>
+							<Popover.Trigger>
+								{#snippet child({ props })}
+									<Button {...props} class="w-32 justify-between font-normal" variant="outline">
+										{startDate
+											? startDate.toDate(getLocalTimeZone()).toLocaleDateString()
+											: 'Select date'}
+										<ChevronDownIcon />
+									</Button>
+								{/snippet}
+							</Popover.Trigger>
+							<Popover.Content class="w-auto overflow-hidden p-0" align="start">
+								<Calendar
+									type="single"
+									bind:value={startDate}
+									onValueChange={() => (startDateOpen = false)}
+									captionLayout="dropdown"
+									minValue={today(getLocalTimeZone())}
+								/>
+							</Popover.Content>
+						</Popover.Root>
+					</div>
+					<div class="flex flex-col gap-2">
+						<Label class="px-1">Time</Label>
+						<Input
+							class="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+							step="60"
+							bind:value={startTime}
+							type="time"
+						/>
+					</div>
 				</div>
 			</div>
-		</div>
 
-		<!-- Game day date -->
-		<div class="flex flex-col gap-2">
-			<h2 class="text-lg font-semibold">Game day date</h2>
-			<div class="flex gap-4">
-				<div class="flex flex-col gap-3">
-					<Label for="gameDaydate" class="px-1">Date</Label>
-					<Popover.Root bind:open={gameDayOpen}>
-						<Popover.Trigger id="gameDayDate">
-							{#snippet child({ props })}
-								<Button {...props} class="w-32 justify-between font-normal" variant="outline">
-									{gameDayDate
-										? gameDayDate.toDate(getLocalTimeZone()).toLocaleDateString()
-										: 'Select date'}
-									<ChevronDownIcon />
-								</Button>
-							{/snippet}
-						</Popover.Trigger>
-						<Popover.Content class="w-auto overflow-hidden p-0" align="start">
-							<Calendar
-								type="single"
-								bind:value={gameDayDate}
-								onValueChange={() => (gameDayOpen = false)}
-								captionLayout="dropdown"
+			<!-- Game night -->
+			<div class="flex flex-col gap-3">
+				<p class="text-sm font-medium">Game night</p>
+				{#if isEditMode}
+					<div class="flex gap-4">
+						<div class="flex flex-col gap-3">
+							<Label class="px-1">Date</Label>
+							<Popover.Root bind:open={gameDayOpen}>
+								<Popover.Trigger>
+									{#snippet child({ props })}
+										<Button {...props} class="w-32 justify-between font-normal" variant="outline">
+											{editGameDayDate
+												? editGameDayDate.toDate(getLocalTimeZone()).toLocaleDateString()
+												: 'Select date'}
+											<ChevronDownIcon />
+										</Button>
+									{/snippet}
+								</Popover.Trigger>
+								<Popover.Content class="w-auto overflow-hidden p-0" align="start">
+									<Calendar
+										type="single"
+										bind:value={editGameDayDate}
+										onValueChange={() => (gameDayOpen = false)}
+										captionLayout="dropdown"
+										minValue={today(getLocalTimeZone())}
+									/>
+								</Popover.Content>
+							</Popover.Root>
+						</div>
+						<div class="flex flex-col gap-3">
+							<Label class="px-1">Time</Label>
+							<Input
+								class="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+								step="60"
+								bind:value={editGameDayTime}
+								type="time"
 							/>
-						</Popover.Content>
-					</Popover.Root>
-				</div>
-				<div class="flex flex-col gap-3">
-					<Label class="px-1" id="gameDayDateTime">Time</Label>
-					<Input
-						class="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-						step="1"
-						bind:value={gameDayTime}
-						type="time"
-						id="gameDayDateTime"
-					/>
-				</div>
+						</div>
+					</div>
+				{:else if !useCustomGameDay}
+					<div class="flex flex-col gap-2">
+						<Label for="durationSelect">Duration</Label>
+						<Select.Root type="single" bind:value={selectedDurationStr}>
+							<Select.Trigger id="durationSelect" class="w-36">
+								{DURATION_OPTIONS.find((o) => String(o.minutes) === selectedDurationStr)?.label ??
+									'Select duration'}
+							</Select.Trigger>
+							<Select.Content>
+								{#each DURATION_OPTIONS as opt (opt.minutes)}
+									<Select.Item value={String(opt.minutes)}>{opt.label}</Select.Item>
+								{/each}
+							</Select.Content>
+						</Select.Root>
+						{#if gameDayPreview}
+							<p class="text-sm text-muted-foreground">Game night: {gameDayPreview}</p>
+						{/if}
+					</div>
+					<button
+						type="button"
+						class="mt-1 w-fit text-left text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+						onclick={() => {
+							useCustomGameDay = true;
+							gameDayDate = startDate;
+						}}
+					>
+						Set a specific date & time instead
+					</button>
+				{:else}
+					<div class="flex gap-4">
+						<div class="flex flex-col gap-3">
+							<Label class="px-1">Date</Label>
+							<Popover.Root bind:open={gameDayOpen}>
+								<Popover.Trigger>
+									{#snippet child({ props })}
+										<Button {...props} class="w-32 justify-between font-normal" variant="outline">
+											{gameDayDate
+												? gameDayDate.toDate(getLocalTimeZone()).toLocaleDateString()
+												: 'Select date'}
+											<ChevronDownIcon />
+										</Button>
+									{/snippet}
+								</Popover.Trigger>
+								<Popover.Content class="w-auto overflow-hidden p-0" align="start">
+									<Calendar
+										type="single"
+										bind:value={gameDayDate}
+										onValueChange={() => (gameDayOpen = false)}
+										captionLayout="dropdown"
+										minValue={startDate ?? today(getLocalTimeZone())}
+									/>
+								</Popover.Content>
+							</Popover.Root>
+						</div>
+						<div class="flex flex-col gap-3">
+							<Label class="px-1">Time</Label>
+							<Input
+								class="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+								step="60"
+								bind:value={gameDayTime}
+								type="time"
+							/>
+						</div>
+					</div>
+					<button
+						type="button"
+						class="mt-1 w-fit text-left text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+						onclick={() => (useCustomGameDay = false)}
+					>
+						Use duration instead
+					</button>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -316,7 +467,7 @@
 		<input type="hidden" name="gameIds" value={game.id} />
 	{/each}
 
-	<Separator class="my-4" />
+	<Separator class="my-6" />
 
 	<div class="flex flex-col space-y-4">
 		<h2 class="text-xl font-semibold">Add Games</h2>
@@ -329,7 +480,7 @@
 						<div
 							class="flex items-center justify-between gap-3 rounded-md border bg-card px-3 py-2 text-sm"
 						>
-							<div class="min-w-0">
+							<div class="min-w-0 space-y-1">
 								<p class="truncate font-medium">{game.title}</p>
 								<Badge variant="secondary" class="mt-0.5 capitalize">
 									{game.type.replace('_', ' ')}
@@ -374,11 +525,28 @@
 		</div>
 	</div>
 
-	<Button type="submit" disabled={isSubmitting}>{submitLabel}</Button>
+	<Separator class="my-6" />
+	{#if isEditMode}
+		<Button type="submit" disabled={submittingAction !== null}>
+			{submittingAction === 'edit-save' ? 'Saving…' : 'Save Changes'}
+		</Button>
+	{:else}
+		<div class="flex flex-wrap items-start gap-3">
+			<Button type="submit" variant="outline" disabled={submittingAction !== null}>
+				{submittingAction === 'draft' ? 'Saving…' : 'Save as Draft'}
+			</Button>
+			<div class="flex flex-col gap-1">
+				<Button type="submit" formaction="?/createAndPublish" disabled={submittingAction !== null}>
+					{submittingAction === 'publish' ? 'Publishing…' : 'Save & Publish'}
+				</Button>
+				<p class="text-xs text-muted-foreground">Immediately visible to community members</p>
+			</div>
+		</div>
+	{/if}
 </form>
 
 {#if isDraft}
-	<Separator class="my-4" />
+	<Separator class="my-6" />
 
 	<div class="space-y-3">
 		<div>
@@ -395,12 +563,12 @@
 				isPublishing = true;
 				return async ({ result, update }) => {
 					isPublishing = false;
-					await update();
 					if (result.type === 'success') {
 						toast.success('Session published!');
-						redirectTo = `/voting/${initialData?.id}`;
+						window.location.assign(`/voting/${initialData?.id}`);
 					} else if (result.type === 'failure') {
 						toast.error((result.data?.message as string) || 'Failed to publish session.');
+						await update();
 					}
 				};
 			}}
