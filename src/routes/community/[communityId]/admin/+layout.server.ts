@@ -22,7 +22,6 @@ export const load: LayoutServerLoad = async ({ locals, params }) => {
 		throw error(404, 'Community not found');
 	}
 
-	console.log(userRole);
 	if (!isPrivilegedRole(userRole)) {
 		return redirect(302, `/community/${params.communityId}`);
 	}
