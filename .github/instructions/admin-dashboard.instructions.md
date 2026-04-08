@@ -41,7 +41,7 @@ There are gaps in the schema that will need to be address to support some of the
 This section is for general management of voting sessions, rendering a list of all sessions in a tabbed table that filters based on the status of the session (Includes all available statuses). Each row should display the session title, the created date, the creator, and a calculated column showing the remaining time in the voting window (in days and remaining hours).
 
 > [!note]
-> The current implementation would be a calculation between the startDate and the gameDayDate since there is currently not an endDate or votingDeadline column. This may be altered at a later date, but this will remain the current implementation.
+> The current implementation would be a calculation between the `startDate` and the `gameDayDate` since there is currently not an `endDate` or `votingDeadline` column. This may be altered at a later date, but this will remain the current implementation.
 
 The area allows for authorized users to perform CRUD operations for session management such as editing, or deleting/archiving multiple sessions at once, or clearing archived sessions entirely.
 

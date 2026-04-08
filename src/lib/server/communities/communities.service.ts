@@ -221,6 +221,23 @@ export async function revokeInvite(db: Database | DBTransaction, inviteId: strin
 	return revoked;
 }
 
+export async function updateCommunityUserRole(
+	db: Database | DBTransaction,
+	communityId: string,
+	targetUserId: string,
+	role: CommunityRole
+) {
+	const [updated] = await db
+		.update(communityUser)
+		.set({ role })
+		.where(and(eq(communityUser.communityId, communityId), eq(communityUser.userId, targetUserId)))
+		.returning();
+
+	if (!updated) throw new Error(`Failed to update role for user ${targetUserId}`);
+
+	return updated;
+}
+
 export async function cleanupExpiredInvites(db: Database | DBTransaction) {
 	return await db.delete(invitations).where(sql`${invitations.expiresAt} < NOW()`);
 }
