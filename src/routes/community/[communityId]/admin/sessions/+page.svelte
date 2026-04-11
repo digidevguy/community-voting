@@ -6,15 +6,12 @@
 	import { Button } from '$lib/components/ui/button';
 	import { enhance, applyAction } from '$app/forms';
 	import { toast } from 'svelte-sonner';
-	import { format, differenceInDays, differenceInHours } from 'date-fns';
+	import { formatDate } from '$lib/utils';
+	import { differenceInDays, differenceInHours } from 'date-fns';
 
 	let { data }: { data: PageServerData } = $props();
 	const sessions = $derived(data.sessions);
 	let selectedActions: Record<string, string> = $state({});
-
-	function formatDate(dateStr: Date) {
-		return format(new Date(dateStr), 'MMMM do, yyyy');
-	}
 
 	function formatRemainingTime(status: string, endDate: Date | null): string {
 		if (status !== 'active' && status !== 'voting_ended') return '—';
