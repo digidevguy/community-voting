@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageServerData } from './$types';
 	import * as Table from '$lib/components/ui/table';
-	import * as Select from '$lib/components/ui/select/index.js';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { enhance } from '$app/forms';
@@ -12,7 +12,6 @@
 	const members = $derived(data.members);
 	const isActorOwner = $derived(data.community.createdBy === data.currentUserId);
 	const actorRole = $derived(data.userRole);
-	let selectedActions: Record<string, string> = $state({});
 
 	function formatJoinDate(dateStr: Date) {
 		return format(new Date(dateStr), 'MMMM do, yyyy');
@@ -59,83 +58,77 @@
 	>
 </div>
 
-<Table.Root>
-	<Table.Header>
-		<Table.Row>
-			<Table.Head>Username</Table.Head>
-			<Table.Head>Role</Table.Head>
-			<Table.Head>Joined</Table.Head>
-			<Table.Head class="hidden lg:table-cell">Session participation count</Table.Head>
-			<Table.Head>Actions</Table.Head>
-		</Table.Row>
-	</Table.Header>
-	<Table.Body>
-		{#each members as member (member.userId)}
-			{@const options = getActionOptions(member.role, member.userId)}
+<div class="overflow-x-auto rounded-md border">
+	<Table.Root>
+		<Table.Header>
 			<Table.Row>
-				<Table.Cell class="font-medium">{member.name}</Table.Cell>
-				<Table.Cell>
-					<Badge variant={roleBadgeVariant(member.role)}>
-						{member.role[0].toUpperCase() + member.role.slice(1)}
-					</Badge>
-				</Table.Cell>
-				<Table.Cell>{formatJoinDate(member.joinedAt)}</Table.Cell>
-				<Table.Cell class="hidden lg:table-cell">{member.sessionCount}</Table.Cell>
-				<Table.Cell>
-					{#if options.length > 0}
-						<form
-							method="POST"
-							action="?/manageUser"
-							class="flex items-center gap-2"
-							use:enhance={({ formData }) => {
-								const action = formData.get('action');
-								const label = options.find((o) => o.value === action)?.label ?? action;
-								return async ({ result, update }) => {
-									if (result.type === 'failure') {
-										toast.error((result.data?.message as string) ?? 'Action failed');
-									} else if (result.type === 'success') {
-										toast.success(`${label} applied to ${member.name}`);
-										await update();
-									}
-								};
-							}}
-						>
-							<input type="hidden" name="userId" value={member.userId} />
-							<div class="min-w-[185px]">
-								<Select.Root
-									bind:value={selectedActions[member.userId]}
-									name="action"
-									type="single"
-								>
-									<Select.Trigger class="w-full">
-										{options.find((o) => o.value === selectedActions[member.userId])?.label ??
-											'Select an action...'}
-									</Select.Trigger>
-									<Select.Content>
-										{#each options as option (option.value)}
-											<Select.Item value={option.value}>{option.label}</Select.Item>
-										{/each}
-									</Select.Content>
-								</Select.Root>
-							</div>
-							<Button
-								type="submit"
-								size="sm"
-								variant="outline"
-								disabled={!selectedActions[member.userId]}>Confirm</Button
-							>
-						</form>
-					{:else if member.userId === data.currentUserId}
-						<Badge variant="outline">You</Badge>
-					{/if}
-				</Table.Cell>
+				<Table.Head>Username</Table.Head>
+				<Table.Head>Role</Table.Head>
+				<Table.Head class="hidden sm:table-cell">Joined</Table.Head>
+				<Table.Head class="hidden lg:table-cell">Sessions</Table.Head>
+				<Table.Head>Actions</Table.Head>
 			</Table.Row>
-		{:else}
-			<Table.Row>
-				<Table.Cell colspan={5} class="text-center text-muted-foreground"
-					>No other members</Table.Cell
-				>
-			</Table.Row>
-		{/each}
-	</Table.Body>
-</Table.Root>
+		</Table.Header>
+		<Table.Body>
+			{#each members as member (member.userId)}
+				{@const options = getActionOptions(member.role, member.userId)}
+				<Table.Row>
+					<Table.Cell class="font-medium">{member.name}</Table.Cell>
+					<Table.Cell>
+						<Badge variant={roleBadgeVariant(member.role)}>
+							{member.role[0].toUpperCase() + member.role.slice(1)}
+						</Badge>
+					</Table.Cell>
+					<Table.Cell class="hidden sm:table-cell">{formatJoinDate(member.joinedAt)}</Table.Cell>
+					<Table.Cell class="hidden lg:table-cell">{member.sessionCount}</Table.Cell>
+					<Table.Cell>
+						{#if options.length > 0}
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger>
+									{#snippet child({ props })}
+										<Button {...props} variant="outline" size="sm">Actions</Button>
+									{/snippet}
+								</DropdownMenu.Trigger>
+								<DropdownMenu.Content align="end">
+									{#each options as option (option.value)}
+										<form
+											method="POST"
+											action="?/manageUser"
+											use:enhance={() => {
+												return async ({ result, update }) => {
+													if (result.type === 'failure') {
+														toast.error((result.data?.message as string) ?? 'Action failed');
+													} else if (result.type === 'success') {
+														toast.success(`${option.label} applied to ${member.name}`);
+														await update();
+													}
+												};
+											}}
+										>
+											<input type="hidden" name="userId" value={member.userId} />
+											<input type="hidden" name="action" value={option.value} />
+											<DropdownMenu.Item
+												variant={option.value === 'kick' ? 'destructive' : undefined}
+												onclick={(e) => e.currentTarget.closest('form')?.requestSubmit()}
+											>
+												{option.label}
+											</DropdownMenu.Item>
+										</form>
+									{/each}
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
+						{:else if member.userId === data.currentUserId}
+							<Badge variant="outline">You</Badge>
+						{/if}
+					</Table.Cell>
+				</Table.Row>
+			{:else}
+				<Table.Row>
+					<Table.Cell colspan={5} class="text-center text-muted-foreground"
+						>No other members</Table.Cell
+					>
+				</Table.Row>
+			{/each}
+		</Table.Body>
+	</Table.Root>
+</div>

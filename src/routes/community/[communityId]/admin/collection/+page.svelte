@@ -130,7 +130,7 @@
 	</div>
 {/snippet}
 
-<Tabs.Root value="inactive">
+<Tabs.Root value="active">
 	<Tabs.List>
 		<Tabs.Trigger value="active">Active</Tabs.Trigger>
 		<Tabs.Trigger value="inactive">Inactive</Tabs.Trigger>

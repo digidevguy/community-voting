@@ -1,6 +1,7 @@
 import type {
 	CreateCommunityInput,
-	CreateCommunityUserInput
+	CreateCommunityUserInput,
+	UpdateCommunityInput
 } from '$lib/server/communities/communites.validation';
 import type { Database, DBTransaction } from '$lib/server/db';
 import {
@@ -50,12 +51,13 @@ export async function createCommunity(db: Database | DBTransaction, data: Create
 
 export async function updateCommunityInfo(
 	db: Database | DBTransaction,
-	data: Partial<CreateCommunityInput>,
+	data: UpdateCommunityInput,
 	communityId: string
 ) {
+	const { headerImage, ...rest } = data;
 	const [updatedCommunity] = await db
 		.update(community)
-		.set(data)
+		.set({ ...rest, ...(headerImage !== undefined ? { header_image: headerImage } : {}) })
 		.where(eq(community.id, communityId))
 		.returning();
 

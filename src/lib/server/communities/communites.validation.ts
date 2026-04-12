@@ -23,6 +23,18 @@ export const createInviteSchema = z.object({
 
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>;
 
+export const updateCommunitySchema = z
+	.object({
+		title: z.string().min(1, 'Title is required').optional(),
+		description: z.string().min(50, 'Description must be at least 50 characters').optional(),
+		headerImage: z.url('Must be a valid URL').optional()
+	})
+	.refine((data) => Object.values(data).some((v) => v !== undefined && v !== ''), {
+		message: 'At least one field must be provided'
+	});
+
+export type UpdateCommunityInput = z.infer<typeof updateCommunitySchema>;
+
 export type CreateCommunityUserInput = z.infer<typeof createCommunityUserSchema>;
 
 export type CreateInviteInput = z.infer<typeof createInviteSchema>;

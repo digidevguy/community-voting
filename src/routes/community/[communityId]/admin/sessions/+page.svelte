@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { PageServerData } from './$types';
 	import * as Table from '$lib/components/ui/table';
-	import * as Select from '$lib/components/ui/select/index.js';
+	import * as Tabs from '$lib/components/ui/tabs';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
 	import { enhance, applyAction } from '$app/forms';
@@ -11,7 +12,19 @@
 
 	let { data }: { data: PageServerData } = $props();
 	const sessions = $derived(data.sessions);
-	let selectedActions: Record<string, string> = $state({});
+
+	const ALL_STATUSES = [
+		'draft',
+		'active',
+		'voting_ended',
+		'completed',
+		'archived',
+		'cancelled'
+	] as const;
+
+	const sessionsByStatus = $derived(
+		Object.fromEntries(ALL_STATUSES.map((s) => [s, sessions.filter((sess) => sess.status === s)]))
+	);
 
 	function formatRemainingTime(status: string, endDate: Date | null): string {
 		if (status !== 'active' && status !== 'voting_ended') return '—';
@@ -59,82 +72,102 @@
 	</span>
 </div>
 
-<div class="overflow-x-auto rounded-md border">
-	<Table.Root>
-		<Table.Header>
-			<Table.Row>
-				<Table.Head>Title</Table.Head>
-				<Table.Head>Status</Table.Head>
-				<Table.Head>Created by</Table.Head>
-				<Table.Head>Created</Table.Head>
-				<Table.Head>Remaining time</Table.Head>
-				<Table.Head class="sticky right-0 bg-background">Actions</Table.Head>
-			</Table.Row>
-		</Table.Header>
-		<Table.Body>
-			{#each sessions as session (session.id)}
-				{@const options = getSessionOptions(session.status)}
+{#snippet sessionTable(rows: PageServerData['sessions'])}
+	<div class="overflow-x-auto rounded-md border">
+		<Table.Root>
+			<Table.Header>
 				<Table.Row>
-					<Table.Cell class="font-medium">{session.title}</Table.Cell>
-					<Table.Cell>
-						<Badge variant={statusBadgeVariant(session.status)}>
-							{formatStatus(session.status)}
-						</Badge>
-					</Table.Cell>
-					<Table.Cell>{session.creator ?? '—'}</Table.Cell>
-					<Table.Cell>{formatDate(session.createdAt)}</Table.Cell>
-					<Table.Cell>{formatRemainingTime(session.status, session.endDate)}</Table.Cell>
-					<Table.Cell class="sticky right-0 bg-background">
-						<form
-							method="POST"
-							action="?/manageSession"
-							class="flex items-center gap-2 whitespace-nowrap"
-							use:enhance={({ formData }) => {
-								const action = formData.get('action');
-								const label = options.find((o) => o.value === action)?.label ?? action;
-								return async ({ result, update }) => {
-									if (result.type === 'redirect') {
-										await applyAction(result);
-									} else if (result.type === 'failure') {
-										toast.error((result.data?.message as string) ?? 'Action failed');
-									} else if (result.type === 'success') {
-										toast.success(`${label} applied to "${session.title}"`);
-										selectedActions[session.id] = '';
-										await update();
-									}
-								};
-							}}
-						>
-							<input type="hidden" name="sessionId" value={session.id} />
-							<div class="min-w-[160px]">
-								<Select.Root bind:value={selectedActions[session.id]} name="action" type="single">
-									<Select.Trigger class="w-full">
-										{options.find((o) => o.value === selectedActions[session.id])?.label ??
-											'Select an action...'}
-									</Select.Trigger>
-									<Select.Content>
-										{#each options as option (option.value)}
-											<Select.Item value={option.value}>{option.label}</Select.Item>
-										{/each}
-									</Select.Content>
-								</Select.Root>
-							</div>
-							<Button
-								type="submit"
-								size="sm"
-								variant="outline"
-								disabled={!selectedActions[session.id]}>Confirm</Button
-							>
-						</form>
-					</Table.Cell>
+					<Table.Head>Title</Table.Head>
+					<Table.Head>Status</Table.Head>
+					<Table.Head class="hidden sm:table-cell">Created by</Table.Head>
+					<Table.Head class="hidden sm:table-cell">Created</Table.Head>
+					<Table.Head>Remaining time</Table.Head>
+					<Table.Head class="sticky right-0 bg-background">Actions</Table.Head>
 				</Table.Row>
-			{:else}
-				<Table.Row>
-					<Table.Cell colspan={6} class="text-center text-muted-foreground">
-						No sessions found
-					</Table.Cell>
-				</Table.Row>
-			{/each}
-		</Table.Body>
-	</Table.Root>
-</div>
+			</Table.Header>
+			<Table.Body>
+				{#each rows as session (session.id)}
+					{@const options = getSessionOptions(session.status)}
+					<Table.Row>
+						<Table.Cell class="font-medium">{session.title}</Table.Cell>
+						<Table.Cell>
+							<Badge variant={statusBadgeVariant(session.status)}>
+								{formatStatus(session.status)}
+							</Badge>
+						</Table.Cell>
+						<Table.Cell class="hidden sm:table-cell">{session.creator ?? '—'}</Table.Cell>
+						<Table.Cell class="hidden sm:table-cell">{formatDate(session.createdAt)}</Table.Cell>
+						<Table.Cell>{formatRemainingTime(session.status, session.endDate)}</Table.Cell>
+						<Table.Cell class="sticky right-0 bg-background">
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger>
+									{#snippet child({ props })}
+										<Button {...props} variant="outline" size="sm">Actions</Button>
+									{/snippet}
+								</DropdownMenu.Trigger>
+								<DropdownMenu.Content align="end">
+									{#each options as option, i (option.value)}
+										{#if i === options.length - 1 && options.length > 1}
+											<DropdownMenu.Separator />
+										{/if}
+										<form
+											method="POST"
+											action="?/manageSession"
+											use:enhance={() => {
+												return async ({ result, update }) => {
+													if (result.type === 'redirect') {
+														await applyAction(result);
+													} else if (result.type === 'failure') {
+														toast.error((result.data?.message as string) ?? 'Action failed');
+													} else if (result.type === 'success') {
+														toast.success(`${option.label} applied to "${session.title}"`);
+														await update();
+													}
+												};
+											}}
+										>
+											<input type="hidden" name="sessionId" value={session.id} />
+											<input type="hidden" name="action" value={option.value} />
+											<DropdownMenu.Item
+												variant={option.value === 'delete' ? 'destructive' : undefined}
+												onclick={(e) => e.currentTarget.closest('form')?.requestSubmit()}
+											>
+												{option.label}
+											</DropdownMenu.Item>
+										</form>
+									{/each}
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
+						</Table.Cell>
+					</Table.Row>
+				{:else}
+					<Table.Row>
+						<Table.Cell colspan={6} class="text-center text-muted-foreground">
+							No sessions found
+						</Table.Cell>
+					</Table.Row>
+				{/each}
+			</Table.Body>
+		</Table.Root>
+	</div>
+{/snippet}
+
+<Tabs.Root value="all">
+	<Tabs.List class="mb-4 flex flex-wrap gap-1">
+		<Tabs.Trigger value="all">All ({sessions.length})</Tabs.Trigger>
+		{#each ALL_STATUSES as status (status)}
+			{@const count = sessionsByStatus[status].length}
+			{#if count > 0}
+				<Tabs.Trigger value={status}>{formatStatus(status)} ({count})</Tabs.Trigger>
+			{/if}
+		{/each}
+	</Tabs.List>
+	<Tabs.Content value="all">
+		{@render sessionTable(sessions)}
+	</Tabs.Content>
+	{#each ALL_STATUSES as status (status)}
+		<Tabs.Content value={status}>
+			{@render sessionTable(sessionsByStatus[status])}
+		</Tabs.Content>
+	{/each}
+</Tabs.Root>
