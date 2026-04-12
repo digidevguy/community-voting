@@ -1,7 +1,12 @@
 import { redirect, fail, error } from '@sveltejs/kit';
 import { z } from 'zod';
+import { del } from '@vercel/blob';
+import { env } from '$env/dynamic/private';
 import type { Actions, PageServerLoad } from './$types';
-import { getUserCommunityRole } from '$lib/server/communities/communities.service';
+import {
+	getCommunityInfo,
+	getUserCommunityRole
+} from '$lib/server/communities/communities.service';
 import { updateCommunityInfo } from '$lib/server/communities/communities.service';
 import { updateCommunitySchema } from '$lib/server/communities/communites.validation';
 
@@ -48,8 +53,14 @@ export const actions: Actions = {
 			});
 		}
 
+		const current = await getCommunityInfo(locals.db, params.communityId);
+
 		try {
 			await updateCommunityInfo(locals.db, parsed.data, params.communityId);
+			if (parsed.data.headerImage && current.header_image) {
+				await del(current.header_image, { token: env.BLOB_READ_WRITE_TOKEN });
+			}
+
 			return { success: true };
 		} catch {
 			return fail(500, { message: 'Failed to update community settings' });
