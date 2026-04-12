@@ -18,10 +18,12 @@
 	const inactiveCollection = $derived(data.collection.filter((i) => !i.isActive));
 
 	let deleteDialogOpen = $state(false);
+	let deleteTargetTitle = $state<string | null>(null);
 	let deleteTargetId = $state<string | null>(null);
 
-	function openDeleteDialog(id: string) {
+	function openDeleteDialog(id: string, title: string) {
 		deleteTargetId = id;
+		deleteTargetTitle = title;
 		deleteDialogOpen = true;
 	}
 </script>
@@ -63,7 +65,10 @@
 				</DropdownMenu.Item>
 			</form>
 			<DropdownMenu.Separator />
-			<DropdownMenu.Item variant="destructive" onclick={() => openDeleteDialog(item.game.id)}>
+			<DropdownMenu.Item
+				variant="destructive"
+				onclick={() => openDeleteDialog(item.game.id, item.game.title)}
+			>
 				Delete
 			</DropdownMenu.Item>
 		</DropdownMenu.Content>
@@ -106,7 +111,10 @@
 								</div>
 							</Table.Cell>
 							<Table.Cell>
-								<Button variant="destructive" onclick={() => openDeleteDialog(item.game.id)}>
+								<Button
+									variant="destructive"
+									onclick={() => openDeleteDialog(item.game.id, item.game.title)}
+								>
 									<Trash2></Trash2>
 								</Button>
 							</Table.Cell>
@@ -156,7 +164,8 @@
 		<Dialog.Header>
 			<Dialog.Title>Delete game</Dialog.Title>
 			<Dialog.Description>
-				This will permanently remove the item from the collection. This action cannot be undone.
+				This will permanently remove <strong>{deleteTargetTitle}</strong> from the collection. This action
+				cannot be undone.
 			</Dialog.Description>
 		</Dialog.Header>
 		<Dialog.Footer>
