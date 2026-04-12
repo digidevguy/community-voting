@@ -34,7 +34,7 @@ export const actions: Actions = {
 		const role = await getUserCommunityRole(locals.db, locals.user.id, params.communityId);
 
 		if (role !== 'admin' && role !== 'moderator') {
-			return fail(400, { message: 'Unauthorized' });
+			return fail(403, { message: 'Unauthorized' });
 		}
 
 		const formData = await request.formData();

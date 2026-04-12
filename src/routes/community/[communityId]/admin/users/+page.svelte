@@ -82,7 +82,9 @@
 					<Table.Cell class="hidden sm:table-cell">{formatJoinDate(member.joinedAt)}</Table.Cell>
 					<Table.Cell class="hidden lg:table-cell">{member.sessionCount}</Table.Cell>
 					<Table.Cell>
-						{#if options.length > 0}
+						{#if member.userId === data.currentUserId}
+							<Badge variant="outline">You</Badge>
+						{:else if options.length > 0}
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger>
 									{#snippet child({ props })}
@@ -90,7 +92,10 @@
 									{/snippet}
 								</DropdownMenu.Trigger>
 								<DropdownMenu.Content align="end">
-									{#each options as option (option.value)}
+									{#each options as option, i (option.value)}
+										{#if i > 0 && options[i - 1].value === 'kick'}
+											<DropdownMenu.Separator />
+										{/if}
 										<form
 											method="POST"
 											action="?/manageUser"
@@ -117,8 +122,8 @@
 									{/each}
 								</DropdownMenu.Content>
 							</DropdownMenu.Root>
-						{:else if member.userId === data.currentUserId}
-							<Badge variant="outline">You</Badge>
+						{:else}
+							<span class="text-sm text-muted-foreground">No actions available</span>
 						{/if}
 					</Table.Cell>
 				</Table.Row>

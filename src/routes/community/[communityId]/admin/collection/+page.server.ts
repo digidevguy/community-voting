@@ -66,7 +66,7 @@ export const actions: Actions = {
 		const role = await getUserCommunityRole(locals.db, locals.user.id, params.communityId);
 
 		if (!role || (role !== 'moderator' && role !== 'admin')) {
-			return fail(402, { message: 'You are not authorized to acces this route' });
+			return fail(403, { message: 'You are not authorized to acces this route' });
 		}
 
 		const formData = await request.formData();
@@ -99,6 +99,49 @@ export const actions: Actions = {
 				error instanceof Error ? error.message : error
 			);
 			return fail(500, { message: 'Failed to remove game from collection' });
+		}
+	},
+
+	remove: async ({ locals, request, params }) => {
+		if (!locals.user) {
+			return redirect(302, '/auth');
+		}
+
+		const role = await getUserCommunityRole(locals.db, locals.user.id, params.communityId);
+
+		if (!role || (role !== 'moderator' && role !== 'admin')) {
+			return fail(403, { message: 'You are not authorized to access this route' });
+		}
+
+		const formData = await request.formData();
+		const gameId = formData.get('gameId')?.toString();
+
+		if (!gameId) {
+			return fail(400, { message: 'Invalid game selected' });
+		}
+
+		try {
+			const [deleted] = await locals.db
+				.delete(communityCollections)
+				.where(
+					and(
+						eq(communityCollections.communityId, params.communityId),
+						eq(communityCollections.gameId, gameId)
+					)
+				)
+				.returning();
+
+			if (!deleted) {
+				return fail(400, { message: 'Game not found in community collection' });
+			}
+
+			return { success: true };
+		} catch (error) {
+			console.error(
+				'Error hard-deleting game from collection:',
+				error instanceof Error ? error.message : error
+			);
+			return fail(500, { message: 'Failed to delete game from collection' });
 		}
 	}
 };

@@ -3,12 +3,14 @@
 	import * as Table from '$lib/components/ui/table';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Button } from '$lib/components/ui/button';
+	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import { enhance, applyAction } from '$app/forms';
 	import { toast } from 'svelte-sonner';
 	import { formatDate } from '$lib/utils';
 	import { differenceInDays, differenceInHours } from 'date-fns';
+	import { Trash2 } from '@lucide/svelte';
 
 	let { data }: { data: PageServerData } = $props();
 	const sessions = $derived(data.sessions);
@@ -25,6 +27,16 @@
 	const sessionsByStatus = $derived(
 		Object.fromEntries(ALL_STATUSES.map((s) => [s, sessions.filter((sess) => sess.status === s)]))
 	);
+
+	let deleteDialogOpen = $state(false);
+	let deleteTargetId = $state<string | null>(null);
+	let deleteTargetTitle = $state<string | null>(null);
+
+	function openDeleteDialog(id: string, title: string) {
+		deleteTargetId = id;
+		deleteTargetTitle = title;
+		deleteDialogOpen = true;
+	}
 
 	function formatRemainingTime(status: string, endDate: Date | null): string {
 		if (status !== 'active' && status !== 'voting_ended') return '—';
@@ -107,35 +119,43 @@
 								</DropdownMenu.Trigger>
 								<DropdownMenu.Content align="end">
 									{#each options as option, i (option.value)}
-										{#if i === options.length - 1 && options.length > 1}
-											<DropdownMenu.Separator />
-										{/if}
-										<form
-											method="POST"
-											action="?/manageSession"
-											use:enhance={() => {
-												return async ({ result, update }) => {
-													if (result.type === 'redirect') {
-														await applyAction(result);
-													} else if (result.type === 'failure') {
-														toast.error((result.data?.message as string) ?? 'Action failed');
-													} else if (result.type === 'success') {
-														toast.success(`${option.label} applied to "${session.title}"`);
-														await update();
-													}
-												};
-											}}
+								{#if i === options.length - 1 && options.length > 1}
+									<DropdownMenu.Separator />
+								{/if}
+								{#if option.value === 'delete'}
+									<DropdownMenu.Item
+										variant="destructive"
+										onclick={() => openDeleteDialog(session.id, session.title)}
+									>
+										{option.label}
+									</DropdownMenu.Item>
+								{:else}
+									<form
+										method="POST"
+										action="?/manageSession"
+										use:enhance={() => {
+											return async ({ result, update }) => {
+												if (result.type === 'redirect') {
+													await applyAction(result);
+												} else if (result.type === 'failure') {
+													toast.error((result.data?.message as string) ?? 'Action failed');
+												} else if (result.type === 'success') {
+													toast.success(`${option.label} applied to "${session.title}"`);
+													await update();
+												}
+											};
+										}}
+									>
+										<input type="hidden" name="sessionId" value={session.id} />
+										<input type="hidden" name="action" value={option.value} />
+										<DropdownMenu.Item
+											onclick={(e) => e.currentTarget.closest('form')?.requestSubmit()}
 										>
-											<input type="hidden" name="sessionId" value={session.id} />
-											<input type="hidden" name="action" value={option.value} />
-											<DropdownMenu.Item
-												variant={option.value === 'delete' ? 'destructive' : undefined}
-												onclick={(e) => e.currentTarget.closest('form')?.requestSubmit()}
-											>
-												{option.label}
-											</DropdownMenu.Item>
-										</form>
-									{/each}
+											{option.label}
+										</DropdownMenu.Item>
+									</form>
+								{/if}
+							{/each}
 								</DropdownMenu.Content>
 							</DropdownMenu.Root>
 						</Table.Cell>
@@ -171,3 +191,42 @@
 		</Tabs.Content>
 	{/each}
 </Tabs.Root>
+
+<Dialog.Root bind:open={deleteDialogOpen}>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Delete session</Dialog.Title>
+			<Dialog.Description>
+				Are you sure you want to delete <strong>{deleteTargetTitle}</strong>? This action cannot be
+				undone.
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer>
+			<form
+				method="POST"
+				action="?/manageSession"
+				use:enhance={() => {
+					return async ({ update, result }) => {
+						deleteDialogOpen = false;
+						deleteTargetId = null;
+						deleteTargetTitle = null;
+
+						if (result.type === 'redirect') {
+							await applyAction(result);
+						} else if (result.type === 'failure') {
+							toast.error((result.data?.message as string) ?? 'Action failed');
+						} else if (result.type === 'success') {
+							toast.success('Session deleted successfully');
+							await update();
+						}
+					};
+				}}
+			>
+				<input type="hidden" name="sessionId" value={deleteTargetId} />
+				<input type="hidden" name="action" value="delete" />
+				<Button type="submit" variant="destructive"><Trash2 />Delete</Button>
+			</form>
+			<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

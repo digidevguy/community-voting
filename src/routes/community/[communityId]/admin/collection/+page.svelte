@@ -162,7 +162,7 @@
 		<Dialog.Footer>
 			<form
 				method="post"
-				action="/community/{data.community.id}/collection?/remove"
+				action="?/remove"
 				use:enhance={() => {
 					return async ({ update, result }) => {
 						deleteDialogOpen = false;
