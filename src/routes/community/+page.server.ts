@@ -1,4 +1,7 @@
-import { getMyCommunities } from '$lib/server/communities/communities.service';
+import {
+	getMyCommunities,
+	getOwnedCommunitiesCount
+} from '$lib/server/communities/communities.service';
 import { redirect } from '@sveltejs/kit';
 
 export const load = async ({ locals }) => {
@@ -7,6 +10,7 @@ export const load = async ({ locals }) => {
 	}
 
 	return {
-		communities: getMyCommunities(locals.db, locals.user.id)
+		communities: await getMyCommunities(locals.db, locals.user.id),
+		ownedCommunityCount: await getOwnedCommunitiesCount(locals.db, locals.user.id)
 	};
 };

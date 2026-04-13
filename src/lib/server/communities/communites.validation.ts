@@ -1,12 +1,11 @@
 import { z } from 'zod';
 
-const userIdSchema = z.string().regex(/^[a-z2-7]{24}$/);
+const userIdSchema = z.string().min(1);
 
 export const createCommunitySchema = z.object({
-	title: z.string(),
-	description: z.string().min(50),
-	headerImage: z.url(),
-	updatedAt: z.coerce.date().optional(),
+	title: z.string().min(1, 'Title is required'),
+	description: z.string().min(50, 'Description must be at least 50 characters'),
+	headerImage: z.url('Must be a valid URL').optional(),
 	createdBy: userIdSchema
 });
 

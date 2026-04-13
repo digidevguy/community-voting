@@ -12,7 +12,7 @@ import {
 	invitationRedemptions,
 	user
 } from '$lib/server/db/schema';
-import { and, asc, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, count, eq, isNull, or, sql } from 'drizzle-orm';
 
 type CommunityRole = (typeof communityRole.enumValues)[number];
 
@@ -39,8 +39,24 @@ export async function getMyCommunities(db: Database | DBTransaction, userId: str
 		.where(eq(communityUser.userId, userId));
 }
 
+export async function getOwnedCommunitiesCount(
+	db: Database | DBTransaction,
+	userId: string
+): Promise<number> {
+	const [result] = await db
+		.select({ count: count() })
+		.from(community)
+		.where(eq(community.createdBy, userId));
+
+	return result?.count ?? 0;
+}
+
 export async function createCommunity(db: Database | DBTransaction, data: CreateCommunityInput) {
-	const [newCommunity] = await db.insert(community).values(data).returning();
+	const { headerImage, ...rest } = data;
+	const [newCommunity] = await db
+		.insert(community)
+		.values({ ...rest, ...(headerImage ? { header_image: headerImage } : {}) })
+		.returning();
 
 	if (!newCommunity) {
 		throw new Error(`Failed to create community for ${data.title}`);

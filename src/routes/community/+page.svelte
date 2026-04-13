@@ -3,9 +3,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
-	import { Users } from '@lucide/svelte';
+	import { CirclePlus, Users } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();
+	let maxOwnedCommunities = $derived(data.ownedCommunityCount >= 3);
 </script>
 
 <svelte:head>
@@ -13,7 +14,12 @@
 </svelte:head>
 
 <div class="flex flex-col gap-6">
-	<h1>Communities</h1>
+	<div class="flex justify-between">
+		<h1>Communities</h1>
+		<Button href="/community/create" disabled={maxOwnedCommunities}>
+			<CirclePlus />Create new community
+		</Button>
+	</div>
 
 	{#await data.communities}
 		<ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
