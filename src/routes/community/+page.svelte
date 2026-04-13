@@ -14,11 +14,16 @@
 </svelte:head>
 
 <div class="flex flex-col gap-6">
-	<div class="flex justify-between">
+	<div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
 		<h1>Communities</h1>
-		<Button href="/community/create" disabled={maxOwnedCommunities}>
-			<CirclePlus />Create new community
-		</Button>
+		<div class="flex flex-col gap-1 sm:items-end">
+			<Button href="/community/create" disabled={maxOwnedCommunities} class="w-full sm:w-auto">
+				<CirclePlus />Create new community
+			</Button>
+			{#if maxOwnedCommunities}
+				<p class="text-xs text-destructive">You have reached the limit on owned communities.</p>
+			{/if}
+		</div>
 	</div>
 
 	{#await data.communities}
