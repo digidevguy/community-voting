@@ -41,6 +41,14 @@
 			: ''
 	);
 
+	function copyLink(link: string) {
+		clipboard.copy(link);
+		if (clipboard.error) {
+			return toast.error(clipboard.error.message ?? 'Unable to copy to clipboard');
+		}
+		toast.success('Copied to clipboard!');
+	}
+
 	function getExpiryInfo(
 		status: string,
 		expiresAt: Date | null
@@ -58,9 +66,13 @@
 	<Dialog.Content>
 		<Dialog.Header>Confirm revoke</Dialog.Header>
 		<Dialog.Description>Are you sure that you want to revoke this invite?</Dialog.Description>
-		<Dialog.Footer>
-			<Dialog.Close class={buttonVariants({ variant: 'secondary' })}>Cancel</Dialog.Close>
+		<Dialog.Footer class="flex-row gap-2">
+			<Dialog.Close
+				class={buttonVariants({ variant: 'secondary', className: 'flex-1 sm:flex-none' })}
+				>Cancel</Dialog.Close
+			>
 			<form
+				class="flex-1 sm:flex-none"
 				method="POST"
 				action="?/revoke"
 				use:enhance={() => {
@@ -71,7 +83,8 @@
 				}}
 			>
 				<input type="hidden" name="inviteId" value={revokeTargetId} />
-				<Button type="submit" variant="destructive"><Trash />Revoke</Button>
+				<Button type="submit" variant="destructive" class="w-full sm:w-auto"><Trash />Revoke</Button
+				>
 			</form>
 		</Dialog.Footer>
 	</Dialog.Content>
@@ -132,26 +145,24 @@
 
 <Separator class="my-4" />
 <!-- Todo: Add edit link (dialog trigger) -->
-{#if form?.success && form.id}
-	<div transition:fade>
-		<InputGroup.Root>
-			<InputGroup.Input value={inviteLink} readonly class="truncate" />
-			<InputGroup.Addon align="inline-end">
-				<InputGroup.Button
-					aria-label="copy"
-					size="icon-xs"
-					onclick={() => clipboard.copy(inviteLink)}
-				>
-					{#if clipboard.copied}
-						<Check />
-					{:else}
-						<Copy />
-					{/if}
-				</InputGroup.Button>
-			</InputGroup.Addon>
-		</InputGroup.Root>
-	</div>
-{/if}
+<div class="min-h-10">
+	{#if form?.success && form.id}
+		<div transition:fade>
+			<InputGroup.Root>
+				<InputGroup.Input value={inviteLink} readonly class="truncate" />
+				<InputGroup.Addon align="inline-end">
+					<InputGroup.Button aria-label="copy" size="icon-xs" onclick={() => copyLink(inviteLink)}>
+						{#if clipboard.copied}
+							<Check />
+						{:else}
+							<Copy />
+						{/if}
+					</InputGroup.Button>
+				</InputGroup.Addon>
+			</InputGroup.Root>
+		</div>
+	{/if}
+</div>
 <!-- Table for listing available invites -->
 {#if invites && invites.length > 0}
 	<Table.Root class="mx-auto max-w-2xl">
@@ -167,12 +178,23 @@
 		<Table.Body>
 			{#each invites as invite (invite.id)}
 				{@const expiry = getExpiryInfo(invite.status, invite.expiresAt)}
+				{@const rowInviteLink = `${page.url.origin}/community/${data.communityId}/join/${invite.id}`}
 				<tr
 					transition:fade={{ duration: 200, easing: cubicInOut }}
 					class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
 				>
 					<Table.Cell class="font-semibold">{invite.createdBy}</Table.Cell>
-					<Table.Cell class="max-w-0 truncate">{invite.id}</Table.Cell>
+					<Table.Cell class="max-w-0 truncate">
+						<Button
+							variant="ghost"
+							aria-label="copy"
+							class="w-full max-w-full min-w-0 shrink justify-start overflow-hidden"
+							disabled={expiry.inactive}
+							onclick={() => copyLink(rowInviteLink)}
+						>
+							<span class="block w-full truncate text-left">{invite.id}</span>
+						</Button>
+					</Table.Cell>
 					<Table.Cell>{invite.useCount} / {invite.maxUses}</Table.Cell>
 					<Table.Cell>{expiry.label}</Table.Cell>
 					<Table.Cell>
