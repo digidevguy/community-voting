@@ -4,7 +4,16 @@
 	import * as Card from '$lib/components/ui/card';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { Button } from '$lib/components/ui/button';
-	import { Check, CirclePlus, Send, Library, CalendarDays, Trophy, Users } from '@lucide/svelte';
+	import {
+		Check,
+		CirclePlus,
+		Send,
+		Library,
+		CalendarDays,
+		Trophy,
+		Users,
+		LayoutDashboard
+	} from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
 	import { enhance } from '$app/forms';
@@ -47,6 +56,19 @@
 
 <nav aria-label="Community submenu" class="py-2">
 	<ul class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
+		{#if role === 'admin' || role === 'moderator'}
+			<li>
+				<Button
+					class="w-full gap-1.5 sm:w-auto"
+					href="/community/{data.community.id}/admin"
+					variant="outline"
+					aria-label="Admin dashboard"
+				>
+					<LayoutDashboard />
+					<span>Admin Dashboard</span>
+				</Button>
+			</li>
+		{/if}
 		<li>
 			<Button
 				class="w-full sm:w-auto"
