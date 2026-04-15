@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Button, { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
+	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import { Check, CircleChevronLeft, CirclePlus, Plus, Trash2 } from '@lucide/svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
@@ -15,6 +16,7 @@
 	let newGame = $state<string | null>(null);
 	let addDialogOpen = $state(false);
 	let removeDialogOpen = $state<Record<string, boolean>>({});
+	let loadedImages = $state<Record<string, boolean>>({});
 </script>
 
 <h1 class="mb-4 text-xl font-semibold">Community Collection</h1>
@@ -87,16 +89,25 @@
 	{#each data.collection as item (item.game.id)}
 		<li>
 			<Card.Root class="max-w-sm gap-0 overflow-hidden py-0">
-				<!-- <h2>{item.game.title}</h2> -->
-				<img
-					src={item.game.image}
-					alt={item.game.title}
-					width="460"
-					height="215"
-					loading="lazy"
-					decoding="async"
-					class="aspect-[460/215] w-full object-cover"
-				/>
+				<div class="relative aspect-[460/215] w-full overflow-hidden">
+					{#if !loadedImages[item.game.id]}
+						<Skeleton class="absolute inset-0 h-full w-full rounded-none" />
+					{/if}
+					<img
+						src={item.game.image}
+						alt={item.game.title}
+						width="460"
+						height="215"
+						loading="lazy"
+						decoding="async"
+						class="aspect-[460/215] w-full object-cover transition-opacity duration-300 {loadedImages[
+							item.game.id
+						]
+							? 'opacity-100'
+							: 'opacity-0'}"
+						onload={() => (loadedImages[item.game.id] = true)}
+					/>
+				</div>
 				<Card.Footer class="my-2 flex justify-between">
 					<Button href="/library/{item.game.id}" variant="link">View game details</Button>
 					<Dialog.Root

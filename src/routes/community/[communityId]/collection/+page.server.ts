@@ -29,9 +29,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		throw error(403, `You do not have access to this community`);
 	}
 
+	const [collection, communityInfo] = await Promise.all([
+		getCommunityCollection(locals.db, params.communityId),
+		getCommunityInfo(locals.db, params.communityId)
+	]);
+
 	return {
-		collection: await getCommunityCollection(locals.db, params.communityId),
-		community: await getCommunityInfo(locals.db, params.communityId)
+		collection: collection,
+		community: communityInfo
 	};
 };
 

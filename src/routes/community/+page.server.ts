@@ -1,16 +1,15 @@
-import {
-	getMyCommunities,
-	getOwnedCommunitiesCount
-} from '$lib/server/communities/communities.service';
+import { getMyCommunities } from '$lib/server/communities/communities.service';
 import { redirect } from '@sveltejs/kit';
+import type { PageServerLoad } from './$types';
 
-export const load = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
 		throw redirect(302, '/auth');
 	}
 
+	// Return the promise without awaiting so SvelteKit streams the response:
+	// the page shell (header, skeleton) is sent immediately while the query runs.
 	return {
-		communities: await getMyCommunities(locals.db, locals.user.id),
-		ownedCommunityCount: await getOwnedCommunitiesCount(locals.db, locals.user.id)
+		communities: getMyCommunities(locals.db, locals.user.id)
 	};
 };

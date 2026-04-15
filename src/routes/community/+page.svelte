@@ -47,6 +47,9 @@
 									src={item.community.header_image}
 									alt="{item.community.title} banner"
 									class="-mt-6 h-32 w-full object-cover"
+									loading="lazy"
+									width="400"
+									height="128"
 								/>
 							{/if}
 							<Card.Header class="flex-1">

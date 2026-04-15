@@ -48,6 +48,9 @@
 			src={data.community.header_image}
 			alt="{data.community.title} banner"
 			class="h-40 w-full object-cover md:h-56"
+			fetchpriority="high"
+			width="1200"
+			height="160"
 		/>
 	</div>
 {/if}
