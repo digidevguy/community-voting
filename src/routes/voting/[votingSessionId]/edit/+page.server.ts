@@ -81,9 +81,29 @@ export const actions: Actions = {
 			.filter(Boolean);
 		const hasGameIdsField = formData.has('gameIds');
 		// Only sync games for draft sessions — active/ended sessions cannot have their game list changed.
-		// The form always submits gameIds (hidden inputs), so we must ignore them for non-draft sessions
-		// rather than rejecting the entire request.
-		const shouldSyncGames = hasGameIdsField && existingSession.status === 'draft';
+		// If user tries to change options for an active session, return a clear error.
+		let shouldSyncGames = false;
+		if (hasGameIdsField) {
+			if (existingSession.status === 'draft') {
+				shouldSyncGames = true;
+			} else {
+				// Fetch current option IDs for this session
+				const { options: currentOptions } = await getVotingSessionWithOptions(
+					e.locals.db,
+					routeVotingSessionId
+				);
+				const currentGameIds = currentOptions.map((opt) => opt.gameId);
+				if (
+					submittedGameIds.length !== currentGameIds.length ||
+					!submittedGameIds.every((id, i) => id === currentGameIds[i])
+				) {
+					return fail(400, {
+						success: false,
+						message: 'Voting options cannot be changed after the session is active.'
+					});
+				}
+			}
+		}
 
 		const validationResult = updateVotingSessionSchema.safeParse({
 			title: formData.get('title')?.toString() || existingSession.title,

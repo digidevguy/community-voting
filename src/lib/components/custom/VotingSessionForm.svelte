@@ -481,6 +481,14 @@
 
 	<Separator class="my-6" />
 
+	{#if isEditMode && initialData?.status === 'active'}
+		<div class="mb-4 rounded-md bg-amber-50 p-4 dark:bg-amber-900/30">
+			<p class="text-sm font-medium text-amber-800 dark:text-amber-200">
+				<strong>Note:</strong> Once a voting session is active, the list of games/options is locked and
+				cannot be changed.
+			</p>
+		</div>
+	{/if}
 	<div class="flex flex-col space-y-4">
 		<h2 class="text-xl font-semibold">Add Games</h2>
 		<Input id="search" placeholder="Search games in this collection…" bind:value={searchQuery} />
