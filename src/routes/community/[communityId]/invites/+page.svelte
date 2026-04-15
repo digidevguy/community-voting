@@ -62,6 +62,11 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Invites — Community Voting</title>
+	<meta name="robots" content="noindex" />
+</svelte:head>
+
 <Dialog.Root bind:open={revokeDialogOpen}>
 	<Dialog.Content>
 		<Dialog.Header>Confirm revoke</Dialog.Header>

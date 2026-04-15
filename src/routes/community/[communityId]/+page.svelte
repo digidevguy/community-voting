@@ -22,6 +22,8 @@
 	let { data }: { data: PageData } = $props();
 	type Session = PageData['sessions'][number];
 	type SessionList = PageData['sessions'];
+
+	const isProd = import.meta.env.PROD;
 	type SessionTabStatus = 'active' | 'completed' | 'archived' | 'draft';
 	type UserRole = PageData['userRole'];
 
@@ -42,15 +44,38 @@
 	);
 </script>
 
+<svelte:head>
+	<title>{data.community.title} — Community Voting</title>
+	<meta
+		name="description"
+		content={data.community.description || `${data.community.title} on Community Voting.`}
+	/>
+	<meta property="og:title" content="{data.community.title} — Community Voting" />
+	<meta
+		property="og:description"
+		content={data.community.description || `${data.community.title} on Community Voting.`}
+	/>
+	<meta property="og:type" content="website" />
+	{#if data.community.header_image}
+		<meta property="og:image" content={data.community.header_image} />
+		<meta name="twitter:card" content="summary_large_image" />
+	{/if}
+</svelte:head>
+
 {#if data.community.header_image}
+	{@const encodedSrc = encodeURIComponent(data.community.header_image)}
 	<div class="-mx-4 -mt-4 mb-6 overflow-hidden sm:-mx-6 md:-mx-8 lg:rounded-sm">
 		<img
 			src={data.community.header_image}
+			srcset={isProd
+				? `/_vercel/image?url=${encodedSrc}&w=640&q=75 640w, /_vercel/image?url=${encodedSrc}&w=1080&q=75 1080w, /_vercel/image?url=${encodedSrc}&w=1920&q=75 1920w`
+				: undefined}
+			sizes={isProd ? '100vw' : undefined}
 			alt="{data.community.title} banner"
 			class="h-40 w-full object-cover md:h-56"
 			fetchpriority="high"
-			width="1200"
-			height="160"
+			width="1920"
+			height="224"
 		/>
 	</div>
 {/if}

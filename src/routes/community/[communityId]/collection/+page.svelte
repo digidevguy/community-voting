@@ -19,6 +19,11 @@
 	let loadedImages = $state<Record<string, boolean>>({});
 </script>
 
+<svelte:head>
+	<title>Collection — {data.community.title}</title>
+	<meta name="robots" content="noindex" />
+</svelte:head>
+
 <h1 class="mb-4 text-xl font-semibold">Community Collection</h1>
 <div class="flex items-center justify-between">
 	<Button href="/community/{data.community.id}" variant="outline"

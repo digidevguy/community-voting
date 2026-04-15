@@ -7,9 +7,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(302, '/auth');
 	}
 
-	// Return the promise without awaiting so SvelteKit streams the response:
-	// the page shell (header, skeleton) is sent immediately while the query runs.
 	return {
-		communities: getMyCommunities(locals.db, locals.user.id)
+		communities: await getMyCommunities(locals.db, locals.user.id)
 	};
 };

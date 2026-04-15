@@ -8,7 +8,12 @@
 </script>
 
 <svelte:head>
-	<title>Create Community</title>
+	<title>Create Community — Community Voting</title>
+	<meta
+		name="description"
+		content="Create a new community and start voting on games with your friends."
+	/>
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <div class="mx-auto flex w-full max-w-lg flex-col gap-6">

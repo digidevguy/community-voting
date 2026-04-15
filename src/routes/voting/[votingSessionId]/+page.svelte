@@ -69,6 +69,17 @@
 	);
 </script>
 
+<svelte:head>
+	<title>{votingSessionDetails.title} — Community Voting</title>
+	<meta name="description" content="Vote on {votingSessionDetails.title} with your community." />
+	<meta property="og:title" content="{votingSessionDetails.title} — Community Voting" />
+	<meta
+		property="og:description"
+		content="Vote on {votingSessionDetails.title} with your community."
+	/>
+	<meta property="og:type" content="website" />
+</svelte:head>
+
 <div class="flex flex-col gap-6">
 	<section class="flex flex-col gap-2">
 		<nav>

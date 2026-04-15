@@ -12,6 +12,24 @@
 	let submitting = $state(false);
 </script>
 
+<svelte:head>
+	<title>Join {data.community.title} — Community Voting</title>
+	<meta
+		name="description"
+		content="You've been invited to join {data.community.title} on Community Voting."
+	/>
+	<meta property="og:title" content="Join {data.community.title} — Community Voting" />
+	<meta
+		property="og:description"
+		content="You've been invited to join {data.community.title} on Community Voting."
+	/>
+	<meta property="og:type" content="website" />
+	{#if data.community.header_image}
+		<meta property="og:image" content={data.community.header_image} />
+		<meta name="twitter:card" content="summary_large_image" />
+	{/if}
+</svelte:head>
+
 <div class="-mt-6 flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4">
 	<Card.Root class="w-full max-w-md shadow-lg">
 		<Card.Header class="space-y-3 pb-4 text-center">

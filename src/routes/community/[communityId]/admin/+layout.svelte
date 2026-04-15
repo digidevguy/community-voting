@@ -21,6 +21,11 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Admin — {data.community.title}</title>
+	<meta name="robots" content="noindex" />
+</svelte:head>
+
 <div class="mb-4">
 	<Button
 		variant="ghost"

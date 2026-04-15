@@ -25,6 +25,9 @@
 
 <svelte:head>
 	<link rel="icon" href={favicon} />
+	<title>Community Voting</title>
+	<meta property="og:site_name" content="Community Voting" />
+	<meta name="twitter:card" content="summary" />
 </svelte:head>
 
 <ModeWatcher defaultMode="dark" />

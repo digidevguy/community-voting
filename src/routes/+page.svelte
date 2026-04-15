@@ -10,6 +10,17 @@
 		name="description"
 		content="Create a community, build a shared game collection, and vote together on what to play next."
 	/>
+	<meta property="og:title" content="Community Voting — Vote on games with your friends" />
+	<meta
+		property="og:description"
+		content="Create a community, build a shared game collection, and vote together on what to play next."
+	/>
+	<meta property="og:type" content="website" />
+	<meta name="twitter:title" content="Community Voting — Vote on games with your friends" />
+	<meta
+		name="twitter:description"
+		content="Create a community, build a shared game collection, and vote together on what to play next."
+	/>
 </svelte:head>
 
 <div class="flex flex-col gap-16 pb-16">

@@ -6,10 +6,14 @@
 	import { CirclePlus, Users } from '@lucide/svelte';
 
 	let { data }: { data: PageData } = $props();
+
+	const isProd = import.meta.env.PROD;
 </script>
 
 <svelte:head>
-	<title>My Communities</title>
+	<title>My Communities — Community Voting</title>
+	<meta name="description" content="View and manage your communities on Community Voting." />
+	<meta name="robots" content="noindex" />
 </svelte:head>
 
 <div class="flex flex-col gap-6">
@@ -20,58 +24,51 @@
 		</Button>
 	</div>
 
-	{#await data.communities}
-		<ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-			{#each [0, 1, 2] as i (i)}
-				<li class="h-44 animate-pulse rounded-lg bg-muted"></li>
+	{#if data.communities.length === 0}
+		<div
+			class="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-16 text-center"
+		>
+			<Users class="h-10 w-10 text-muted-foreground" />
+			<p class="text-sm font-medium">You're not in any communities yet.</p>
+			<p class="text-xs text-muted-foreground">Ask a friend for an invite link to get started.</p>
+		</div>
+	{:else}
+		<ul class="grid gap-4 sm:grid-cols-2">
+			{#each data.communities as item (item.community.id)}
+				<li>
+					<Card.Root class="flex h-full flex-col overflow-hidden transition-shadow hover:shadow-md">
+						{#if item.community.header_image}
+							{@const encodedSrc = encodeURIComponent(item.community.header_image)}
+							<img
+								src={item.community.header_image}
+								srcset={isProd
+									? `/_vercel/image?url=${encodedSrc}&w=320&q=75 320w, /_vercel/image?url=${encodedSrc}&w=640&q=75 640w, /_vercel/image?url=${encodedSrc}&w=800&q=75 800w`
+									: undefined}
+								sizes={isProd ? '(min-width: 640px) 50vw, 100vw' : undefined}
+								alt="{item.community.title} banner"
+								class="-mt-6 h-32 w-full object-cover"
+								fetchpriority="high"
+								width="800"
+								height="128"
+							/>
+						{/if}
+						<Card.Header class="flex-1">
+							<div class="flex items-start justify-between gap-2">
+								<Card.Title class="text-base leading-snug">{item.community.title}</Card.Title>
+								<Badge variant="secondary" class="shrink-0 capitalize">
+									{item.community_user.role}
+								</Badge>
+							</div>
+							<Card.Description class="line-clamp-3">
+								{item.community.description || 'No description provided.'}
+							</Card.Description>
+						</Card.Header>
+						<Card.Footer>
+							<Button href="/community/{item.community.id}" class="w-full">View Community</Button>
+						</Card.Footer>
+					</Card.Root>
+				</li>
 			{/each}
 		</ul>
-	{:then communities}
-		{#if communities.length === 0}
-			<div
-				class="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed py-16 text-center"
-			>
-				<Users class="h-10 w-10 text-muted-foreground" />
-				<p class="text-sm font-medium">You're not in any communities yet.</p>
-				<p class="text-xs text-muted-foreground">Ask a friend for an invite link to get started.</p>
-			</div>
-		{:else}
-			<ul class="grid gap-4 sm:grid-cols-2">
-				{#each communities as item (item.community.id)}
-					<li>
-						<Card.Root
-							class="flex h-full flex-col overflow-hidden transition-shadow hover:shadow-md"
-						>
-							{#if item.community.header_image}
-								<img
-									src={item.community.header_image}
-									alt="{item.community.title} banner"
-									class="-mt-6 h-32 w-full object-cover"
-									loading="lazy"
-									width="400"
-									height="128"
-								/>
-							{/if}
-							<Card.Header class="flex-1">
-								<div class="flex items-start justify-between gap-2">
-									<Card.Title class="text-base leading-snug">{item.community.title}</Card.Title>
-									<Badge variant="secondary" class="shrink-0 capitalize">
-										{item.community_user.role}
-									</Badge>
-								</div>
-								<Card.Description class="line-clamp-3">
-									{item.community.description || 'No description provided.'}
-								</Card.Description>
-							</Card.Header>
-							<Card.Footer>
-								<Button href="/community/{item.community.id}" class="w-full">View Community</Button>
-							</Card.Footer>
-						</Card.Root>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	{:catch error}
-		<p class="text-sm text-destructive">Error loading communities: {error.message}</p>
-	{/await}
+	{/if}
 </div>

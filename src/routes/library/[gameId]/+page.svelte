@@ -8,6 +8,32 @@
 	let { data }: { data: PageData } = $props();
 </script>
 
+<svelte:head>
+	{#if data.game}
+		<title>{data.game.title} — Community Voting</title>
+		<meta
+			name="description"
+			content={data.game.description
+				? data.game.description.slice(0, 160)
+				: `${data.game.title} on Community Voting.`}
+		/>
+		<meta property="og:title" content="{data.game.title} — Community Voting" />
+		<meta
+			property="og:description"
+			content={data.game.description
+				? data.game.description.slice(0, 160)
+				: `${data.game.title} on Community Voting.`}
+		/>
+		<meta property="og:type" content="website" />
+		{#if data.game.image}
+			<meta property="og:image" content={data.game.image} />
+			<meta name="twitter:card" content="summary_large_image" />
+		{/if}
+	{:else}
+		<title>Game Not Found — Community Voting</title>
+	{/if}
+</svelte:head>
+
 <div class="flex flex-col gap-6">
 	<nav>
 		<Button onclick={() => history.back()} variant="outline">

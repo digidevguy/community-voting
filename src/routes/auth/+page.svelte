@@ -6,8 +6,17 @@
 </script>
 
 <svelte:head>
-	<title>Game Voting - Sign In</title>
-	<meta name="description" content="Sign in to vote on games with your friends" />
+	<title>Community Voting — Sign In</title>
+	<meta
+		name="description"
+		content="Sign in to Community Voting to vote on games with your friends."
+	/>
+	<meta property="og:title" content="Community Voting — Sign In" />
+	<meta
+		property="og:description"
+		content="Sign in to Community Voting to vote on games with your friends."
+	/>
+	<meta property="og:type" content="website" />
 </svelte:head>
 
 <div class="-mt-6 flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center px-4">
