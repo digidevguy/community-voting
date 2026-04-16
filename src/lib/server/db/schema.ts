@@ -59,7 +59,8 @@ export const user = pgTable('user', {
 	name: text('name').notNull(),
 	emailVerified: boolean('email_verified').notNull().default(false),
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+	steamId: text('steam_id').unique()
 });
 
 export const session = pgTable(
@@ -338,6 +339,26 @@ export const notification = pgTable(
 	(table) => [
 		index('user_id_is_read_idx').on(table.userId, table.isRead),
 		index('notification_created_at_idx').on(table.createdAt)
+	]
+);
+
+// Join userGameLibrary + communityUser for user collections
+export const userGameLibrary = pgTable(
+	'user_game_library',
+	{
+		id: uuid('id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		gameId: uuid('game_id')
+			.notNull()
+			.references(() => game.id, { onDelete: 'cascade' }),
+		addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow(),
+		lastSynced: timestamp('last_synced', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => [
+		uniqueIndex('user_game_library_user_game_idx').on(table.userId, table.gameId),
+		index('user_game_library_user_id_idx').on(table.userId)
 	]
 );
 
