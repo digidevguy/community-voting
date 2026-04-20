@@ -217,6 +217,7 @@ export async function getUserLibrarySuggestionsForCommunity(
 			type: game.type
 		})
 		.from(userGameLibrary)
+		.innerJoin(game, eq(userGameLibrary.gameId, game.id))
 		.where(
 			and(
 				eq(userGameLibrary.userId, userId),
