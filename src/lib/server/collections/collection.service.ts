@@ -1,6 +1,11 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { and, asc, count, eq } from 'drizzle-orm';
-import { communityCollections, game, type CommunityCollection } from '$lib/server/db/schema';
+import { and, asc, count, eq, notExists } from 'drizzle-orm';
+import {
+	communityCollections,
+	game,
+	userGameLibrary,
+	type CommunityCollection
+} from '$lib/server/db/schema';
 import type { CreateCommunityCollectionInput } from './collection.validation';
 import { enrichGameData } from '../games/games.service';
 
@@ -197,4 +202,36 @@ export async function deleteGameFromCollection(
 	}
 
 	return deletedGameId;
+}
+
+export async function getUserLibrarySuggestionsForCommunity(
+	db: Database | DBTransaction,
+	userId: string,
+	communityId: string
+) {
+	return db
+		.select({
+			id: game.id,
+			title: game.title,
+			image: game.image,
+			type: game.type
+		})
+		.from(userGameLibrary)
+		.where(
+			and(
+				eq(userGameLibrary.userId, userId),
+				notExists(
+					db
+						.select({ id: communityCollections.id })
+						.from(communityCollections)
+						.where(
+							and(
+								eq(communityCollections.communityId, communityId),
+								eq(communityCollections.gameId, game.id)
+							)
+						)
+				)
+			)
+		)
+		.orderBy(asc(game.title));
 }
