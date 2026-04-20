@@ -2,7 +2,9 @@ import type { Database, DBTransaction } from '$lib/server/db';
 import { and, asc, count, eq, notExists } from 'drizzle-orm';
 import {
 	communityCollections,
+	communityUser,
 	game,
+	user,
 	userGameLibrary,
 	type CommunityCollection
 } from '$lib/server/db/schema';
@@ -235,4 +237,18 @@ export async function getUserLibrarySuggestionsForCommunity(
 			)
 		)
 		.orderBy(asc(game.title));
+}
+
+export async function getCommunityGameOwners(db: Database, communityId: string) {
+	return db
+		.select({
+			gameId: userGameLibrary.gameId,
+			userId: user.id,
+			name: user.name,
+			image: user.image
+		})
+		.from(communityUser)
+		.innerJoin(user, eq(communityUser.userId, user.id))
+		.innerJoin(userGameLibrary, eq(userGameLibrary.userId, user.id))
+		.where(eq(communityUser.communityId, communityId));
 }
