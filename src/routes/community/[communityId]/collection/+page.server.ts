@@ -9,9 +9,11 @@ import {
 	addGameToCollectionWithEnrichment,
 	deleteGameFromCollection,
 	getCommunityCollection,
+	getUserLibrarySuggestionsForCommunity,
 	softRemoveGameFromCollection
 } from '$lib/server/collections/collection.service';
 import { searchGamesByTitle } from '$lib/server/games/games.service';
+import { getUserSteamId } from '$lib/server/users/users.service';
 import { fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -29,14 +31,20 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		throw error(403, `You do not have access to this community`);
 	}
 
-	const [collection, communityInfo] = await Promise.all([
+	const steamId = await getUserSteamId(locals.db, locals.user.id);
+
+	const [collection, communityInfo, suggestedGames] = await Promise.all([
 		getCommunityCollection(locals.db, params.communityId),
-		getCommunityInfo(locals.db, params.communityId)
+		getCommunityInfo(locals.db, params.communityId),
+		steamId
+			? getUserLibrarySuggestionsForCommunity(locals.db, locals.user.id, params.communityId)
+			: Promise.resolve([])
 	]);
 
 	return {
-		collection: collection,
-		community: communityInfo
+		collection,
+		community: communityInfo,
+		suggestedGames
 	};
 };
 

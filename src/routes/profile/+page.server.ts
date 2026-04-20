@@ -1,7 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { eq, sql } from 'drizzle-orm';
-import { game, user, userGameLibrary } from '$lib/server/db/schema';
+import { sql } from 'drizzle-orm';
+import { game, userGameLibrary } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
+import { getUserSteamId } from '$lib/server/users/users.service';
 import { env } from '$env/dynamic/private';
 import { randomUUID } from 'crypto';
 
@@ -10,13 +11,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(302, '/auth');
 	}
 
-	const [dbUser] = await locals.db
-		.select({ steamId: user.steamId })
-		.from(user)
-		.where(eq(user.id, locals.user.id));
+	const steamId = await getUserSteamId(locals.db, locals.user.id);
 
 	return {
-		steamId: dbUser?.steamId ?? null
+		steamId
 	};
 };
 
@@ -28,16 +26,11 @@ export const actions: Actions = {
 
 		// steamId already available from load, but actions run independently —
 		// re-query to guard against unlinked accounts and stale session data
-		const [dbUser] = await locals.db
-			.select({ steamId: user.steamId })
-			.from(user)
-			.where(eq(user.id, locals.user.id));
+		const steamId = await getUserSteamId(locals.db, locals.user.id);
 
-		if (!dbUser?.steamId) {
+		if (!steamId) {
 			return fail(400, { message: 'Steam account not linked' });
 		}
-
-		const { steamId } = dbUser;
 
 		const response = await fetch(
 			`${env.STEAM_API_USER_LIBRARY_URL}?key=${env.STEAM_API_KEY}&steamid=${steamId}&include_appinfo=1&format=json`
