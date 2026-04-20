@@ -49,8 +49,10 @@
 		<Card.Content class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 			<div class="flex min-w-0 items-center gap-2">
 				{#if steamLinked}
-					<Badge variant="default" class="shrink-0">Linked</Badge>
-					<span class="truncate font-mono text-sm text-muted-foreground">{data.steamId}</span>
+					<Badge
+						variant="outline"
+						class="shrink-0 border-green-500 text-green-600 dark:text-green-400">Linked</Badge
+					>
 				{:else}
 					<Badge variant="secondary">Not linked</Badge>
 				{/if}
