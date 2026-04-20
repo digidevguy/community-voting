@@ -2,14 +2,28 @@
 	import Button, { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import * as Dialog from '$lib/components/ui/dialog/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-	import { Check, CircleChevronLeft, CirclePlus, Plus, Trash2 } from '@lucide/svelte';
+	import {
+		Check,
+		CircleChevronLeft,
+		CirclePlus,
+		Gamepad2,
+		LoaderCircle,
+		Plus,
+		Search,
+		Trash2
+	} from '@lucide/svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import { Label } from '$lib/components/ui/label';
 	import { Input } from '$lib/components/ui/input';
 	import { enhance } from '$app/forms';
 	import type { ActionData, PageServerData } from './$types';
 	import { toast } from 'svelte-sonner';
+	import { untrack } from 'svelte';
+	import { SvelteSet } from 'svelte/reactivity';
+
+	const PAGE_SIZE = 25;
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 
@@ -17,6 +31,25 @@
 	let addDialogOpen = $state(false);
 	let removeDialogOpen = $state<Record<string, boolean>>({});
 	let loadedImages = $state<Record<string, boolean>>({});
+
+	let suggestedGames = $state(untrack(() => data.suggestedGames));
+	let searchQuery = $state('');
+	let visibleCount = $state(PAGE_SIZE);
+
+	let filteredSuggestions = $derived(
+		searchQuery.trim().length === 0
+			? suggestedGames
+			: suggestedGames.filter((g) =>
+					g.title.toLowerCase().includes(searchQuery.trim().toLowerCase())
+				)
+	);
+	let visibleSuggestions = $derived(filteredSuggestions.slice(0, visibleCount));
+	let submitting = new SvelteSet<string>();
+
+	function handleSearchInput(e: Event) {
+		searchQuery = (e.currentTarget as HTMLInputElement).value;
+		visibleCount = PAGE_SIZE;
+	}
 </script>
 
 <svelte:head>
@@ -152,3 +185,91 @@
 		</li>
 	{/each}
 </ul>
+
+{#if suggestedGames.length > 0}
+	<Separator class="my-6" />
+	<details class="group">
+		<summary
+			class="mb-3 flex cursor-pointer list-none items-center gap-2 text-sm font-medium select-none"
+		>
+			<CirclePlus class="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-45" />
+			Suggestions from your library
+			<Badge variant="secondary">{suggestedGames.length}</Badge>
+		</summary>
+		<p class="mb-3 text-xs text-muted-foreground">
+			Games from your Steam library not yet in the community collection. Some titles may have
+			limited details until their data has been enriched.
+		</p>
+		{#if suggestedGames.length >= PAGE_SIZE}
+			<div class="relative mb-3">
+				<Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+				<Input
+					type="search"
+					placeholder="Search your library…"
+					value={searchQuery}
+					oninput={handleSearchInput}
+					class="pl-9"
+				/>
+			</div>
+		{/if}
+		<ul class="divide-y divide-border rounded-md border">
+			{#each visibleSuggestions as game (game.id)}
+				<li class="flex items-center gap-3 px-3 py-2">
+					{#if game.image}
+						<img
+							src={game.image}
+							alt={game.title}
+							width="64"
+							height="30"
+							loading="lazy"
+							decoding="async"
+							class="aspect-[460/215] w-16 flex-shrink-0 rounded object-cover"
+						/>
+					{:else}
+						<div
+							class="flex h-[30px] w-16 flex-shrink-0 items-center justify-center rounded bg-muted text-muted-foreground"
+						>
+							<Gamepad2 class="h-4 w-4" />
+						</div>
+					{/if}
+					<span class="min-w-0 flex-1 truncate text-sm">{game.title}</span>
+					<form
+						method="POST"
+						action="?/add"
+						use:enhance={() => {
+							submitting.add(game.id);
+							return async ({ result, update }) => {
+								if (result.type === 'success') {
+									suggestedGames = suggestedGames.filter((g) => g.id !== game.id);
+									toast.success(`${game.title} added to the collection!`);
+								} else {
+									submitting.delete(game.id);
+									await update();
+								}
+							};
+						}}
+					>
+						<input type="hidden" value={game.id} name="gameId" />
+						<Button size="sm" variant="outline" type="submit" disabled={submitting.has(game.id)}>
+							{#if submitting.has(game.id)}
+								<LoaderCircle class="h-3 w-3 animate-spin" />Adding…
+							{:else}
+								<Plus class="h-3 w-3" />Add
+							{/if}
+						</Button>
+					</form>
+				</li>
+			{/each}
+		</ul>
+		{#if filteredSuggestions.length === 0 && searchQuery.trim().length > 0}
+			<p class="mt-3 text-center text-sm text-muted-foreground">No games match your search.</p>
+		{/if}
+		{#if visibleCount < filteredSuggestions.length}
+			<div class="mt-3 text-center">
+				<Button variant="ghost" size="sm" onclick={() => (visibleCount += PAGE_SIZE)}>
+					Show more ({filteredSuggestions.length - visibleCount} remaining)
+				</Button>
+			</div>
+		{/if}
+	</details>
+{/if}
