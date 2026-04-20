@@ -35,6 +35,9 @@
 	let suggestedGames = $state(untrack(() => data.suggestedGames));
 	let searchQuery = $state('');
 	let visibleCount = $state(PAGE_SIZE);
+	let searching = $state(false);
+
+	let selectedGame = $derived(form?.games?.find((g) => g.id === newGame) ?? null);
 
 	let filteredSuggestions = $derived(
 		searchQuery.trim().length === 0
@@ -62,60 +65,99 @@
 	<Button href="/community/{data.community.id}" variant="outline"
 		><CircleChevronLeft></CircleChevronLeft>Back</Button
 	>
-	<Dialog.Root bind:open={addDialogOpen}>
+	<Dialog.Root
+		bind:open={addDialogOpen}
+		onOpenChange={(open) => {
+			if (!open) newGame = null;
+		}}
+	>
 		<Dialog.Trigger class={buttonVariants({ variant: 'outline' })}
 			><CirclePlus />Add new</Dialog.Trigger
 		>
-		<Dialog.Content class="max-w-[425px]">
+		<Dialog.Content>
 			<Dialog.Header>
 				<Dialog.Title>Add new game</Dialog.Title>
+				<Dialog.Description>Search the game catalog and select a title to add.</Dialog.Description>
 			</Dialog.Header>
-			<div>
-				<form method="POST" action="?/search" use:enhance>
-					<Label for="searchTerm" class="mb-2">Game name</Label>
-					<Input id="searchTerm" name="searchTerm" />
-					<div class="my-2 text-right"><Button type="submit">Search</Button></div>
-				</form>
-				<ul>
-					{#if form?.games}
-						{#each form.games as game (game.id)}
-							<li class="flex items-center justify-between">
-								{game.title}
-								<Button
-									size="icon"
-									variant="ghost"
-									onclick={() => (newGame = newGame === game.id ? null : game.id)}
-								>
-									{#if newGame === game.id}
-										<Check class="text-green-500" />
-									{:else}
-										<Plus />
-									{/if}
-								</Button>
-							</li>
-						{/each}
-					{/if}
-				</ul>
-			</div>
-			<Dialog.Footer class="flex-row justify-end">
+			<div class="flex flex-col gap-3">
 				<form
 					method="POST"
-					action="?/add"
+					action="?/search"
 					use:enhance={() => {
-						return async ({ result, update }) => {
-							if (result.type === 'success') {
-								addDialogOpen = false;
-								toast.success('Game added!');
-							}
-
+						searching = true;
+						newGame = null;
+						return async ({ update }) => {
 							await update();
+							searching = false;
 						};
 					}}
 				>
-					<input type="hidden" bind:value={newGame} name="gameId" />
-					<Button type="submit" variant="default">Save</Button>
+					<Label for="searchTerm" class="mb-2">Game name</Label>
+					<div class="flex gap-2">
+						<Input id="searchTerm" name="searchTerm" placeholder="Search…" class="flex-1" />
+						<Button type="submit" disabled={searching}>
+							{#if searching}
+								<LoaderCircle class="h-4 w-4 animate-spin" />
+							{:else}
+								Search
+							{/if}
+						</Button>
+					</div>
 				</form>
-				<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Cancel</Dialog.Close>
+				{#if form?.message && !form?.games}
+					<p class="text-sm text-destructive">{form.message}</p>
+				{/if}
+				{#if form?.games !== undefined}
+					{#if form.games.length === 0}
+						<p class="py-4 text-center text-sm text-muted-foreground">No games found.</p>
+					{:else}
+						<ul class="max-h-52 divide-y divide-border overflow-y-auto rounded-md border">
+							{#each form.games as game (game.id)}
+								<li>
+									<button
+										type="button"
+										class="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-sm transition-colors hover:bg-accent {newGame ===
+										game.id
+											? 'bg-accent'
+											: ''}"
+										onclick={() => (newGame = newGame === game.id ? null : game.id)}
+									>
+										<span class="min-w-0 flex-1 truncate text-left">{game.title}</span>
+										{#if newGame === game.id}
+											<Check class="h-4 w-4 flex-shrink-0 text-primary" />
+										{/if}
+									</button>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				{/if}
+			</div>
+			<Dialog.Footer class="flex-col gap-2 sm:flex-row sm:items-center">
+				{#if selectedGame}
+					<p class="flex-1 truncate text-xs text-muted-foreground sm:text-left">
+						Adding: <span class="font-medium text-foreground">{selectedGame.title}</span>
+					</p>
+				{/if}
+				<div class="flex justify-end gap-2">
+					<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Cancel</Dialog.Close>
+					<form
+						method="POST"
+						action="?/add"
+						use:enhance={() => {
+							return async ({ result, update }) => {
+								if (result.type === 'success') {
+									addDialogOpen = false;
+									toast.success('Game added!');
+								}
+								await update();
+							};
+						}}
+					>
+						<input type="hidden" bind:value={newGame} name="gameId" />
+						<Button type="submit" variant="default" disabled={!newGame}>Add to collection</Button>
+					</form>
+				</div>
 			</Dialog.Footer>
 		</Dialog.Content>
 	</Dialog.Root>
