@@ -1,0 +1,19 @@
+{
+	"crons": [
+		{
+			"path": "/api/cron/finalize-sessions",
+			"schedule": "0 0 * * *"
+		}
+	],
+	"images": {
+		"domains": [
+			"cdn.akamai.steamstatic.com",
+			"cdn.cloudflare.steamstatic.com",
+			"media.steampowered.com",
+			"avatars.steamstatic.com",
+			"cdn.discordapp.com",
+			"pUUJW44V3BsjkSxl.public.blob.vercel-storage.com"
+		],
+		"minimumCacheTTL": 3600
+	}
+}
