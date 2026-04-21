@@ -250,5 +250,12 @@ export async function getCommunityGameOwners(db: Database, communityId: string) 
 		.from(communityUser)
 		.innerJoin(user, eq(communityUser.userId, user.id))
 		.innerJoin(userGameLibrary, eq(userGameLibrary.userId, user.id))
+		.innerJoin(
+			communityCollections,
+			and(
+				eq(communityCollections.communityId, communityId),
+				eq(communityCollections.gameId, userGameLibrary.gameId)
+			)
+		)
 		.where(eq(communityUser.communityId, communityId));
 }

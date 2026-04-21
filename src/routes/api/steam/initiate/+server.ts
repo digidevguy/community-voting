@@ -1,10 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import type { RequestHandler } from './$types';
-
-const STEAM_OPENID_URL = 'https://steamcommunity.com/openid/login';
-const OPENID_NS = 'http://specs.openid.net/auth/2.0';
-const OPENID_IDENTITY = 'http://specs.openid.net/auth/2.0/identifier_select';
+import { STEAM_OPENID_URL, OPENID_NS, OPENID_IDENTITY } from '$lib/server/steam';
 
 export const GET: RequestHandler = async ({ locals }) => {
 	if (!locals.user) {

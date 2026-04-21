@@ -1,10 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { sql } from 'drizzle-orm';
+import { eq, max, sql } from 'drizzle-orm';
 import { game, userGameLibrary } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 import { getUserSteamId } from '$lib/server/users/users.service';
+import { formatSyncCooldownMessage } from '$lib/server/steam';
 import { env } from '$env/dynamic/private';
 import { randomUUID } from 'crypto';
+
+const SYNC_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -30,6 +33,18 @@ export const actions: Actions = {
 
 		if (!steamId) {
 			return fail(400, { message: 'Steam account not linked' });
+		}
+
+		const [lastSyncRow] = await locals.db
+			.select({ lastSynced: max(userGameLibrary.lastSynced) })
+			.from(userGameLibrary)
+			.where(eq(userGameLibrary.userId, locals.user.id));
+
+		if (lastSyncRow?.lastSynced) {
+			const elapsed = Date.now() - lastSyncRow.lastSynced.getTime();
+			if (elapsed < SYNC_COOLDOWN_MS) {
+				return fail(429, { message: formatSyncCooldownMessage(SYNC_COOLDOWN_MS - elapsed) });
+			}
 		}
 
 		const response = await fetch(
@@ -62,7 +77,7 @@ export const actions: Actions = {
 			.onConflictDoUpdate({
 				target: game.steamAppId,
 				targetWhere: sql`${game.steamAppId} IS NOT NULL`,
-				set: { steamAppId: game.steamAppId }
+				set: { steamAppId: game.steamAppId } // no-op update required to return existing row id on conflict.
 			})
 			.returning({ id: game.id, steamAppId: game.steamAppId });
 

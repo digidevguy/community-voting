@@ -2,25 +2,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { user } from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
-
-const STEAM_OPENID_URL = 'https://steamcommunity.com/openid/login';
-const STEAM_ID_REGEX = /^https:\/\/steamcommunity\.com\/openid\/id\/(\d+)$/;
-
-async function verifyAssertion(params: URLSearchParams): Promise<boolean> {
-	const verifyParams = new URLSearchParams(params);
-	verifyParams.set('openid.mode', 'check_authentication');
-
-	const response = await fetch(STEAM_OPENID_URL, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-		body: verifyParams.toString()
-	});
-
-	if (!response.ok) return false;
-
-	const text = await response.text();
-	return text.includes('is_valid:true');
-}
+import { STEAM_ID_REGEX, verifyAssertion } from '$lib/server/steam';
 
 export const GET: RequestHandler = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -49,5 +31,5 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 	await locals.db.update(user).set({ steamId }).where(eq(user.id, locals.user.id));
 
-	throw redirect(302, '/');
+	throw redirect(302, '/profile');
 };

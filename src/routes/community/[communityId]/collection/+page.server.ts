@@ -32,16 +32,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		throw error(403, `You do not have access to this community`);
 	}
 
-	const steamId = await getUserSteamId(locals.db, locals.user.id);
-
-	const [collection, communityInfo, gameOwners, suggestedGames] = await Promise.all([
+	const [collection, communityInfo, gameOwners, steamId] = await Promise.all([
 		getCommunityCollection(locals.db, params.communityId),
 		getCommunityInfo(locals.db, params.communityId),
 		getCommunityGameOwners(locals.db, params.communityId),
-		steamId
-			? getUserLibrarySuggestionsForCommunity(locals.db, locals.user.id, params.communityId)
-			: Promise.resolve([])
+		getUserSteamId(locals.db, locals.user.id)
 	]);
+
+	const suggestedGames = steamId
+		? await getUserLibrarySuggestionsForCommunity(locals.db, locals.user.id, params.communityId)
+		: [];
 
 	const ownersByGame = Object.groupBy(gameOwners, (o) => o.gameId);
 

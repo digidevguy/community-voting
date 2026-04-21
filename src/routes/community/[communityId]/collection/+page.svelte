@@ -24,8 +24,11 @@
 	import { SvelteSet } from 'svelte/reactivity';
 	import * as Avatar from '$lib/components/ui/avatar/';
 	import * as Tooltip from '$lib/components/ui/tooltip/';
+	import * as Collapsible from '$lib/components/ui/collapsible/';
+	import { ChevronDown } from '@lucide/svelte';
 
 	const PAGE_SIZE = 25;
+	const SEARCH_THRESHOLD = 10;
 
 	let { data, form }: { data: PageServerData; form: ActionData } = $props();
 
@@ -36,6 +39,7 @@
 	let ownersByGame = $derived(data.ownersByGame);
 
 	let suggestedGames = $state(untrack(() => data.suggestedGames));
+	let suggestionsOpen = $state(false);
 	let searchQuery = $state('');
 	let visibleCount = $state(PAGE_SIZE);
 	let searching = $state(false);
@@ -65,8 +69,8 @@
 
 <h1 class="mb-4 text-xl font-semibold">Community Collection</h1>
 <div class="flex items-center justify-between">
-	<Button href="/community/{data.community.id}" variant="outline"
-		><CircleChevronLeft></CircleChevronLeft>Back</Button
+	<Button href="/community/{data.community.id}" variant="ghost" class="-ml-2 text-muted-foreground"
+		><CircleChevronLeft />Back</Button
 	>
 	<Dialog.Root
 		bind:open={addDialogOpen}
@@ -266,88 +270,96 @@
 
 {#if suggestedGames.length > 0}
 	<Separator class="my-6" />
-	<details class="group">
-		<summary
-			class="mb-3 flex cursor-pointer list-none items-center gap-2 text-sm font-medium select-none"
+	<Collapsible.Root bind:open={suggestionsOpen}>
+		<Collapsible.Trigger
+			class="flex w-full cursor-pointer items-center gap-2 text-sm font-medium select-none"
 		>
-			<CirclePlus class="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-45" />
+			<ChevronDown
+				class="h-4 w-4 text-muted-foreground transition-transform duration-200 {suggestionsOpen
+					? 'rotate-180'
+					: ''}"
+			/>
 			Suggestions from your library
 			<Badge variant="secondary">{suggestedGames.length}</Badge>
-		</summary>
-		<p class="mb-3 text-xs text-muted-foreground">
-			Games from your Steam library not yet in the community collection. Some titles may have
-			limited details until their data has been enriched.
-		</p>
-		{#if suggestedGames.length >= PAGE_SIZE}
-			<div class="relative mb-3">
-				<Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-				<Input
-					type="search"
-					placeholder="Search your library…"
-					value={searchQuery}
-					oninput={handleSearchInput}
-					class="pl-9"
-				/>
-			</div>
-		{/if}
-		<ul class="divide-y divide-border rounded-md border">
-			{#each visibleSuggestions as game (game.id)}
-				<li class="flex items-center gap-3 px-3 py-2">
-					{#if game.image}
-						<img
-							src={game.image}
-							alt={game.title}
-							width="64"
-							height="30"
-							loading="lazy"
-							decoding="async"
-							class="aspect-[460/215] w-16 flex-shrink-0 rounded object-cover"
-						/>
-					{:else}
-						<div
-							class="flex h-[30px] w-16 flex-shrink-0 items-center justify-center rounded bg-muted text-muted-foreground"
+		</Collapsible.Trigger>
+		<Collapsible.Content class="mt-3 flex flex-col gap-3">
+			<p class="text-xs text-muted-foreground">
+				Games from your Steam library not yet in the community collection. Some titles may have
+				limited details until their data has been enriched.
+			</p>
+			{#if suggestedGames.length > SEARCH_THRESHOLD}
+				<div class="relative">
+					<Search class="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+					<Input
+						type="search"
+						placeholder="Search your library…"
+						value={searchQuery}
+						oninput={handleSearchInput}
+						class="pl-9"
+					/>
+				</div>
+			{/if}
+			<ul class="divide-y divide-border rounded-md border">
+				{#each visibleSuggestions as game (game.id)}
+					<li class="flex items-center gap-3 px-3 py-2">
+						{#if game.image}
+							<img
+								src={game.image}
+								alt={game.title}
+								width="64"
+								height="30"
+								loading="lazy"
+								decoding="async"
+								class="aspect-[460/215] w-16 flex-shrink-0 rounded object-cover"
+							/>
+						{:else}
+							<div
+								class="flex h-[30px] w-16 flex-shrink-0 items-center justify-center rounded bg-muted text-muted-foreground"
+							>
+								<Gamepad2 class="h-4 w-4" />
+							</div>
+						{/if}
+						<span class="min-w-0 flex-1 truncate text-sm">{game.title}</span>
+						<form
+							method="POST"
+							action="?/add"
+							use:enhance={() => {
+								submitting.add(game.id);
+								return async ({ result, update }) => {
+									if (result.type === 'success') {
+										submitting.delete(game.id);
+										suggestedGames = suggestedGames.filter((g) => g.id !== game.id);
+										toast.success(`${game.title} added to the collection!`);
+										await update({ reset: false });
+									} else {
+										submitting.delete(game.id);
+										await update();
+									}
+								};
+							}}
 						>
-							<Gamepad2 class="h-4 w-4" />
-						</div>
-					{/if}
-					<span class="min-w-0 flex-1 truncate text-sm">{game.title}</span>
-					<form
-						method="POST"
-						action="?/add"
-						use:enhance={() => {
-							submitting.add(game.id);
-							return async ({ result, update }) => {
-								if (result.type === 'success') {
-									suggestedGames = suggestedGames.filter((g) => g.id !== game.id);
-									toast.success(`${game.title} added to the collection!`);
-								} else {
-									submitting.delete(game.id);
-									await update();
-								}
-							};
-						}}
-					>
-						<input type="hidden" value={game.id} name="gameId" />
-						<Button size="sm" variant="outline" type="submit" disabled={submitting.has(game.id)}>
-							{#if submitting.has(game.id)}
-								<LoaderCircle class="h-3 w-3 animate-spin" />Adding…
-							{:else}
-								<Plus class="h-3 w-3" />Add
-							{/if}
-						</Button>
-					</form>
-				</li>
-			{/each}
-		</ul>
-		{#if filteredSuggestions.length === 0 && searchQuery.trim().length > 0}
-			<p class="mt-3 text-center text-sm text-muted-foreground">No games match your search.</p>
-		{/if}
-		{#if visibleCount < filteredSuggestions.length}
-			<div class="mt-3 text-center">
-				<Button variant="ghost" size="sm" onclick={() => (visibleCount += PAGE_SIZE)}>
-					Show more ({filteredSuggestions.length - visibleCount} remaining)
-				</Button>
-			</div>
-		{/if}
-	</details>
+							<input type="hidden" value={game.id} name="gameId" />
+							<Button size="sm" variant="outline" type="submit" disabled={submitting.has(game.id)}>
+								{#if submitting.has(game.id)}
+									<LoaderCircle class="h-3 w-3 animate-spin" />Adding…
+								{:else}
+									<Plus class="h-3 w-3" />Add
+								{/if}
+							</Button>
+						</form>
+					</li>
+				{/each}
+			</ul>
+			{#if filteredSuggestions.length === 0 && searchQuery.trim().length > 0}
+				<p class="text-center text-sm text-muted-foreground">No games match your search.</p>
+			{/if}
+			{#if visibleCount < filteredSuggestions.length}
+				<div class="text-center">
+					<Button variant="ghost" size="sm" onclick={() => (visibleCount += PAGE_SIZE)}>
+						Show more ({filteredSuggestions.length - visibleCount} remaining)
+					</Button>
+				</div>
+			{/if}
+		</Collapsible.Content>
+	</Collapsible.Root>
 {/if}
