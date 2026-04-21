@@ -10,7 +10,8 @@ import {
 	deleteGameFromCollection,
 	getCommunityCollection,
 	getUserLibrarySuggestionsForCommunity,
-	softRemoveGameFromCollection
+	softRemoveGameFromCollection,
+	getCommunityGameOwners
 } from '$lib/server/collections/collection.service';
 import { searchGamesByTitle } from '$lib/server/games/games.service';
 import { getUserSteamId } from '$lib/server/users/users.service';
@@ -33,17 +34,21 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	const steamId = await getUserSteamId(locals.db, locals.user.id);
 
-	const [collection, communityInfo, suggestedGames] = await Promise.all([
+	const [collection, communityInfo, gameOwners, suggestedGames] = await Promise.all([
 		getCommunityCollection(locals.db, params.communityId),
 		getCommunityInfo(locals.db, params.communityId),
+		getCommunityGameOwners(locals.db, params.communityId),
 		steamId
 			? getUserLibrarySuggestionsForCommunity(locals.db, locals.user.id, params.communityId)
 			: Promise.resolve([])
 	]);
 
+	const ownersByGame = Object.groupBy(gameOwners, (o) => o.gameId);
+
 	return {
 		collection,
 		community: communityInfo,
+		ownersByGame,
 		suggestedGames
 	};
 };

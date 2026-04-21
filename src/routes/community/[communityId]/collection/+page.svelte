@@ -22,6 +22,7 @@
 	import { toast } from 'svelte-sonner';
 	import { untrack } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
+	import * as Avatar from '$lib/components/ui/avatar/';
 
 	const PAGE_SIZE = 25;
 
@@ -31,6 +32,7 @@
 	let addDialogOpen = $state(false);
 	let removeDialogOpen = $state<Record<string, boolean>>({});
 	let loadedImages = $state<Record<string, boolean>>({});
+	let ownersByGame = $derived(data.ownersByGame);
 
 	let suggestedGames = $state(untrack(() => data.suggestedGames));
 	let searchQuery = $state('');
@@ -189,6 +191,22 @@
 					/>
 				</div>
 				<Card.Footer class="my-2 flex justify-between">
+					{@const owners = ownersByGame[item.game.id] ?? []}
+					{#if owners.length}
+						<div class="flex items-center -space-x-2">
+							{#each owners.slice(0, 3) as owner (owner.userId)}
+								<Avatar.Root class="h-6 w-6 ring-2 ring-background">
+									<Avatar.Image src={owner.image} alt={owner.name} />
+									<Avatar.Fallback>{owner.name[0]}</Avatar.Fallback>
+								</Avatar.Root>
+							{/each}
+							{#if owners.length > 3}
+								<span class="pl-3 text-xs text-muted-foreground">
+									+{owners.length - 3}
+								</span>
+							{/if}
+						</div>
+					{/if}
 					<Button href="/library/{item.game.id}" variant="link">View game details</Button>
 					<Dialog.Root
 						open={removeDialogOpen[item.game.id] ?? false}
@@ -218,8 +236,8 @@
 								>
 									<input type="hidden" value={item.game.id} name="gameId" />
 									<Button aria-label="Remove" variant="destructive" type="submit">Delete</Button>
-								</form></Dialog.Footer
-							>
+								</form>
+							</Dialog.Footer>
 						</Dialog.Content>
 					</Dialog.Root>
 				</Card.Footer>
