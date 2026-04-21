@@ -86,7 +86,7 @@
 				<Dialog.Title>Add new game</Dialog.Title>
 				<Dialog.Description>Search the game catalog and select a title to add.</Dialog.Description>
 			</Dialog.Header>
-			<div class="flex flex-col gap-3">
+			<div class="flex min-w-0 flex-col gap-3 overflow-hidden">
 				<form
 					method="POST"
 					action="?/search"
@@ -129,7 +129,9 @@
 											: ''}"
 										onclick={() => (newGame = newGame === game.id ? null : game.id)}
 									>
-										<span class="min-w-0 flex-1 truncate text-left">{game.title}</span>
+										<span class="min-w-0 flex-1 truncate text-left" title={game.title}
+											>{game.title}</span
+										>
 										{#if newGame === game.id}
 											<Check class="h-4 w-4 flex-shrink-0 text-primary" />
 										{/if}
