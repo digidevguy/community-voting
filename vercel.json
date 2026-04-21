@@ -14,6 +14,7 @@
 			"cdn.discordapp.com",
 			"pUUJW44V3BsjkSxl.public.blob.vercel-storage.com"
 		],
+		"sizes": [320, 640, 800, 1080, 1920],
 		"minimumCacheTTL": 3600
 	}
 }
