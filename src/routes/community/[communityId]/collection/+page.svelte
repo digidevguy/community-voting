@@ -23,6 +23,7 @@
 	import { untrack } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import * as Avatar from '$lib/components/ui/avatar/';
+	import * as Tooltip from '$lib/components/ui/tooltip/';
 
 	const PAGE_SIZE = 25;
 
@@ -190,56 +191,73 @@
 						onload={() => (loadedImages[item.game.id] = true)}
 					/>
 				</div>
-				<Card.Footer class="my-2 flex justify-between">
+				<Card.Footer class="my-2 flex flex-col gap-2">
 					{@const owners = ownersByGame[item.game.id] ?? []}
 					{#if owners.length}
-						<div class="flex items-center -space-x-2">
-							{#each owners.slice(0, 3) as owner (owner.userId)}
-								<Avatar.Root class="h-6 w-6 ring-2 ring-background">
-									<Avatar.Image src={owner.image} alt={owner.name} />
-									<Avatar.Fallback>{owner.name[0]}</Avatar.Fallback>
-								</Avatar.Root>
-							{/each}
-							{#if owners.length > 3}
-								<span class="pl-3 text-xs text-muted-foreground">
-									+{owners.length - 3}
-								</span>
-							{/if}
-						</div>
+						<Tooltip.Provider>
+							<Tooltip.Root>
+								<Tooltip.Trigger class="self-start">
+									<div class="flex items-center -space-x-2">
+										{#each owners.slice(0, 3) as owner (owner.userId)}
+											<Avatar.Root class="h-6 w-6 ring-2 ring-background">
+												<Avatar.Image src={owner.image} alt={owner.name} />
+												<Avatar.Fallback>{owner.name[0]}</Avatar.Fallback>
+											</Avatar.Root>
+										{/each}
+										{#if owners.length > 3}
+											<span class="pl-3 text-xs text-muted-foreground">
+												+{owners.length - 3}
+											</span>
+										{/if}
+									</div>
+								</Tooltip.Trigger>
+								<Tooltip.Content>
+									<ul class="space-y-0.5 text-xs">
+										{#each owners as owner (owner.userId)}
+											<li>{owner.name}</li>
+										{/each}
+									</ul>
+								</Tooltip.Content>
+							</Tooltip.Root>
+						</Tooltip.Provider>
 					{/if}
-					<Button href="/library/{item.game.id}" variant="link">View game details</Button>
-					<Dialog.Root
-						open={removeDialogOpen[item.game.id] ?? false}
-						onOpenChange={(open) => {
-							removeDialogOpen[item.game.id] = open;
-						}}
-					>
-						<Dialog.Trigger><Trash2 class="text-red-500" /></Dialog.Trigger>
-						<Dialog.Content>
-							<Dialog.Title>Delete collection item?</Dialog.Title>
-							<Dialog.Description>Are you sure you want to do this?</Dialog.Description>
-							<Dialog.Footer>
-								<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Cancel</Dialog.Close>
-								<form
-									method="POST"
-									action="?/remove"
-									use:enhance={() => {
-										return async ({ result, update }) => {
-											if (result.type === 'success') {
-												removeDialogOpen[item.game.id] = false;
-												toast.success('Game removed successfully!');
-											}
+					<div class="flex w-full items-center justify-between">
+						<Button href="/library/{item.game.id}" variant="link" class="-ml-3"
+							>View game details</Button
+						>
+						<Dialog.Root
+							open={removeDialogOpen[item.game.id] ?? false}
+							onOpenChange={(open) => {
+								removeDialogOpen[item.game.id] = open;
+							}}
+						>
+							<Dialog.Trigger><Trash2 class="text-red-500" /></Dialog.Trigger>
+							<Dialog.Content>
+								<Dialog.Title>Delete collection item?</Dialog.Title>
+								<Dialog.Description>Are you sure you want to do this?</Dialog.Description>
+								<Dialog.Footer>
+									<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Cancel</Dialog.Close>
+									<form
+										method="POST"
+										action="?/remove"
+										use:enhance={() => {
+											return async ({ result, update }) => {
+												if (result.type === 'success') {
+													removeDialogOpen[item.game.id] = false;
+													toast.success('Game removed successfully!');
+												}
 
-											await update();
-										};
-									}}
-								>
-									<input type="hidden" value={item.game.id} name="gameId" />
-									<Button aria-label="Remove" variant="destructive" type="submit">Delete</Button>
-								</form>
-							</Dialog.Footer>
-						</Dialog.Content>
-					</Dialog.Root>
+												await update();
+											};
+										}}
+									>
+										<input type="hidden" value={item.game.id} name="gameId" />
+										<Button aria-label="Remove" variant="destructive" type="submit">Delete</Button>
+									</form>
+								</Dialog.Footer>
+							</Dialog.Content>
+						</Dialog.Root>
+					</div>
 				</Card.Footer>
 			</Card.Root>
 		</li>
