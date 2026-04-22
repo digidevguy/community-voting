@@ -2,6 +2,8 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { findGameDetails } from '$lib/server/games/games.service';
 
+export const config = { isr: { expiration: 3600 } };
+
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const { gameId } = params;
 
