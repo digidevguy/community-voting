@@ -10,6 +10,7 @@
 
 	const navItems = [
 		{ path: '/docs', label: 'Overview' },
+		{ path: '/docs/updates', label: 'Recent Updates' },
 		{ path: '/docs/getting-started', label: 'Getting Started' },
 		{ path: '/docs/communities', label: 'Communities' },
 		{ path: '/docs/voting', label: 'Voting' },
