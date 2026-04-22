@@ -34,8 +34,7 @@
 			next.
 		</p>
 		<div class="flex flex-wrap justify-center gap-3">
-			<Button href="/auth" size="lg">Get started</Button>
-			<Button href="/auth" variant="outline" size="lg">Sign in</Button>
+			<Button href="/auth" size="lg" data-sveltekit-preload-data="tap">Get started</Button>
 		</div>
 	</section>
 

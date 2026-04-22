@@ -55,7 +55,7 @@
 				<LogOut />
 			</Button>
 		{:else}
-			<Button variant="ghost" href="/auth"><LogIn /></Button>
+			<Button variant="ghost" href="/auth" data-sveltekit-preload-data="tap"><LogIn /></Button>
 		{/if}
 
 		<DarkModeToggle />
@@ -115,6 +115,7 @@
 						<Button
 							variant="ghost"
 							href="/auth"
+							data-sveltekit-preload-data="tap"
 							class="w-full justify-start"
 							onclick={() => (mobileMenuOpen = false)}
 						>
