@@ -1,4 +1,4 @@
-import { communityCollections, game, user } from '$lib/server/db/schema';
+import { communityCollections, game, gameStatistics, user } from '$lib/server/db/schema';
 import { alias } from 'drizzle-orm/pg-core';
 import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
@@ -32,23 +32,18 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 				categories: game.categories,
 				genres: game.genres
 			},
-			timesUsed: sql<number>`(
-				SELECT CAST(COUNT(*) AS integer)
-				FROM voting_option vo
-				INNER JOIN voting_session vs ON vo.voting_session_id = vs.id
-				WHERE vo.game_id = ${communityCollections.gameId}
-				AND vs.community_id = ${communityCollections.communityId}
-			)`,
-			timesWon: sql<number>`(
-				SELECT CAST(COUNT(*) AS integer)
-				FROM voting_session vs
-				INNER JOIN voting_option vo ON vs.selected_option_id = vo.id
-				WHERE vo.game_id = ${communityCollections.gameId}
-				AND vs.community_id = ${communityCollections.communityId}
-			)`
+			timesUsed: sql<number>`coalesce(${gameStatistics.timesUsed}, 0)`,
+			timesWon: sql<number>`coalesce(${gameStatistics.timesWon}, 0)`
 		})
 		.from(communityCollections)
 		.innerJoin(game, eq(communityCollections.gameId, game.id))
+		.leftJoin(
+			gameStatistics,
+			and(
+				eq(gameStatistics.communityId, communityCollections.communityId),
+				eq(gameStatistics.gameId, communityCollections.gameId)
+			)
+		)
 		.leftJoin(addedByUser, eq(communityCollections.addedBy, addedByUser.id))
 		.leftJoin(removedByUser, eq(communityCollections.removedBy, removedByUser.id))
 		.where(eq(communityCollections.communityId, community.id))

@@ -1,5 +1,12 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { game, user, vote, votingOption, votingSession } from '$lib/server/db/schema';
+import {
+	game,
+	gameStatistics,
+	user,
+	vote,
+	votingOption,
+	votingSession
+} from '$lib/server/db/schema';
 import { and, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import type {
 	CreateVotingOptionInput,
@@ -58,6 +65,73 @@ async function resolveWinner(
 	return topOptions.length > 0 && !isTie ? topOptions[0].votingOptionId : null;
 }
 
+async function refreshGameStatisticsForGame(
+	db: Database | DBTransaction,
+	communityId: string,
+	gameId: string
+) {
+	const [usedResult] = await db
+		.select({ count: count() })
+		.from(votingOption)
+		.innerJoin(votingSession, eq(votingOption.votingSessionId, votingSession.id))
+		.where(and(eq(votingSession.communityId, communityId), eq(votingOption.gameId, gameId)));
+
+	const [wonResult] = await db
+		.select({ count: count() })
+		.from(votingSession)
+		.innerJoin(votingOption, eq(votingOption.id, votingSession.selectedOptionId))
+		.where(and(eq(votingSession.communityId, communityId), eq(votingOption.gameId, gameId)));
+
+	await db
+		.insert(gameStatistics)
+		.values({
+			communityId,
+			gameId,
+			timesUsed: usedResult?.count ?? 0,
+			timesWon: wonResult?.count ?? 0,
+			updatedAt: new Date()
+		})
+		.onConflictDoUpdate({
+			target: [gameStatistics.communityId, gameStatistics.gameId],
+			set: {
+				timesUsed: usedResult?.count ?? 0,
+				timesWon: wonResult?.count ?? 0,
+				updatedAt: new Date()
+			}
+		});
+}
+
+async function refreshGameStatisticsForGames(
+	db: Database | DBTransaction,
+	communityId: string,
+	gameIds: string[]
+) {
+	for (const gameId of new Set(gameIds)) {
+		await refreshGameStatisticsForGame(db, communityId, gameId);
+	}
+}
+
+async function refreshGameStatisticsForWinningOption(
+	db: Database | DBTransaction,
+	communityId: string,
+	votingOptionId: string | null
+) {
+	if (!votingOptionId) {
+		return;
+	}
+
+	const [winningOption] = await db
+		.select({ gameId: votingOption.gameId })
+		.from(votingOption)
+		.where(eq(votingOption.id, votingOptionId));
+
+	if (!winningOption) {
+		return;
+	}
+
+	await refreshGameStatisticsForGames(db, communityId, [winningOption.gameId]);
+}
+
 export async function createVotingSession(
 	db: Database | DBTransaction,
 	data: CreateVotingSessionInput,
@@ -104,6 +178,8 @@ export async function createVotingSessionWithOptions(
 					approvalStatus: 'approved' as const
 				}))
 			);
+
+			await refreshGameStatisticsForGames(tx, session.communityId, data.gameIds);
 		}
 
 		return session;
@@ -173,6 +249,7 @@ export async function syncVotingSessionOptions(
 	gameIds: string[],
 	userId: string
 ) {
+	const session = await requireVotingSession(db, votingSessionId);
 	const desiredGameIds = [...new Set(gameIds)];
 
 	const existingOptions = await db
@@ -187,17 +264,18 @@ export async function syncVotingSessionOptions(
 	const existingByGameId = new Map(existingOptions.map((option) => [option.gameId, option]));
 
 	const toInsert = desiredGameIds.filter((gameId) => !existingByGameId.has(gameId));
-	const toActivate = desiredGameIds
+	const toActivateOptions = desiredGameIds
 		.map((gameId) => existingByGameId.get(gameId))
 		.filter((option): option is { id: string; gameId: string; isActive: boolean } =>
 			Boolean(option && !option.isActive)
-		)
-		.map((option) => option.id);
+		);
+	const toActivate = toActivateOptions.map((option) => option.id);
 
 	const desiredSet = new Set(desiredGameIds);
-	const toDeactivate = existingOptions
+	const toDeactivateOptions = existingOptions
 		.filter((option) => option.isActive && !desiredSet.has(option.gameId))
-		.map((option) => option.id);
+		.map((option) => ({ id: option.id, gameId: option.gameId }));
+	const toDeactivate = toDeactivateOptions.map((option) => option.id);
 
 	if (toInsert.length > 0) {
 		const rows = toInsert.map((gameId, index) => ({
@@ -231,6 +309,16 @@ export async function syncVotingSessionOptions(
 					inArray(votingOption.id, toDeactivate)
 				)
 			);
+	}
+
+	const affectedGameIds = [
+		...toInsert,
+		...toActivateOptions.map((option) => option.gameId),
+		...toDeactivateOptions.map((option) => option.gameId)
+	];
+
+	if (affectedGameIds.length > 0) {
+		await refreshGameStatisticsForGames(db, session.communityId, affectedGameIds);
 	}
 
 	return {
@@ -305,6 +393,8 @@ export async function addVotingOptionToSession(
 		throw new Error('Failed to add game to session');
 	}
 
+	await refreshGameStatisticsForGames(db, session.communityId, [newOption.gameId]);
+
 	return newOption;
 }
 
@@ -314,15 +404,21 @@ export async function removeVotingOptionFromSession(
 	votingOptionId: string,
 	userId: string
 ) {
-	const [id] = await db
+	const session = await requireVotingSession(db, votingSessionId);
+
+	const [removedOption] = await db
 		.update(votingOption)
 		.set({ isActive: false, reviewedBy: userId })
 		.where(
 			and(eq(votingOption.id, votingOptionId), eq(votingOption.votingSessionId, votingSessionId))
 		)
-		.returning({ id: votingOption.id });
+		.returning({ id: votingOption.id, gameId: votingOption.gameId });
 
-	return id;
+	if (removedOption) {
+		await refreshGameStatisticsForGames(db, session.communityId, [removedOption.gameId]);
+	}
+
+	return removedOption;
 }
 
 export async function publishVotingSession(
@@ -564,6 +660,12 @@ export async function renewVotingSession(
 				approvalStatus: 'approved' as const
 			}))
 		);
+
+		await refreshGameStatisticsForGames(
+			db,
+			original.communityId,
+			originalOptions.map((option) => option.gameId)
+		);
 	}
 
 	return newSession;
@@ -602,6 +704,13 @@ export async function finalizeExpiredSessions(db: Database) {
 					...(selectedOptionId ? { selectedOptionId } : {})
 				})
 				.where(and(eq(votingSession.id, id), eq(votingSession.status, 'voting_ended')));
+
+			const completedSession = await requireVotingSession(tx, id);
+			await refreshGameStatisticsForWinningOption(
+				tx,
+				completedSession.communityId,
+				selectedOptionId
+			);
 		});
 
 		finalized++;
@@ -638,6 +747,8 @@ export async function endVotingSession(
 		})
 		.where(eq(votingSession.id, votingSessionId))
 		.returning();
+
+	await refreshGameStatisticsForWinningOption(db, session.communityId, selectedOptionId);
 
 	return updated;
 }

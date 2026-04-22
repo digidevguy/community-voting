@@ -10,7 +10,8 @@ import {
 	uuid,
 	uniqueIndex,
 	primaryKey,
-	boolean
+	boolean,
+	check
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -206,7 +207,11 @@ export const votingSession = pgTable(
 		index('status_idx').on(table.status),
 		index('voting_session_created_by_idx').on(table.createdBy),
 		index('voting_session_game_day_date_idx').on(table.gameDayDate),
-		index('community_status_idx').on(table.communityId, table.status)
+		index('community_status_idx').on(table.communityId, table.status),
+		index('voting_session_community_selected_option_idx').on(
+			table.communityId,
+			table.selectedOptionId
+		)
 	]
 );
 
@@ -252,7 +257,12 @@ export const vote = pgTable(
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 	},
-	(table) => [uniqueIndex('user_session_vote_idx').on(table.userId, table.votingSessionId)]
+	(table) => [
+		uniqueIndex('user_session_vote_idx').on(table.userId, table.votingSessionId),
+		index('vote_voting_option_id_idx').on(table.votingOptionId),
+		index('vote_voting_session_id_idx').on(table.votingSessionId),
+		index('vote_session_option_idx').on(table.votingSessionId, table.votingOptionId)
+	]
 );
 
 export const game = pgTable(
@@ -362,6 +372,29 @@ export const userGameLibrary = pgTable(
 	]
 );
 
+// Aggregation tables
+export const gameStatistics = pgTable(
+	'game_statistics',
+	{
+		communityId: uuid('community_id')
+			.notNull()
+			.references(() => community.id, { onDelete: 'cascade' }),
+		gameId: uuid('game_id')
+			.notNull()
+			.references(() => game.id, { onDelete: 'cascade' }),
+		timesUsed: integer('times_used').notNull().default(0),
+		timesWon: integer('times_won').notNull().default(0),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => [
+		primaryKey({ columns: [table.communityId, table.gameId] }),
+		index('game_statistics_game_id_idx').on(table.gameId),
+		check('game_statistics_times_used_non_negative', sql`${table.timesUsed} >= 0`),
+		check('game_statistics_times_won_non_negative', sql`${table.timesWon} >= 0`),
+		check('game_statistics_times_won_lte_used', sql`${table.timesWon} <= ${table.timesUsed}`)
+	]
+);
+
 // Relations
 export const votingSessionRelations = relations(votingSession, ({ one, many }) => ({
 	selectedOption: one(votingOption, {
@@ -396,5 +429,7 @@ export type Vote = typeof vote.$inferSelect;
 export type Game = typeof game.$inferSelect;
 
 export type CommunityCollection = typeof communityCollections.$inferSelect;
+
+export type GameStatistics = typeof gameStatistics.$inferSelect;
 
 export type Notification = typeof notification.$inferSelect;
