@@ -1,5 +1,5 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { and, asc, count, eq, notExists } from 'drizzle-orm';
+import { and, asc, count, eq, notExists, inArray } from 'drizzle-orm';
 import {
 	communityCollections,
 	communityUser,
@@ -258,4 +258,35 @@ export async function getCommunityGameOwners(db: Database, communityId: string) 
 			)
 		)
 		.where(eq(communityUser.communityId, communityId));
+}
+
+export async function getUserLibraryCollection(db: Database | DBTransaction, userid: string) {
+	return db
+		.select({
+			id: userGameLibrary.id,
+			title: game.title,
+			image: game.image,
+			type: game.type
+		})
+		.from(userGameLibrary)
+		.innerJoin(game, eq(userGameLibrary.gameId, game.id))
+		.where(eq(userGameLibrary.userId, userid))
+		.orderBy(asc(game.title));
+}
+
+export async function getUserLibraryGameIds(
+	db: Database | DBTransaction,
+	userId: string,
+	gameIds: string[]
+) {
+	if (gameIds.length === 0) {
+		return [];
+	}
+
+	const rows = await db
+		.select({ gameId: userGameLibrary.gameId })
+		.from(userGameLibrary)
+		.where(and(eq(userGameLibrary.userId, userId), inArray(userGameLibrary.gameId, gameIds)));
+
+	return rows.map((row) => row.gameId);
 }
