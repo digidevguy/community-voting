@@ -7,8 +7,10 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { confirmUserInCommunity } from '$lib/server/communities/communities.service';
 import {
+	addGameToCollectionWithEnrichment,
 	getCommunityCollection,
-	isGameInCollection
+	getUserLibraryCollection,
+	getUserLibraryGameIds
 } from '$lib/server/collections/collection.service';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -29,13 +31,19 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		});
 	}
 
+	const [collection, userCollection] = await Promise.all([
+		getCommunityCollection(locals.db, communityId),
+		getUserLibraryCollection(locals.db, locals.user.id)
+	]);
+
 	return {
 		communityId,
-		collection: await getCommunityCollection(locals.db, communityId)
+		collection,
+		userCollection
 	};
 };
 
-async function parseCreateBody(body: FormData, communityId: string, db: App.Locals['db']) {
+async function parseCreateBody(body: FormData, communityId: string) {
 	const gameIds = body.getAll('gameIds').map((id) => id.toString());
 
 	const validationResult = createVotingSessionSchema.safeParse({
@@ -59,25 +67,52 @@ async function parseCreateBody(body: FormData, communityId: string, db: App.Loca
 		};
 	}
 
-	const validated = validationResult.data;
+	return { data: validationResult.data };
+}
 
-	if (validated.gameIds && validated.gameIds.length > 0) {
-		const inCollectionResults = await Promise.all(
-			validated.gameIds.map((gameId) => isGameInCollection(db, communityId, gameId))
-		);
-		const invalidGames = validated.gameIds.filter((_, i) => !inCollectionResults[i]);
+async function ensureSelectedGamesAreInCommunityCollection(
+	db: App.Locals['db'],
+	communityId: string,
+	userId: string,
+	selectedGameIds: string[]
+) {
+	if (selectedGameIds.length === 0) {
+		return { success: true as const };
+	}
 
-		if (invalidGames.length > 0) {
-			return {
-				error: fail(400, {
-					success: false,
-					message: `The following games are not in the community collection: ${invalidGames.join(', ')}`
-				})
-			};
+	const communityCollection = await getCommunityCollection(localStorage.db, communityId);
+	const communityGameIds = new Set(communityCollection.map((item) => item.game.id));
+	const missingGameIds = selectedGameIds.filter((id) => !communityGameIds.has(id));
+
+	if (missingGameIds.length === 0) {
+		return { success: true as const };
+	}
+
+	const userLibraryGameIds = await getUserLibraryGameIds(localStorage.db, userId, missingGameIds);
+	const userLibraryGameIdSet = new Set(userLibraryGameIds);
+	const disallowedGameIds = missingGameIds.filter((id) => !userLibraryGameIdSet.has(id));
+
+	if (disallowedGameIds.length > 0) {
+		return {
+			success: false as const,
+			error: fail(400, {
+				success: false,
+				message: `You can only add games from the community collection or your synced library. Invalid games: ${disallowedGameIds.join(', ')}`
+			})
+		};
+	}
+
+	for (const gameId of missingGameIds) {
+		try {
+			await addGameToCollectionWithEnrichment(db, communityId, userId, gameId);
+		} catch (error) {
+			if (!(error instanceof Error) || error.message !== 'Game is already exists in collection') {
+				throw error;
+			}
 		}
 	}
 
-	return { data: validated };
+	return { success: true as const };
 }
 
 export const actions: Actions = {
@@ -95,8 +130,17 @@ export const actions: Actions = {
 			});
 		}
 
-		const parsed = await parseCreateBody(await request.formData(), communityId, locals.db);
+		const parsed = await parseCreateBody(await request.formData(), communityId);
 		if ('error' in parsed) return parsed.error;
+
+		const communityCoverage = await ensureSelectedGamesAreInCommunityCollection(
+			locals.db,
+			communityId,
+			locals.user.id,
+			parsed.data.gameIds
+		);
+
+		if (!communityCoverage.success) return communityCoverage.error;
 
 		try {
 			await createVotingSessionWithOptions(locals.db, parsed.data, user.id);
@@ -123,8 +167,17 @@ export const actions: Actions = {
 			});
 		}
 
-		const parsed = await parseCreateBody(await request.formData(), communityId, locals.db);
+		const parsed = await parseCreateBody(await request.formData(), communityId);
 		if ('error' in parsed) return parsed.error;
+
+		const communityCoverage = await ensureSelectedGamesAreInCommunityCollection(
+			locals.db,
+			communityId,
+			locals.user.id,
+			parsed.data.gameIds
+		);
+
+		if (!communityCoverage.success) return communityCoverage.error;
 
 		let session;
 		try {
