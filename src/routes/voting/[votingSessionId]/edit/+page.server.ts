@@ -1,6 +1,11 @@
 import { error, fail, isHttpError, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from '../$types';
-import { getCommunityCollection } from '$lib/server/collections/collection.service';
+import {
+	addGameToCollectionWithEnrichment,
+	getCommunityCollection,
+	getUserLibraryCollection,
+	getUserLibraryGameIds
+} from '$lib/server/collections/collection.service';
 import {
 	getVotingSessionWithOptions,
 	syncVotingSessionOptions,
@@ -12,6 +17,10 @@ import { updateVotingSessionSchema } from '$lib/server/voting/voting-session.val
 import { requireSessionWriteAccess } from '$lib/server/authz/community';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
+	if (!locals.user) {
+		return redirect(302, '/auth');
+	}
+
 	const { votingSessionId } = params;
 	if (!votingSessionId) {
 		return error(500, { message: 'Voting session not found.' });
@@ -19,9 +28,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	const session = await requireSessionWriteAccess(locals, votingSessionId);
 
+	const [sessionDetails, collection, userCollection] = await Promise.all([
+		getVotingSessionWithOptions(locals.db, votingSessionId),
+		getCommunityCollection(locals.db, session.communityId),
+		getUserLibraryCollection(locals.db, locals.user.id)
+	]);
+
 	return {
-		sessionDetails: await getVotingSessionWithOptions(locals.db, votingSessionId),
-		collection: await getCommunityCollection(locals.db, session.communityId)
+		sessionDetails,
+		collection,
+		userCollection
 	};
 };
 
@@ -139,18 +155,43 @@ export const actions: Actions = {
 		if (shouldSyncGames) {
 			const collection = await getCommunityCollection(e.locals.db, existingSession.communityId);
 			const collectionGameIds = new Set(collection.map((item) => item.game.id));
-			const invalidGames = (validated.gameIds || []).filter((id) => !collectionGameIds.has(id));
+			const missingGameIds = (validated.gameIds || []).filter((id) => !collectionGameIds.has(id));
 
-			if (invalidGames.length > 0) {
-				return fail(400, {
-					success: false,
-					message: `Games not in community collection: ${invalidGames.join(', ')}`
-				});
+			if (missingGameIds.length > 0) {
+				const userLibraryGameIds = await getUserLibraryGameIds(e.locals.db, userId, missingGameIds);
+				const userLibraryGameIdSet = new Set(userLibraryGameIds);
+				const invalidGames = missingGameIds.filter((id) => !userLibraryGameIdSet.has(id));
+
+				if (invalidGames.length > 0) {
+					return fail(400, {
+						success: false,
+						message: `You can only add games from the community collection or your synced library. Invalid games: ${invalidGames.join(', ')}`
+					});
+				}
 			}
 		}
 
 		try {
 			await e.locals.db.transaction(async (tx) => {
+				if (shouldSyncGames) {
+					const txCollection = await getCommunityCollection(tx, existingSession.communityId);
+					const txCollectionIds = new Set(txCollection.map((i) => i.game.id));
+					const missing = (validated.gameIds || []).filter((id) => !txCollectionIds.has(id));
+					for (const gameId of missing) {
+						try {
+							await addGameToCollectionWithEnrichment(
+								tx,
+								existingSession.communityId,
+								userId,
+								gameId
+							);
+						} catch (err) {
+							if (!(err instanceof Error) || err.message !== 'Game already exists in collection')
+								throw err;
+						}
+					}
+				}
+
 				const updatedSession = await updateVotingSession(
 					tx,
 					routeVotingSessionId,
