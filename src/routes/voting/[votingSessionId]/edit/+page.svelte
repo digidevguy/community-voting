@@ -34,7 +34,13 @@
 
 <Separator class="my-4" />
 
-<VotingSessionForm {initialData} collection={data.collection} action="?/edit" {form} />
+<VotingSessionForm
+	{initialData}
+	collection={data.collection}
+	userCollection={data.userCollection}
+	action="?/edit"
+	{form}
+/>
 
 <Separator class="my-4" />
 

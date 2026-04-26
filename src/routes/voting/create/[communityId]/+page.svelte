@@ -14,4 +14,9 @@
 </Button>
 <Separator class="my-4" />
 
-<VotingSessionForm collection={data.collection} action="?/create" {form} />
+<VotingSessionForm
+	collection={data.collection}
+	userCollection={data.userCollection}
+	action="?/create"
+	{form}
+/>

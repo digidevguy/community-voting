@@ -80,7 +80,7 @@ async function ensureSelectedGamesAreInCommunityCollection(
 		return { success: true as const };
 	}
 
-	const communityCollection = await getCommunityCollection(localStorage.db, communityId);
+	const communityCollection = await getCommunityCollection(db, communityId);
 	const communityGameIds = new Set(communityCollection.map((item) => item.game.id));
 	const missingGameIds = selectedGameIds.filter((id) => !communityGameIds.has(id));
 
@@ -88,7 +88,7 @@ async function ensureSelectedGamesAreInCommunityCollection(
 		return { success: true as const };
 	}
 
-	const userLibraryGameIds = await getUserLibraryGameIds(localStorage.db, userId, missingGameIds);
+	const userLibraryGameIds = await getUserLibraryGameIds(db, userId, missingGameIds);
 	const userLibraryGameIdSet = new Set(userLibraryGameIds);
 	const disallowedGameIds = missingGameIds.filter((id) => !userLibraryGameIdSet.has(id));
 
@@ -106,7 +106,7 @@ async function ensureSelectedGamesAreInCommunityCollection(
 		try {
 			await addGameToCollectionWithEnrichment(db, communityId, userId, gameId);
 		} catch (error) {
-			if (!(error instanceof Error) || error.message !== 'Game is already exists in collection') {
+			if (!(error instanceof Error) || error.message !== 'Game already exists in collection') {
 				throw error;
 			}
 		}

@@ -29,14 +29,30 @@
 		status?: 'draft' | 'active' | 'voting_ended' | 'completed' | 'archived' | 'cancelled';
 	}
 
+	interface CollectionEntry {
+		game: {
+			id: string;
+			title: string;
+			type: string;
+		};
+	}
+
+	interface UserCollectionGame {
+		id: string;
+		title: string;
+		type: string;
+	}
+
 	let {
 		initialData,
 		collection,
+		userCollection = [],
 		action,
 		form
 	}: {
 		initialData?: InitialData;
-		collection: Array<{ game: { id: string; title: string; type: string } }>;
+		collection: CollectionEntry[];
+		userCollection?: UserCollectionGame[];
 		action: string;
 		form: TForm;
 	} = $props();
@@ -89,15 +105,22 @@
 	}
 
 	let searchQuery = $state('');
+	const availableGames = $derived.by(() => {
+		const combined = [...collection.map((i) => i.game), ...userCollection];
+		return Array.from(new Map(combined.map((g) => [g.id, g])).values());
+	});
 	let selectedGames = $state<Array<{ id: string; title: string }>>(
-		untrack(() =>
-			initialData?.selectedGameIds
-				? collection
-						.map((e) => e.game)
-						.filter((g) => initialData!.selectedGameIds!.includes(g.id))
-						.map((g) => ({ id: g.id, title: g.title }))
-				: []
-		)
+		untrack(() => {
+			if (!initialData?.selectedGameIds) {
+				return [];
+			}
+
+			const availableById = new Map(availableGames.map((game) => [game.id, game]));
+			return initialData.selectedGameIds
+				.map((id) => availableById.get(id))
+				.filter((game): game is { id: string; title: string; type: string } => Boolean(game))
+				.map((g) => ({ id: g.id, title: g.title }));
+		})
 	);
 
 	// Start date — defaults to today's CalendarDate for new sessions
@@ -138,13 +161,11 @@
 		const query = searchQuery.trim().toLowerCase();
 		const selectedIds = new Set(selectedGames.map((game) => game.id));
 
-		const collectionGames = collection
-			.map((entry) => entry.game)
-			.filter((game) => !selectedIds.has(game.id));
+		const searchableGames = availableGames.filter((game) => !selectedIds.has(game.id));
 
 		const matches = query
-			? collectionGames.filter((game) => game.title.toLowerCase().includes(query))
-			: collectionGames;
+			? searchableGames.filter((game) => game.title.toLowerCase().includes(query))
+			: searchableGames;
 
 		return matches
 			.slice(0, 10)
@@ -491,7 +512,11 @@
 	{/if}
 	<div class="flex flex-col space-y-4">
 		<h2 class="text-xl font-semibold">Add Games</h2>
-		<Input id="search" placeholder="Search games in this collection…" bind:value={searchQuery} />
+		<Input
+			id="search"
+			placeholder="Search community collection or your synced library…"
+			bind:value={searchQuery}
+		/>
 
 		{#if searchQuery.trim()}
 			{#if searchResults.length > 0}
@@ -511,10 +536,14 @@
 					{/each}
 				</div>
 			{:else}
-				<p class="text-sm text-muted-foreground">No matching games in this collection.</p>
+				<p class="text-sm text-muted-foreground">
+					No matching games in your community collection or synced library.
+				</p>
 			{/if}
 		{:else}
-			<p class="text-sm text-muted-foreground">Start typing to search the community collection.</p>
+			<p class="text-sm text-muted-foreground">
+				Start typing to search the community collection and your synced library.
+			</p>
 		{/if}
 
 		<div>
@@ -594,6 +623,9 @@
 			}}
 		>
 			<input type="hidden" name="votingSessionId" value={initialData!.id} />
+			{#each selectedGames as game (game.id)}
+				<input type="hidden" name="gameIds" value={game.id} />
+			{/each}
 			<Button type="submit" disabled={isPublishing || selectedGames.length === 0}>
 				{isPublishing ? 'Publishing…' : 'Publish Session'}
 			</Button>

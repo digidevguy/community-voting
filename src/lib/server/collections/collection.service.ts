@@ -263,7 +263,7 @@ export async function getCommunityGameOwners(db: Database, communityId: string) 
 export async function getUserLibraryCollection(db: Database | DBTransaction, userid: string) {
 	return db
 		.select({
-			id: userGameLibrary.id,
+			id: game.id,
 			title: game.title,
 			image: game.image,
 			type: game.type

@@ -18,7 +18,7 @@ import { requireSessionWriteAccess } from '$lib/server/authz/community';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
-		return redirect(302, '/auth');
+		throw redirect(302, '/auth');
 	}
 
 	const { votingSessionId } = params;
@@ -221,6 +221,11 @@ export const actions: Actions = {
 		}
 	},
 	publish: async ({ request, locals }) => {
+		const userId = locals.user?.id;
+		if (!userId) {
+			throw redirect(303, '/auth');
+		}
+
 		const formData = await request.formData();
 		const votingSessionId = formData.get('votingSessionId');
 
@@ -228,10 +233,74 @@ export const actions: Actions = {
 			return fail(400, { message: 'Invalid voting session ID' });
 		}
 
-		await requireSessionWriteAccess(locals, votingSessionId);
+		let existingSession;
+		try {
+			existingSession = await requireSessionWriteAccess(locals, votingSessionId);
+		} catch (err) {
+			if (isHttpError(err) && err.status !== 403) throw err;
+			return fail(403, {
+				message:
+					'Only the session creator or a community moderator/admin can publish this voting session.'
+			});
+		}
+
+		const submittedGameIds = Array.from(
+			new Set(
+				formData
+					.getAll('gameIds')
+					.map((id) => id.toString())
+					.filter(Boolean)
+			)
+		);
+		const hasGameIdsField = formData.has('gameIds');
+		const shouldSyncGames = hasGameIdsField && existingSession.status === 'draft';
+
+		if (shouldSyncGames) {
+			const collection = await getCommunityCollection(locals.db, existingSession.communityId);
+			const collectionGameIds = new Set(collection.map((item) => item.game.id));
+			const missingGameIds = submittedGameIds.filter((id) => !collectionGameIds.has(id));
+
+			if (missingGameIds.length > 0) {
+				const userLibraryGameIds = await getUserLibraryGameIds(locals.db, userId, missingGameIds);
+				const userLibraryGameIdSet = new Set(userLibraryGameIds);
+				const invalidGames = missingGameIds.filter((id) => !userLibraryGameIdSet.has(id));
+
+				if (invalidGames.length > 0) {
+					return fail(400, {
+						message: `You can only add games from the community collection or your synced library. Invalid games: ${invalidGames.join(', ')}`
+					});
+				}
+			}
+		}
 
 		try {
-			const { status } = await publishVotingSession(locals.db, votingSessionId, locals.user!.id);
+			const { status } = await locals.db.transaction(async (tx) => {
+				if (shouldSyncGames) {
+					const txCollection = await getCommunityCollection(tx, existingSession.communityId);
+					const txCollectionIds = new Set(txCollection.map((item) => item.game.id));
+					const missingGameIds = submittedGameIds.filter((id) => !txCollectionIds.has(id));
+
+					for (const gameId of missingGameIds) {
+						try {
+							await addGameToCollectionWithEnrichment(
+								tx,
+								existingSession.communityId,
+								userId,
+								gameId
+							);
+						} catch (err) {
+							if (!(err instanceof Error) || err.message !== 'Game already exists in collection') {
+								throw err;
+							}
+						}
+					}
+
+					await syncVotingSessionOptions(tx, votingSessionId, submittedGameIds, userId);
+				}
+
+				return publishVotingSession(tx, votingSessionId, userId);
+			});
+
 			if (status === 'active') {
 				return { success: true };
 			}
