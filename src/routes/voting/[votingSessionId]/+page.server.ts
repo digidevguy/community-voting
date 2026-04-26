@@ -35,17 +35,11 @@ async function requireOpenVotingSession(
 	| { error: null; sessionData: Awaited<ReturnType<typeof getVotingSessionWithResults>> }
 > {
 	const sessionData = await getVotingSessionWithResults(db, votingSessionId);
-	const { status, startDate } = sessionData.votingSessionDetails;
+	const { status } = sessionData.votingSessionDetails;
 
 	if (status !== 'active') {
 		return {
 			error: fail(400, { message: 'Voting for this session has ended' }),
-			sessionData: null
-		};
-	}
-	if (startDate && new Date(startDate) > new Date()) {
-		return {
-			error: fail(400, { message: 'Voting for this session has not started yet' }),
 			sessionData: null
 		};
 	}

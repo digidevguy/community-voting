@@ -144,7 +144,6 @@ export async function createVotingSession(
 			communityId: data.communityId,
 			description: data.description,
 			voting_session_type: data.votingSessionType,
-			startDate: data.startDate || new Date(),
 			gameDayDate: data.gameDayDate,
 			showRealTimeResults: data.showRealTimeResults,
 			allowAddingOptions: data.allowAddingOptions,
@@ -231,7 +230,6 @@ export async function updateVotingSession(
 			title: data.title,
 			description: data.description,
 			voting_session_type: data.votingSessionType,
-			startDate: data.startDate || new Date(),
 			gameDayDate: data.gameDayDate,
 			showRealTimeResults: data.showRealTimeResults,
 			allowAddingOptions: data.allowAddingOptions,
@@ -561,7 +559,6 @@ export async function getCommunitySessions(
 			description: votingSession.description,
 			createdBy: votingSession.createdBy,
 			status: votingSession.status,
-			startDate: votingSession.startDate,
 			gameDayDate: votingSession.gameDayDate,
 			voting_session_type: votingSession.voting_session_type,
 			showRealTimeResults: votingSession.showRealTimeResults,
@@ -641,7 +638,6 @@ export async function renewVotingSession(
 			showRealTimeResults: original.showRealTimeResults,
 			allowAddingOptions: original.allowAddingOptions,
 			gameDayDate: null,
-			startDate: new Date(),
 			status: 'draft',
 			createdBy: userId
 		})

@@ -6,7 +6,7 @@
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import type { PageProps } from './$types';
 	import { Badge } from '$lib/components/ui/badge';
-	import { CircleChevronLeft, Pencil, Trophy } from '@lucide/svelte';
+	import { CalendarDays, CircleChevronLeft, Pencil, Trophy } from '@lucide/svelte';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
 	import { toast } from 'svelte-sonner';
 
@@ -53,17 +53,11 @@
 			.join(' ')
 	);
 
-	const formattedStartDate = $derived(
-		votingSessionDetails.startDate
-			? new Intl.DateTimeFormat('en-US', {
-					dateStyle: 'medium'
-				}).format(new Date(votingSessionDetails.startDate))
-			: 'Not set'
-	);
-	const formattedGameDate = $derived(
+	const formattedGameDateTime = $derived(
 		votingSessionDetails.gameDayDate
 			? new Intl.DateTimeFormat('en-US', {
-					dateStyle: 'medium'
+					dateStyle: 'full',
+					timeStyle: 'short'
 				}).format(new Date(votingSessionDetails.gameDayDate))
 			: 'Not set'
 	);
@@ -82,7 +76,7 @@
 
 <div class="flex flex-col gap-6">
 	<section class="flex flex-col gap-2">
-		<nav>
+		<nav class="flex flex-wrap items-center gap-2">
 			<Button href="/community/{votingSessionDetails.communityId}" variant="outline">
 				<CircleChevronLeft></CircleChevronLeft>Back
 			</Button>
@@ -92,22 +86,48 @@
 				</Button>
 			{/if}
 		</nav>
-		<div class="flex flex-row items-center justify-between">
-			<h1 class="text-3xl font-semibold">{votingSessionDetails.title}</h1>
-			<Badge variant="secondary" class="h-5 min-w-5 rounded-md px-2 font-mono tabular-nums">
-				{formattedStatus}</Badge
-			>
-		</div>
-
-		<p class="whitespace-pre-wrap">{votingSessionDetails.description}</p>
-		<div class="flex flex-row justify-around">
-			<div class="flex flex-col">
-				<span class="text-sm text-muted-foreground">Voting Start Date</span>
-				<time datetime={votingSessionDetails.startDate?.toISOString()}>{formattedStartDate}</time>
+		<div class="flex flex-col gap-4 rounded-2xl border bg-card/60 p-5 sm:p-6">
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+				<div class="space-y-2">
+					<h1 class="text-3xl font-semibold tracking-tight sm:text-4xl">
+						{votingSessionDetails.title}
+					</h1>
+					{#if votingSessionDetails.description}
+						<p
+							class="max-w-3xl text-sm leading-6 whitespace-pre-wrap text-muted-foreground sm:text-base"
+						>
+							{votingSessionDetails.description}
+						</p>
+					{/if}
+				</div>
+				<Badge
+					variant="secondary"
+					class="h-6 w-fit rounded-md px-2.5 font-mono text-xs tabular-nums"
+				>
+					{formattedStatus}
+				</Badge>
 			</div>
-			<div class="flex flex-col">
-				<span class="text-sm text-muted-foreground">Game Day</span>
-				<time datetime={votingSessionDetails.gameDayDate?.toISOString()}>{formattedGameDate}</time>
+
+			<div class="grid gap-3 sm:max-w-xl">
+				<div class="rounded-xl border bg-background/80 p-4">
+					<div
+						class="mb-2 flex items-center gap-2 text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase"
+					>
+						<CalendarDays class="h-4 w-4" />
+						<span>Event Date & Time</span>
+					</div>
+					<time
+						class="block text-base font-semibold sm:text-lg"
+						datetime={votingSessionDetails.gameDayDate?.toISOString()}
+					>
+						{formattedGameDateTime}
+					</time>
+					{#if votingSessionDetails.status === 'draft'}
+						<p class="mt-1 text-sm text-muted-foreground">
+							Voting opens immediately once the session is published.
+						</p>
+					{/if}
+				</div>
 			</div>
 		</div>
 	</section>
@@ -181,65 +201,88 @@
 	{/if}
 
 	<Separator />
-	<section class="flex flex-col gap-3">
-		<div class="flex items-baseline justify-between">
-			<h2 class="text-sm font-semibold">Vote Breakdown</h2>
-			<span class="text-xs text-muted-foreground"
-				>{totalVoteCount} {totalVoteCount === 1 ? 'vote' : 'votes'} total</span
-			>
-		</div>
-		{#each options as option (option.id)}
-			<div class="space-y-1.5" animate:flip={{ duration: 300 }}>
-				<div class="flex items-center justify-between text-sm">
-					<span class="flex items-center gap-1.5 font-medium">
-						{#if option.id === winnerOptionId}
-							<Trophy class="h-4 w-4 shrink-0 text-amber-500" />
-						{/if}
-						{option?.game?.title}
-					</span>
-					<span class="text-xs text-muted-foreground tabular-nums">
-						{option.voteCount} ({Math.round((option.voteCount / totalVote) * 100)}%)
-					</span>
+	<div class="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)] xl:items-start">
+		<section class="min-w-0 overflow-hidden rounded-2xl border bg-card/60 p-5 sm:p-6">
+			<div class="flex flex-wrap items-baseline justify-between gap-2">
+				<div>
+					<h2 class="text-base font-semibold">Vote Breakdown</h2>
+					<p class="mt-1 text-sm text-muted-foreground">
+						Current totals across all session options.
+					</p>
 				</div>
-				<div class="h-3 w-full overflow-hidden rounded-full bg-muted">
-					<div
-						class="h-full rounded-full transition-all duration-500 ease-in-out {option.id ===
-						winnerOptionId
-							? 'bg-amber-500'
-							: 'bg-sky-600 dark:bg-sky-500'}"
-						style="width: {(option.voteCount / totalVote) * 100}%"
-					></div>
-				</div>
+				<span class="text-sm text-muted-foreground">
+					{totalVoteCount}
+					{totalVoteCount === 1 ? 'vote' : 'votes'} total
+				</span>
 			</div>
-		{/each}
-	</section>
-	{#if participants.length > 0}
-		<section class="space-y-2">
-			<h2 class="text-sm font-semibold text-muted-foreground">
-				Participants ({participants.length})
-			</h2>
-			<ul class="flex flex-wrap gap-2">
-				{#each participants as name (name)}
-					<li>
-						<Badge variant="secondary">{name}</Badge>
-					</li>
+			<div class="mt-5 space-y-4">
+				{#each options as option (option.id)}
+					<div class="space-y-2" animate:flip={{ duration: 300 }}>
+						<div class="flex items-center justify-between gap-3 text-sm">
+							<span class="flex min-w-0 items-center gap-1.5 font-medium">
+								{#if option.id === winnerOptionId}
+									<Trophy class="h-4 w-4 shrink-0 text-amber-500" />
+								{/if}
+								<span class="truncate">{option?.game?.title}</span>
+							</span>
+							<span class="shrink-0 text-xs text-muted-foreground tabular-nums">
+								{option.voteCount} ({Math.round((option.voteCount / totalVote) * 100)}%)
+							</span>
+						</div>
+						<div class="h-3 w-full overflow-hidden rounded-full bg-muted">
+							<div
+								class="h-full rounded-full transition-all duration-500 ease-in-out {option.id ===
+								winnerOptionId
+									? 'bg-amber-500'
+									: 'bg-sky-600 dark:bg-sky-500'}"
+								style="width: {(option.voteCount / totalVote) * 100}%"
+							></div>
+						</div>
+					</div>
 				{/each}
-			</ul>
+			</div>
 		</section>
-	{/if}
 
-	<section class="space-y-4">
+		<section class="min-w-0 overflow-hidden rounded-2xl border bg-card/60 p-5 sm:p-6">
+			<div class="flex items-baseline justify-between gap-2">
+				<h2 class="text-base font-semibold">Participants</h2>
+				<span class="text-sm text-muted-foreground">{participants.length}</span>
+			</div>
+			{#if participants.length > 0}
+				<p class="mt-1 text-sm text-muted-foreground">
+					Community members who have taken part in this session so far.
+				</p>
+				<ul class="mt-4 flex flex-wrap gap-2">
+					{#each participants as name (name)}
+						<li>
+							<Badge variant="secondary" class="max-w-full rounded-full px-3 py-1 text-sm break-all"
+								>{name}</Badge
+							>
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="mt-4 text-sm text-muted-foreground">No one has joined the voting yet.</p>
+			{/if}
+		</section>
+	</div>
+
+	<section class="rounded-2xl border bg-card/60 p-4 sm:p-6">
+		<div class="space-y-1">
+			<h2 class="text-base font-semibold">Session Options</h2>
+			<p class="text-sm text-muted-foreground">
+				Browse the games in this session{#if isVotingOpen}. Select a card to reveal voting actions{/if}.
+			</p>
+		</div>
 		{#if isVotingOpen && userVote}
 			<!-- TODO: Add refactored clearVote UI -->
 			<ClearVoteButton votingSessionId={votingSessionDetails.id}></ClearVoteButton>
 		{/if}
-		<ul
-			class="grid grid-cols-[repeat(auto-fit,minmax(theme(spacing.64),1fr))] place-items-center gap-4"
-		>
+		<ul class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
 			{#each options as option (option.id)}
-				<li>
+				<li class="w-full min-w-0">
 					<Card.Root
-						class="group relative flex overflow-hidden py-0 transition-all duration-100 hover:-translate-y-1 hover:shadow-xl {userVote ===
+						class="group relative flex w-full overflow-hidden py-0 transition-all duration-100 hover:-translate-y-1 hover:shadow-xl {userVote ===
 						option.id
 							? 'ring-2 ring-sky-500 ring-offset-2'
 							: ''} {option.id === winnerOptionId ? 'ring-2 ring-amber-500 ring-offset-2' : ''}"
@@ -283,9 +326,9 @@
 							></div>
 
 							<div
-								class="absolute inset-0 z-10 flex-row items-center justify-center gap-2 transition-all duration-500 ease-in-out {expandedCardId ===
+								class="absolute inset-0 z-10 items-center justify-center gap-2 transition-all duration-500 ease-in-out {expandedCardId ===
 								option.id
-									? 'flex'
+									? 'flex flex-col px-4 sm:flex-row'
 									: 'hidden'}"
 							>
 								<Button variant="link" class="text-slate-200" href="/library/{option.gameId}"
@@ -317,7 +360,7 @@
 									<Button
 										type="submit"
 										disabled={submittingOptionId === option.id}
-										class="min-w-24"
+										class="w-full min-w-24 sm:w-auto"
 									>
 										{submittingOptionId === option.id ? 'Voting...' : 'Vote'}
 									</Button>

@@ -195,7 +195,6 @@ export const votingSession = pgTable(
 		createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
 		voting_session_type: votingSessionType('voting_session_type').notNull().default('video_game'),
 		status: votingSessionStatus('status').notNull().default('draft'),
-		startDate: timestamp('start_date', { withTimezone: true }).notNull().defaultNow(),
 		gameDayDate: timestamp('game_day_date', { withTimezone: true }),
 		showRealTimeResults: boolean('show_real_time_results').notNull().default(true),
 		allowAddingOptions: boolean('allow_adding_options').notNull().default(true),

@@ -23,7 +23,6 @@
 		title?: string;
 		description?: string;
 		votingSessionType?: 'video_game' | 'board_game' | 'mixed';
-		startDate?: Date | string | null;
 		gameDayDate?: Date | string | null;
 		selectedGameIds?: string[];
 		status?: 'draft' | 'active' | 'voting_ended' | 'completed' | 'archived' | 'cancelled';
@@ -123,16 +122,6 @@
 		})
 	);
 
-	// Start date — defaults to today's CalendarDate for new sessions
-	let startDate = $state<CalendarDate | undefined>(
-		untrack(() => toCalendarDate(initialData?.startDate) ?? today(getLocalTimeZone()))
-	);
-	let startTime = $state(
-		untrack(() =>
-			initialData?.startDate ? toTimeString(initialData.startDate) : currentTimeString()
-		)
-	);
-
 	// Game night date/time — shared between create (custom picker) and edit modes
 	let gameDayDate = $state<CalendarDate | undefined>(
 		untrack(() => toCalendarDate(initialData?.gameDayDate))
@@ -146,7 +135,6 @@
 	let useCustomGameDay = $state(false);
 
 	// Popover open states
-	let startDateOpen = $state(false);
 	let gameDayOpen = $state(false);
 
 	// UI state
@@ -172,21 +160,14 @@
 			.map((game) => ({ id: game.id, title: game.title, type: game.type }));
 	});
 
-	let startISOString = $derived.by(() => {
-		if (!startDate || !startTime) return undefined;
-		return calDateTimeToISO(startDate, startTime);
-	});
-
 	let gameDayISOString = $derived.by(() => {
 		if (isEditMode || useCustomGameDay) {
 			if (!gameDayDate || !gameDayTime) return undefined;
 			return calDateTimeToISO(gameDayDate, gameDayTime);
 		}
-		// Duration mode: startISO + offset
-		if (!startISOString) return undefined;
-		return new Date(
-			new Date(startISOString).getTime() + Number(selectedDurationStr) * 60_000
-		).toISOString();
+		// Duration mode: now + offset
+		const nowMs = Math.ceil(Date.now() / 60_000) * 60_000;
+		return new Date(nowMs + Number(selectedDurationStr) * 60_000).toISOString();
 	});
 
 	let gameDayPreview = $derived.by(() => {
@@ -200,30 +181,14 @@
 		});
 	});
 
-	let hasPastStartDateTime = $derived.by(() => {
-		if (!startISOString) return false;
-		return new Date(startISOString).getTime() < Date.now();
-	});
-
 	let hasPastGameDayDateTime = $derived.by(() => {
 		if (!gameDayISOString) return false;
 		return new Date(gameDayISOString).getTime() < Date.now();
 	});
 
-	let isGameDayBeforeStartDateTime = $derived.by(() => {
-		if (!startISOString || !gameDayISOString) return false;
-		return new Date(gameDayISOString).getTime() < new Date(startISOString).getTime();
-	});
-
-	// min attribute for time inputs — only meaningful when the selected date is today or same as start
-	let minStartTime = $derived.by(() => {
-		if (!startDate) return undefined;
-		return startDate.compare(today(getLocalTimeZone())) === 0 ? currentTimeString() : undefined;
-	});
-
 	let minGameDayTime = $derived.by(() => {
-		if (!gameDayDate || !startDate || (!isEditMode && !useCustomGameDay)) return undefined;
-		return gameDayDate.compare(startDate) === 0 ? startTime : undefined;
+		if (!gameDayDate || (!isEditMode && !useCustomGameDay)) return undefined;
+		return gameDayDate.compare(today(getLocalTimeZone())) === 0 ? currentTimeString() : undefined;
 	});
 
 	function addGame(game: { id: string; title: string }) {
@@ -244,21 +209,8 @@
 	use:enhance={({ cancel, submitter }) => {
 		dateValidationMessage = null;
 
-		if (!isEditMode && hasPastStartDateTime) {
-			dateValidationMessage = 'Voting start date/time cannot be in the past.';
-			cancel();
-			return;
-		}
-
 		if (!isEditMode && hasPastGameDayDateTime) {
 			dateValidationMessage = 'Game day date/time cannot be in the past.';
-			cancel();
-			return;
-		}
-
-		if (isGameDayBeforeStartDateTime) {
-			dateValidationMessage =
-				'Game day date/time must be the same as or after voting start date/time.';
 			cancel();
 			return;
 		}
@@ -331,53 +283,15 @@
 	</div>
 
 	<input type="hidden" name="votingSessionType" value="video_game" />
-	<input type="hidden" name="startDate" value={startISOString} />
 	<input type="hidden" name="gameDayDate" value={gameDayISOString} />
 
 	<!-- Date configuration -->
 	<div class="rounded-lg border p-4">
 		<h2 class="mb-4 text-base font-semibold">Schedule</h2>
-		<div class="flex flex-wrap gap-8">
-			<!-- Voting opens -->
-			<div class="flex flex-col gap-3">
-				<p class="text-sm font-medium">Voting opens</p>
-				<div class="flex gap-4">
-					<div class="flex flex-col gap-2">
-						<Label class="px-1">Date</Label>
-						<Popover.Root bind:open={startDateOpen}>
-							<Popover.Trigger>
-								{#snippet child({ props })}
-									<Button {...props} class="w-32 justify-between font-normal" variant="outline">
-										{startDate
-											? startDate.toDate(getLocalTimeZone()).toLocaleDateString()
-											: 'Select date'}
-										<ChevronDownIcon />
-									</Button>
-								{/snippet}
-							</Popover.Trigger>
-							<Popover.Content class="w-auto overflow-hidden p-0" align="start">
-								<Calendar
-									type="single"
-									bind:value={startDate}
-									onValueChange={() => (startDateOpen = false)}
-									captionLayout="dropdown"
-									minValue={today(getLocalTimeZone())}
-								/>
-							</Popover.Content>
-						</Popover.Root>
-					</div>
-					<div class="flex flex-col gap-2">
-						<Label class="px-1">Time</Label>
-						<Input
-							class="appearance-none bg-background [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-							step="60"
-							min={minStartTime}
-							bind:value={startTime}
-							type="time"
-						/>
-					</div>
-				</div>
-			</div>
+		<div>
+			<p class="mb-4 text-sm text-muted-foreground">
+				Voting starts immediately when this session is published.
+			</p>
 
 			<!-- Game night -->
 			<div class="flex flex-col gap-3">
@@ -442,7 +356,7 @@
 						class="mt-1 w-fit text-left text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
 						onclick={() => {
 							useCustomGameDay = true;
-							gameDayDate = startDate;
+							gameDayDate = gameDayDate ?? today(getLocalTimeZone());
 						}}
 					>
 						Set a specific date & time instead
@@ -468,7 +382,7 @@
 										bind:value={gameDayDate}
 										onValueChange={() => (gameDayOpen = false)}
 										captionLayout="dropdown"
-										minValue={startDate ?? today(getLocalTimeZone())}
+										minValue={today(getLocalTimeZone())}
 									/>
 								</Popover.Content>
 							</Popover.Root>

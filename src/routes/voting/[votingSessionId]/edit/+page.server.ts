@@ -125,14 +125,7 @@ export const actions: Actions = {
 			title: formData.get('title')?.toString() || existingSession.title,
 			description:
 				formData.get('description')?.toString() ?? (existingSession.description || undefined),
-			startDate:
-				formData.get('startDate')?.toString() ||
-				existingSession.startDate?.toISOString() ||
-				undefined,
-			votingSessionType:
-				formData.get('votingSessionType')?.toString() || existingSession.voting_session_type,
-			gameDayDate:
-				formData.get('gameDayDate')?.toString() || existingSession.gameDayDate?.toISOString() || '',
+
 			showRealTimeResults: formData.has('showRealTimeResults')
 				? formData.get('showRealTimeResults') === 'on'
 				: existingSession.showRealTimeResults,

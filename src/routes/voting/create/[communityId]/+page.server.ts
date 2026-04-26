@@ -49,7 +49,6 @@ async function parseCreateBody(body: FormData, communityId: string) {
 	const validationResult = createVotingSessionSchema.safeParse({
 		title: body.get('title')?.toString() || '',
 		description: body.get('description')?.toString() || undefined,
-		startDate: body.get('startDate')?.toString() || undefined,
 		votingSessionType: body.get('votingSessionType')?.toString() || undefined,
 		gameDayDate: body.get('gameDayDate')?.toString() || '',
 		showRealTimeResults: body.get('showRealTimeResults') === 'on',

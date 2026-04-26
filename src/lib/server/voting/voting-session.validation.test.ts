@@ -59,40 +59,6 @@ describe('createVotingSessionSchema', () => {
 		expect(paths).toContain('gameDayDate');
 	});
 
-	it('rejects when startDate is in the past', () => {
-		const result = createVotingSessionSchema.safeParse({
-			...validPayload(),
-			startDate: new Date('2020-01-01'),
-			gameDayDate: future(7)
-		});
-		expect(result.success).toBe(false);
-		if (result.success) return;
-		const paths = result.error.issues.map((i) => i.path[0]);
-		expect(paths).toContain('startDate');
-	});
-
-	it('rejects when gameDayDate is before startDate', () => {
-		const result = createVotingSessionSchema.safeParse({
-			...validPayload(),
-			startDate: future(5),
-			gameDayDate: future(2) // earlier than startDate
-		});
-		expect(result.success).toBe(false);
-		if (result.success) return;
-		const paths = result.error.issues.map((i) => i.path[0]);
-		expect(paths).toContain('gameDayDate');
-	});
-
-	it('accepts when gameDayDate equals startDate (boundary)', () => {
-		const sameDay = future(3);
-		const result = createVotingSessionSchema.safeParse({
-			...validPayload(),
-			startDate: sameDay,
-			gameDayDate: sameDay
-		});
-		expect(result.success).toBe(true);
-	});
-
 	it('accepts all valid votingSessionType values', () => {
 		for (const type of ['board_game', 'video_game', 'mixed'] as const) {
 			const result = createVotingSessionSchema.safeParse({
