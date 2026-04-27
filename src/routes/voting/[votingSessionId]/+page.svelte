@@ -253,10 +253,10 @@
 					Community members who have taken part in this session so far.
 				</p>
 				<ul class="mt-4 flex flex-wrap gap-2">
-					{#each participants as name (name)}
+					{#each participants as participant (participant.id)}
 						<li>
 							<Badge variant="secondary" class="max-w-full rounded-full px-3 py-1 text-sm break-all"
-								>{name}</Badge
+								>{participant.name}</Badge
 							>
 						</li>
 					{/each}
