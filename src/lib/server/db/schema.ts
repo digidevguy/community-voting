@@ -51,6 +51,8 @@ export const invitationStatus = pgEnum('invitation_status', [
 	'revoked'
 ]);
 
+export const winType = pgEnum('win_type', ['single', 'shared_tie', 'tie_break']);
+
 // Auth and User Management
 
 export const user = pgTable('user', {
@@ -368,6 +370,44 @@ export const userGameLibrary = pgTable(
 	(table) => [
 		uniqueIndex('user_game_library_user_game_idx').on(table.userId, table.gameId),
 		index('user_game_library_user_id_idx').on(table.userId)
+	]
+);
+
+export const sessionWinner = pgTable(
+	'session_winner',
+	{
+		id: uuid('id').primaryKey().defaultRandom(),
+		communityId: uuid('community_id')
+			.notNull()
+			.references(() => community.id, { onDelete: 'cascade' }),
+		votingOptionId: uuid('voting_option_id')
+			.notNull()
+			.references(() => votingOption.id, { onDelete: 'cascade' }),
+		votingSessionId: uuid('voting_session_id')
+			.notNull()
+			.references(() => votingSession.id, { onDelete: 'cascade' }),
+		gameId: uuid('game_id')
+			.notNull()
+			.references(() => game.id, { onDelete: 'cascade' }),
+		winnerUserId: text('winner_user_id').references(() => user.id, { onDelete: 'set null' }),
+		winType: winType('win_type'),
+		voteCount: integer('vote_count'),
+		resolvedBy: text('resolved_by').references(() => user.id, { onDelete: 'no action' }),
+		resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		updatedAt: timestamp('updated_at').notNull().defaultNow()
+	},
+	(table) => [
+		uniqueIndex('session_winner_voting_session_voting_option_winner_user_idx')
+			.on(table.votingSessionId, table.votingOptionId, table.winnerUserId)
+			.where(sql`${table.winnerUserId} IS NOT NULL`),
+		uniqueIndex('session_winner_voting_session_voting_option_idx')
+			.on(table.votingOptionId, table.votingSessionId)
+			.where(sql`${table.winnerUserId} IS NULL`),
+		index('session_winner_community_id_idx').on(table.communityId, table.createdAt.desc()),
+		index('session_winner_user_id_idx')
+			.on(table.winnerUserId, table.createdAt.desc())
+			.where(sql`${table.winnerUserId} IS NOT NULL`)
 	]
 );
 
