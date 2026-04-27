@@ -1,8 +1,6 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { game, sessionWinner, user, votingSession, winType } from '$lib/server/db/schema';
+import { game, sessionWinner, user, votingSession } from '$lib/server/db/schema';
 import { and, eq, lt, sql } from 'drizzle-orm';
-
-type WinType = (typeof winType.enumValues)[number];
 
 type LeaderboardOptions = {
 	page: number;
@@ -119,16 +117,27 @@ export async function getUnresolvedCompletedSessions(
 		);
 }
 
+import { winnerLoggingSchema, type CreateWinnerLoggingInput } from './voting-session.validation';
+
 export async function setSessionWinners(
 	db: Database | DBTransaction,
-	votingSessionId: string,
-	votingOptionId: string,
-	communityId: string,
-	gameId: string,
-	winnerUserIds: string[],
-	winType: WinType,
-	resolvedBy: string
+	input: CreateWinnerLoggingInput
 ) {
+	// Validate input using winnerLoggingSchema (runtime safety)
+	const parseResult = winnerLoggingSchema.safeParse(input);
+	if (!parseResult.success) {
+		return { success: false, error: parseResult.error };
+	}
+	const {
+		votingSessionId,
+		votingOptionId,
+		communityId,
+		gameId,
+		winnerUserIds,
+		winType,
+		resolvedBy
+	} = input;
+
 	try {
 		await db.transaction(async (tx) => {
 			await tx.delete(sessionWinner).where(eq(sessionWinner.votingSessionId, votingSessionId));
