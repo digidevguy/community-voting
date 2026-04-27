@@ -472,3 +472,5 @@ export type CommunityCollection = typeof communityCollections.$inferSelect;
 export type GameStatistics = typeof gameStatistics.$inferSelect;
 
 export type Notification = typeof notification.$inferSelect;
+
+export type SessionWinner = typeof sessionWinner.$inferSelect;
