@@ -49,9 +49,10 @@ export const winnerLoggingSchema = z.object({
 	votingOptionId: z.uuid(),
 	communityId: z.uuid(),
 	gameId: z.uuid(),
-	winnerUserIds: z.array(z.uuid()).min(1, { message: 'At least one winner is required.' }),
+	voteCount: z.int(),
+	winnerUserIds: z.array(z.string()).min(1, { message: 'At least one winner is required.' }),
 	winType: z.enum(['single', 'shared_tie', 'tie_break']),
-	resolvedBy: z.uuid()
+	resolvedBy: z.string()
 });
 
 export type CreateVotingSessionInput = z.infer<typeof createVotingSessionSchema>;

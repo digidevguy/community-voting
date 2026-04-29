@@ -1,19 +1,43 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { flip } from 'svelte/animate';
-	import Button from '$lib/components/ui/button/button.svelte';
+	import Button, { buttonVariants } from '$lib/components/ui/button/button.svelte';
 	import * as Card from '$lib/components/ui/card/index';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import Separator from '$lib/components/ui/separator/separator.svelte';
 	import type { PageProps } from './$types';
 	import { Badge } from '$lib/components/ui/badge';
-	import { CalendarDays, CircleChevronLeft, Pencil, Trophy } from '@lucide/svelte';
+	import {
+		CalendarDays,
+		Check,
+		CircleChevronLeft,
+		LoaderCircle,
+		Pencil,
+		Trophy,
+		X
+	} from '@lucide/svelte';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
 	import { toast } from 'svelte-sonner';
+	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
 
 	let { data }: PageProps = $props();
 	const votingSessionDetails = $derived(data.session.votingSessionDetails);
 	const options = $derived(data.session.options);
 	const participants = $derived(data.participants ?? []);
+
+	const loggedWinners = $derived(data.winnerInfo);
+	let winnerSelection = $state<string[]>([]);
+	let winType = $derived.by(() => {
+		if (winnerSelection.length === 0) {
+			return null;
+		} else if (winnerSelection.length === 1) {
+			return 'single';
+		} else {
+			return 'shared_tie';
+		}
+	});
+	let loadingWinnerform = $state(false);
+	let winnerDialogOpen = $state(false);
 
 	const userVote = $derived(data.userVote?.votingOptionId);
 	const totalVoteCount = $derived(options.reduce((sum, o) => sum + o.voteCount, 0));
@@ -28,6 +52,7 @@
 	);
 	const winnerOptionId = $derived(votingSessionDetails.selectedOptionId);
 	const winnerOption = $derived(options.find((o) => o.id === winnerOptionId));
+
 	/** Session completed with no votes cast at all. */
 	const isNoWinner = $derived(
 		votingSessionDetails.status === 'completed' && !winnerOptionId && totalVoteCount === 0
@@ -61,6 +86,14 @@
 				}).format(new Date(votingSessionDetails.gameDayDate))
 			: 'Not set'
 	);
+
+	function toggleWinnerSelection(userId: string) {
+		if (!winnerSelection.includes(userId)) {
+			winnerSelection = [...winnerSelection, userId];
+		} else {
+			winnerSelection = winnerSelection.filter((id) => id !== userId);
+		}
+	}
 </script>
 
 <svelte:head>
@@ -200,6 +233,124 @@
 		{/if}
 	{/if}
 
+	{#if loggedWinners.length > 0}
+		<div
+			class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+		>
+			<div class="flex items-center justify-between gap-2">
+				<div class="flex items-center gap-2">
+					<Trophy class="h-5 w-5 shrink-0 text-amber-500" />
+					<span class="font-semibold">Logged Winners</span>
+				</div>
+				{#if canEdit}
+					<Button
+						variant="outline"
+						size="sm"
+						onclick={() => {
+							winnerSelection = [];
+							winnerDialogOpen = true;
+						}}
+					>
+						<Pencil class="h-3.5 w-3.5" />Change Winner Data
+					</Button>
+				{/if}
+			</div>
+			<ul class="mt-3 flex flex-wrap gap-3">
+				{#each loggedWinners as winner (winner.id)}
+					<li class="flex items-center gap-2">
+						{#if winner.image}
+							<img
+								src={winner.image}
+								alt={winner.name ?? 'Winner'}
+								class="h-7 w-7 rounded-full object-cover"
+							/>
+						{/if}
+						<span class="text-sm font-medium">{winner.name ?? 'Unknown'}</span>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{:else}
+		<div
+			class="rounded-lg border border-slate-300 bg-slate-50 p-4 text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+		>
+			<p class="font-semibold">No winner user data has been logged yet.</p>
+			<Button
+				variant="default"
+				class="mt-2"
+				onclick={() => {
+					winnerSelection = [];
+					winnerDialogOpen = true;
+				}}
+			>
+				<Trophy class="mr-1 h-4 w-4" />Log Winner Info
+			</Button>
+		</div>
+	{/if}
+
+	<Dialog.Root bind:open={winnerDialogOpen}>
+		<Dialog.Content>
+			<form
+				action="?/logWinners"
+				method="POST"
+				use:enhance={() => {
+					loadingWinnerform = true;
+					return async ({ result, update }) => {
+						loadingWinnerform = false;
+						if (result.type === 'failure') {
+							toast.error((result.data?.message as string) || 'An error occured.');
+						} else {
+							toast.success('Winner info logged successfully!');
+							winnerDialogOpen = false;
+							await update();
+						}
+					};
+				}}
+			>
+				<Dialog.Header>
+					<Dialog.Title>Declare winners</Dialog.Title>
+					<Dialog.Description>Log who won the session.</Dialog.Description>
+				</Dialog.Header>
+				<ScrollArea class="my-4 h-24 w-full border">
+					<div class="flex flex-col space-y-2 p-2">
+						{#each participants as participant (participant.id)}
+							<Button
+								size="sm"
+								class="shrink-0"
+								onclick={() => toggleWinnerSelection(participant.id)}
+							>
+								{participant.name}
+								{#if winnerSelection.includes(participant.id)}
+									<Check />
+								{/if}
+							</Button>
+						{/each}
+					</div>
+				</ScrollArea>
+
+				<input type="hidden" name="votingSessionId" value={votingSessionDetails.id} />
+				<input type="hidden" name="votingOptionId" value={winnerOptionId} />
+				<input type="hidden" name="gameId" value={winnerOption?.game?.id} />
+				<input type="hidden" name="voteCount" value={winnerOption?.voteCount} />
+				<input type="hidden" name="winType" value={winType} />
+				{#each winnerSelection as winnerId (winnerId)}
+					<input type="hidden" name="userIds" value={winnerId} />
+				{/each}
+				<Dialog.Footer>
+					<Button variant="default" type="submit" disabled={loadingWinnerform}>
+						{#if loadingWinnerform}
+							<LoaderCircle class="animate-spin" />
+						{/if}
+						Submit
+					</Button>
+					<Dialog.Close type="button" class={buttonVariants({ variant: 'outline' })}>
+						<X class="h-4 w-4" />Cancel
+					</Dialog.Close>
+				</Dialog.Footer>
+			</form>
+		</Dialog.Content>
+	</Dialog.Root>
+
 	<Separator />
 	<div class="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)] xl:items-start">
 		<section class="min-w-0 overflow-hidden rounded-2xl border bg-card/60 p-5 sm:p-6">
@@ -255,9 +406,12 @@
 				<ul class="mt-4 flex flex-wrap gap-2">
 					{#each participants as participant (participant.id)}
 						<li>
-							<Badge variant="secondary" class="max-w-full rounded-full px-3 py-1 text-sm break-all"
-								>{participant.name}</Badge
+							<Badge
+								variant="secondary"
+								class="max-w-full rounded-full px-3 py-1 text-sm break-all"
 							>
+								{participant.name}
+							</Badge>
 						</li>
 					{/each}
 				</ul>

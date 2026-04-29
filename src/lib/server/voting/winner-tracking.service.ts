@@ -133,6 +133,7 @@ export async function setSessionWinners(
 		votingOptionId,
 		communityId,
 		gameId,
+		voteCount,
 		winnerUserIds,
 		winType,
 		resolvedBy
@@ -149,6 +150,7 @@ export async function setSessionWinners(
 					communityId,
 					gameId,
 					winnerUserId: userId,
+					voteCount,
 					winType,
 					resolvedBy,
 					resolvedAt: new Date()

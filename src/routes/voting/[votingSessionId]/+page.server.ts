@@ -1,5 +1,5 @@
 import type { Actions, PageServerLoad } from './$types';
-import { error, fail } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import type { ActionFailure } from '@sveltejs/kit';
 import {
 	castVote,
@@ -14,6 +14,8 @@ import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
 import { requireSessionWriteAccess, requireVotingAccess } from '$lib/server/authz/community';
 import { getUserCommunityRole } from '$lib/server/communities/communities.service';
 import type { Database } from '$lib/server/db';
+import { winnerLoggingSchema } from '$lib/server/voting/voting-session.validation';
+import { getSessionWinners, setSessionWinners } from '$lib/server/voting/winner-tracking.service';
 
 function getVotingSessionId(
 	formData: FormData
@@ -64,6 +66,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		session: sessionData,
 		userVote: await getUserVoteForSession(locals.db, locals.user!.id, votingSessionId),
 		participants: await getVotingSessionParticipants(locals.db, votingSessionId),
+		winnerInfo: await getSessionWinners(locals.db, votingSessionId),
 		userRole: await getUserCommunityRole(
 			locals.db,
 			locals.user!.id,
@@ -71,6 +74,37 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		)
 	};
 };
+
+async function parseWinnerBody(body: FormData, communityId: string, resolverId: string) {
+	const userIds = body.getAll('userIds').map((id) => id.toString());
+
+	const validationResult = winnerLoggingSchema.safeParse({
+		votingSessionId: body.get('votingSessionId')?.toString(),
+		votingOptionId: body.get('votingOptionId')?.toString(),
+		gameId: body.get('gameId')?.toString(),
+		voteCount: Number(body.get('voteCount')),
+		winnerUserIds: userIds,
+		winType: body.get('winType'),
+		communityId,
+		resolvedBy: resolverId
+	});
+
+	if (!validationResult.success) {
+		const issue = validationResult.error.issues[0];
+		const field = issue?.path?.join('.');
+		const message = field
+			? `${field}: ${issue.message}`
+			: (issue?.message ?? 'Invalid winner data.');
+		return {
+			error: fail(400, {
+				success: false,
+				message
+			})
+		};
+	}
+
+	return { data: validationResult.data };
+}
 
 export const actions: Actions = {
 	vote: async ({ request, locals }) => {
@@ -145,6 +179,39 @@ export const actions: Actions = {
 			console.error('Failed to end voting session: ', err);
 			return fail(400, {
 				message: err instanceof Error ? err.message : 'Failed to end voting session'
+			});
+		}
+	},
+	logWinners: async ({ locals, params, request }) => {
+		if (!locals.user) {
+			return redirect(302, '/auth');
+		}
+
+		const { votingSessionId } = params;
+		const session = await requireSessionWriteAccess(locals, votingSessionId);
+
+		if (session.status !== 'completed' && session.status !== 'voting_ended') {
+			return fail(400, {
+				message: 'Winner data can only be added to sessions that are completed or have ended voting'
+			});
+		}
+
+		const parsed = await parseWinnerBody(
+			await request.formData(),
+			session.communityId,
+			locals.user.id
+		);
+		if ('error' in parsed) return parsed.error;
+
+		try {
+			await setSessionWinners(locals.db, parsed.data);
+
+			return { success: true };
+		} catch (err) {
+			console.error('Failed to add winner data:', err);
+			return fail(400, {
+				success: false,
+				message: 'Unable to add winner data, please try again'
 			});
 		}
 	}
