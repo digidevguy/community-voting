@@ -8,6 +8,7 @@ import {
 	votingSession
 } from '$lib/server/db/schema';
 import { and, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
+import { tieBreakSchema } from './voting-session.validation';
 import type {
 	CreateVotingOptionInput,
 	CreateVotingSessionInput,
@@ -693,20 +694,22 @@ export async function finalizeExpiredSessions(db: Database) {
 			const selectedOptionId = await resolveWinner(tx, id);
 
 			// Transition voting_ended → completed
-			await tx
-				.update(votingSession)
-				.set({
-					status: 'completed',
-					...(selectedOptionId ? { selectedOptionId } : {})
-				})
-				.where(and(eq(votingSession.id, id), eq(votingSession.status, 'voting_ended')));
+			if (selectedOptionId) {
+				await tx
+					.update(votingSession)
+					.set({
+						status: 'completed',
+						selectedOptionId
+					})
+					.where(and(eq(votingSession.id, id), eq(votingSession.status, 'voting_ended')));
 
-			const completedSession = await requireVotingSession(tx, id);
-			await refreshGameStatisticsForWinningOption(
-				tx,
-				completedSession.communityId,
-				selectedOptionId
-			);
+				const completedSession = await requireVotingSession(tx, id);
+				await refreshGameStatisticsForWinningOption(
+					tx,
+					completedSession.communityId,
+					selectedOptionId
+				);
+			}
 		});
 
 		finalized++;
@@ -718,6 +721,7 @@ export async function finalizeExpiredSessions(db: Database) {
 /**
  * Selects the winning option (highest vote count) and marks the session as `completed`.
  * Only callable when status is `voting_ended`. Only the session creator may call this.
+ * Throws if the result is a tie — use `assignTieBreakWinner` instead.
  */
 export async function endVotingSession(
 	db: Database | DBTransaction,
@@ -734,17 +738,78 @@ export async function endVotingSession(
 
 	const selectedOptionId = await resolveWinner(db, votingSessionId);
 
+	if (!selectedOptionId) {
+		throw new Error(
+			'The vote result is a tie. Use assignTieBreakWinner to manually select the winning option.'
+		);
+	}
+
 	const [updated] = await db
 		.update(votingSession)
 		.set({
 			status: 'completed',
-			...(selectedOptionId ? { selectedOptionId } : {}),
+			selectedOptionId,
 			updatedBy: userId
 		})
 		.where(eq(votingSession.id, votingSessionId))
 		.returning();
 
 	await refreshGameStatisticsForWinningOption(db, session.communityId, selectedOptionId);
+
+	return updated;
+}
+/**
+ * Manually selects a winning option for a tied `voting_ended` session and transitions it to `completed`.
+ * Only callable when the session is in `voting_ended` state and has no current winner (i.e. it is a tie).
+ * Only the session creator or a privileged community member may call this.
+ */
+export async function assignTieBreakWinner(
+	db: Database | DBTransaction,
+	votingSessionId: string,
+	votingOptionId: string,
+	userId: string
+) {
+	const parseResult = tieBreakSchema.safeParse({ votingSessionId, votingOptionId });
+	if (!parseResult.success) {
+		throw new Error(parseResult.error.issues[0]?.message ?? 'Invalid tie-break input');
+	}
+
+	const session = await requireVotingSession(db, votingSessionId);
+
+	if (session.status !== 'voting_ended') {
+		throw new Error('Tie-break can only be applied to sessions in voting_ended state');
+	}
+
+	if (session.selectedOptionId !== null) {
+		throw new Error(
+			'This session already has a winning option. Use endVotingSession for sessions with a clear winner.'
+		);
+	}
+
+	await assertCanManageSession(db, userId, session);
+
+	const [option] = await db
+		.select({ id: votingOption.id })
+		.from(votingOption)
+		.where(
+			and(eq(votingOption.id, votingOptionId), eq(votingOption.votingSessionId, votingSessionId))
+		);
+
+	if (!option) {
+		throw new Error('The specified option does not belong to this voting session');
+	}
+
+	const [updated] = await db
+		.update(votingSession)
+		.set({
+			status: 'completed',
+			selectedOptionId: votingOptionId,
+			updatedBy: userId
+		})
+		.where(eq(votingSession.id, votingSessionId))
+		.returning();
+
+	await refreshGameStatisticsForWinningOption(db, session.communityId, votingOptionId);
 
 	return updated;
 }

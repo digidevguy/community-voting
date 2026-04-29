@@ -44,6 +44,11 @@ export const createVoteSchema = z.object({
 	votingOptionId: z.uuid()
 });
 
+export const tieBreakSchema = z.object({
+	votingSessionId: z.uuid(),
+	votingOptionId: z.uuid()
+});
+
 export const winnerLoggingSchema = z.object({
 	votingSessionId: z.uuid(),
 	votingOptionId: z.uuid(),
@@ -62,5 +67,7 @@ export type UpdateVotingSessionInput = z.infer<typeof updateVotingSessionSchema>
 export type CreateVotingOptionInput = z.infer<typeof createVotingOptionSchema>;
 
 export type CreateVoteInput = z.infer<typeof createVoteSchema>;
+
+export type TieBreakInput = z.infer<typeof tieBreakSchema>;
 
 export type CreateWinnerLoggingInput = z.infer<typeof winnerLoggingSchema>;
