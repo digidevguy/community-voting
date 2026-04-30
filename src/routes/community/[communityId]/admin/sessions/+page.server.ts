@@ -5,26 +5,31 @@ import {
 	closeExpiredVotingSession,
 	deleteVotingSession
 } from '$lib/server/voting/voting-session.service';
+import { getUnresolvedCompletedSessions } from '$lib/server/voting/winner-tracking.service';
 import type { Actions, PageServerLoad } from './$types';
 import { getUserCommunityRole } from '$lib/server/communities/communities.service';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	const { community, userRole } = await parent();
 
-	const sessions = await locals.db
-		.select({
-			id: votingSession.id,
-			title: votingSession.title,
-			status: votingSession.status,
-			creator: user.name,
-			createdAt: votingSession.createdAt,
-			endDate: votingSession.gameDayDate
-		})
-		.from(votingSession)
-		.leftJoin(user, eq(user.id, votingSession.createdBy))
-		.where(eq(votingSession.communityId, community.id));
+	const [sessions, unresolvedWinnerSessions] = await Promise.all([
+		locals.db
+			.select({
+				id: votingSession.id,
+				title: votingSession.title,
+				status: votingSession.status,
+				creator: user.name,
+				createdAt: votingSession.createdAt,
+				endDate: votingSession.gameDayDate,
+				selectedOptionId: votingSession.selectedOptionId
+			})
+			.from(votingSession)
+			.leftJoin(user, eq(user.id, votingSession.createdBy))
+			.where(eq(votingSession.communityId, community.id)),
+		getUnresolvedCompletedSessions(locals.db, community.id, {})
+	]);
 
-	return { sessions, community, userRole };
+	return { sessions, unresolvedWinnerSessions, community, userRole };
 };
 
 export const actions: Actions = {

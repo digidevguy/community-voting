@@ -2,6 +2,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { ActionFailure } from '@sveltejs/kit';
 import {
+	assignTieBreakWinner,
 	castVote,
 	clearVoteForSession,
 	endVotingSession,
@@ -179,6 +180,29 @@ export const actions: Actions = {
 			console.error('Failed to end voting session: ', err);
 			return fail(400, {
 				message: err instanceof Error ? err.message : 'Failed to end voting session'
+			});
+		}
+	},
+	assignTieBreak: async ({ locals, params, request }) => {
+		if (!locals.user) return redirect(302, '/auth');
+
+		const { votingSessionId } = params;
+		const session = await requireSessionWriteAccess(locals, votingSessionId);
+
+		const formData = await request.formData();
+		const votingOptionId = formData.get('votingOptionId');
+
+		if (typeof votingOptionId !== 'string') {
+			return fail(400, { message: 'Invalid voting option ID' });
+		}
+
+		try {
+			await assignTieBreakWinner(locals.db, session.id, votingOptionId, locals.user.id);
+			return { success: true };
+		} catch (err) {
+			console.error('Failed to assign tie-break winner:', err);
+			return fail(400, {
+				message: err instanceof Error ? err.message : 'Failed to assign tie-break winner'
 			});
 		}
 	},

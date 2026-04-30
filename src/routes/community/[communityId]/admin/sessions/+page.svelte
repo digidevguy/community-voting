@@ -15,6 +15,19 @@
 	let { data }: { data: PageServerData } = $props();
 	const sessions = $derived(data.sessions);
 
+	const unresolvedWinnerIds = $derived(
+		new Set(data.unresolvedWinnerSessions.map((s) => s.sessionId))
+	);
+
+	const needsActionSessions = $derived([
+		...sessions
+			.filter((s) => s.status === 'voting_ended' && !s.selectedOptionId)
+			.map((s) => ({ ...s, reason: 'tie' as const })),
+		...sessions
+			.filter((s) => s.status === 'completed' && unresolvedWinnerIds.has(s.id))
+			.map((s) => ({ ...s, reason: 'missing_winners' as const }))
+	]);
+
 	const ALL_STATUSES = [
 		'draft',
 		'active',
@@ -119,43 +132,43 @@
 								</DropdownMenu.Trigger>
 								<DropdownMenu.Content align="end">
 									{#each options as option, i (option.value)}
-								{#if i === options.length - 1 && options.length > 1}
-									<DropdownMenu.Separator />
-								{/if}
-								{#if option.value === 'delete'}
-									<DropdownMenu.Item
-										variant="destructive"
-										onclick={() => openDeleteDialog(session.id, session.title)}
-									>
-										{option.label}
-									</DropdownMenu.Item>
-								{:else}
-									<form
-										method="POST"
-										action="?/manageSession"
-										use:enhance={() => {
-											return async ({ result, update }) => {
-												if (result.type === 'redirect') {
-													await applyAction(result);
-												} else if (result.type === 'failure') {
-													toast.error((result.data?.message as string) ?? 'Action failed');
-												} else if (result.type === 'success') {
-													toast.success(`${option.label} applied to "${session.title}"`);
-													await update();
-												}
-											};
-										}}
-									>
-										<input type="hidden" name="sessionId" value={session.id} />
-										<input type="hidden" name="action" value={option.value} />
-										<DropdownMenu.Item
-											onclick={(e) => e.currentTarget.closest('form')?.requestSubmit()}
-										>
-											{option.label}
-										</DropdownMenu.Item>
-									</form>
-								{/if}
-							{/each}
+										{#if i === options.length - 1 && options.length > 1}
+											<DropdownMenu.Separator />
+										{/if}
+										{#if option.value === 'delete'}
+											<DropdownMenu.Item
+												variant="destructive"
+												onclick={() => openDeleteDialog(session.id, session.title)}
+											>
+												{option.label}
+											</DropdownMenu.Item>
+										{:else}
+											<form
+												method="POST"
+												action="?/manageSession"
+												use:enhance={() => {
+													return async ({ result, update }) => {
+														if (result.type === 'redirect') {
+															await applyAction(result);
+														} else if (result.type === 'failure') {
+															toast.error((result.data?.message as string) ?? 'Action failed');
+														} else if (result.type === 'success') {
+															toast.success(`${option.label} applied to "${session.title}"`);
+															await update();
+														}
+													};
+												}}
+											>
+												<input type="hidden" name="sessionId" value={session.id} />
+												<input type="hidden" name="action" value={option.value} />
+												<DropdownMenu.Item
+													onclick={(e) => e.currentTarget.closest('form')?.requestSubmit()}
+												>
+													{option.label}
+												</DropdownMenu.Item>
+											</form>
+										{/if}
+									{/each}
 								</DropdownMenu.Content>
 							</DropdownMenu.Root>
 						</Table.Cell>
@@ -174,6 +187,14 @@
 
 <Tabs.Root value="all">
 	<Tabs.List class="mb-4 flex flex-wrap gap-1">
+		{#if needsActionSessions.length > 0}
+			<Tabs.Trigger value="needs_action" class="gap-1">
+				Needs Action
+				<Badge class="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums" variant="destructive">
+					{needsActionSessions.length}
+				</Badge>
+			</Tabs.Trigger>
+		{/if}
 		<Tabs.Trigger value="all">All ({sessions.length})</Tabs.Trigger>
 		{#each ALL_STATUSES as status (status)}
 			{@const count = sessionsByStatus[status].length}
@@ -185,6 +206,46 @@
 	<Tabs.Content value="all">
 		{@render sessionTable(sessions)}
 	</Tabs.Content>
+	{#if needsActionSessions.length > 0}
+		<Tabs.Content value="needs_action">
+			<div class="overflow-x-auto rounded-md border">
+				<Table.Root>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Title</Table.Head>
+							<Table.Head>Status</Table.Head>
+							<Table.Head>Required action</Table.Head>
+							<Table.Head class="sticky right-0 bg-background">Actions</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{#each needsActionSessions as session (session.id)}
+							<Table.Row>
+								<Table.Cell class="font-medium">{session.title}</Table.Cell>
+								<Table.Cell>
+									<Badge variant={statusBadgeVariant(session.status)}>
+										{formatStatus(session.status)}
+									</Badge>
+								</Table.Cell>
+								<Table.Cell class="text-sm text-muted-foreground">
+									{#if session.reason === 'tie'}
+										Tie — select winning game
+									{:else}
+										Missing player winner data
+									{/if}
+								</Table.Cell>
+								<Table.Cell class="sticky right-0 bg-background">
+									<Button href="/voting/{session.id}" size="sm" variant="outline">
+										{session.reason === 'tie' ? 'Resolve tie' : 'Log winners'}
+									</Button>
+								</Table.Cell>
+							</Table.Row>
+						{/each}
+					</Table.Body>
+				</Table.Root>
+			</div>
+		</Tabs.Content>
+	{/if}
 	{#each ALL_STATUSES as status (status)}
 		<Tabs.Content value={status}>
 			{@render sessionTable(sessionsByStatus[status])}

@@ -14,7 +14,7 @@
 		LoaderCircle,
 		Pencil,
 		Trophy,
-		X
+		Users
 	} from '@lucide/svelte';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
 	import { toast } from 'svelte-sonner';
@@ -309,24 +309,61 @@
 			>
 				<Dialog.Header>
 					<Dialog.Title>Declare winners</Dialog.Title>
-					<Dialog.Description>Log who won the session.</Dialog.Description>
+					<Dialog.Description>
+						Select the players who won this session. Multiple selections count as a shared win.
+					</Dialog.Description>
 				</Dialog.Header>
-				<ScrollArea class="my-4 h-24 w-full border">
-					<div class="flex flex-col space-y-2 p-2">
-						{#each participants as participant (participant.id)}
-							<Button
-								size="sm"
-								class="shrink-0"
-								onclick={() => toggleWinnerSelection(participant.id)}
-							>
-								{participant.name}
-								{#if winnerSelection.includes(participant.id)}
-									<Check />
-								{/if}
-							</Button>
-						{/each}
+
+				{#if participants.length === 0}
+					<div
+						class="my-4 flex items-center gap-2 rounded-md border p-4 text-sm text-muted-foreground"
+					>
+						<Users class="h-4 w-4 shrink-0" />
+						No participants recorded for this session.
 					</div>
-				</ScrollArea>
+				{:else}
+					<ScrollArea class="my-4 h-48 w-full rounded-md border">
+						<ul class="divide-y">
+							{#each participants as participant (participant.id)}
+								{@const selected = winnerSelection.includes(participant.id)}
+								<li>
+									<button
+										type="button"
+										onclick={() => toggleWinnerSelection(participant.id)}
+										class="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-muted/50 {selected
+											? 'bg-muted/40'
+											: ''}"
+									>
+										<span
+											class="flex h-4 w-4 shrink-0 items-center justify-center rounded-sm border {selected
+												? 'border-primary bg-primary text-primary-foreground'
+												: 'border-muted-foreground/40'}"
+										>
+											{#if selected}
+												<Check class="h-3 w-3" />
+											{/if}
+										</span>
+										{#if participant.image}
+											<img
+												src={participant.image}
+												alt={participant.name ?? 'Participant'}
+												class="h-6 w-6 rounded-full object-cover"
+											/>
+										{/if}
+										<span class="flex-1 font-medium">{participant.name ?? 'Unknown'}</span>
+									</button>
+								</li>
+							{/each}
+						</ul>
+					</ScrollArea>
+				{/if}
+
+				{#if winnerSelection.length > 0}
+					<p class="mb-4 text-xs text-muted-foreground">
+						{winnerSelection.length} player{winnerSelection.length === 1 ? '' : 's'} selected — will
+						be recorded as a {winnerSelection.length === 1 ? 'single win' : 'shared win'}.
+					</p>
+				{/if}
 
 				<input type="hidden" name="votingSessionId" value={votingSessionDetails.id} />
 				<input type="hidden" name="votingOptionId" value={winnerOptionId} />
@@ -336,16 +373,21 @@
 				{#each winnerSelection as winnerId (winnerId)}
 					<input type="hidden" name="userIds" value={winnerId} />
 				{/each}
-				<Dialog.Footer>
-					<Button variant="default" type="submit" disabled={loadingWinnerform}>
+
+				<Dialog.Footer class="gap-2 sm:gap-0">
+					<Dialog.Close type="button" class={buttonVariants({ variant: 'outline' })}>
+						Cancel
+					</Dialog.Close>
+					<Button
+						variant="default"
+						type="submit"
+						disabled={loadingWinnerform || winnerSelection.length === 0}
+					>
 						{#if loadingWinnerform}
 							<LoaderCircle class="animate-spin" />
 						{/if}
-						Submit
+						Save Winners
 					</Button>
-					<Dialog.Close type="button" class={buttonVariants({ variant: 'outline' })}>
-						<X class="h-4 w-4" />Cancel
-					</Dialog.Close>
 				</Dialog.Footer>
 			</form>
 		</Dialog.Content>

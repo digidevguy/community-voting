@@ -10,6 +10,7 @@ import {
 	getCommunitySessions,
 	renewVotingSession
 } from '$lib/server/voting/voting-session.service';
+import { getUnresolvedCompletedSessions } from '$lib/server/voting/winner-tracking.service';
 import { error, fail, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -30,11 +31,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const userId = locals.user.id;
 	const { communityId } = params;
 
-	const [community, allSessions, collectionCount, userRole] = await Promise.all([
+	const [community, allSessions, collectionCount, userRole, unresolvedWinners] = await Promise.all([
 		getCommunityInfo(locals.db, communityId),
 		getCommunitySessions(locals.db, communityId, userId),
 		getCommunityCollectionCount(locals.db, communityId),
-		getUserCommunityRole(locals.db, userId, communityId)
+		getUserCommunityRole(locals.db, userId, communityId),
+		getUnresolvedCompletedSessions(locals.db, communityId, {})
 	]);
 
 	const isPrivileged = isPrivilegedRole(userRole);
@@ -42,7 +44,26 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		(s) => s.status !== 'draft' || s.createdBy === userId || isPrivileged
 	);
 
-	return { community, sessions, collectionCount, userRole };
+	const unresolvedWinnerIds = new Set(unresolvedWinners.map((s) => s.sessionId));
+
+	const sessionsNeedingAction = sessions
+		.filter((s) => {
+			const canAct = s.createdBy === userId || isPrivileged;
+			if (!canAct) return false;
+			const isTied = s.status === 'voting_ended' && !s.selectedOptionId;
+			const missingWinners = s.status === 'completed' && unresolvedWinnerIds.has(s.id);
+			return isTied || missingWinners;
+		})
+		.map((s) => ({
+			id: s.id,
+			title: s.title,
+			reason:
+				s.status === 'voting_ended' && !s.selectedOptionId
+					? ('tie' as const)
+					: ('missing_winners' as const)
+		}));
+
+	return { community, sessions, collectionCount, userRole, sessionsNeedingAction };
 };
 
 export const actions: Actions = {

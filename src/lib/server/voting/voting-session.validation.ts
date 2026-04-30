@@ -55,6 +55,8 @@ export const winnerLoggingSchema = z.object({
 	communityId: z.uuid(),
 	gameId: z.uuid(),
 	voteCount: z.int(),
+	// min(1) is intentional: a session stays in the unresolved query until at least one player
+	// winner is recorded. To correct winners, resubmit with the updated user list.
 	winnerUserIds: z.array(z.string()).min(1, { message: 'At least one winner is required.' }),
 	winType: z.enum(['single', 'shared_tie', 'tie_break']),
 	resolvedBy: z.string()

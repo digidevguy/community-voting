@@ -12,7 +12,8 @@
 		CalendarDays,
 		Trophy,
 		Users,
-		LayoutDashboard
+		LayoutDashboard,
+		TriangleAlert
 	} from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
@@ -222,6 +223,45 @@
 		{/if}
 	</Tabs.Content>
 {/snippet}
+
+{#if data.sessionsNeedingAction.length > 0}
+	<div
+		class="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-700 dark:bg-amber-950"
+	>
+		<div
+			class="mb-3 flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-200"
+		>
+			<TriangleAlert class="h-4 w-4 shrink-0" />
+			{data.sessionsNeedingAction.length === 1
+				? '1 session needs'
+				: `${data.sessionsNeedingAction.length} sessions need`} attention
+		</div>
+		<ul class="divide-y divide-amber-200 dark:divide-amber-800">
+			{#each data.sessionsNeedingAction as item (item.id)}
+				<li class="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
+					<div class="min-w-0 flex-1">
+						<p class="truncate text-sm font-medium text-amber-900 dark:text-amber-100">
+							{item.title}
+						</p>
+						<p class="mt-0.5 text-xs text-amber-700 dark:text-amber-400">
+							{item.reason === 'tie'
+								? 'Tie — winning game must be selected'
+								: 'Completed — player winner data not yet logged'}
+						</p>
+					</div>
+					<Button
+						href="/voting/{item.id}"
+						size="sm"
+						variant="outline"
+						class="shrink-0 border-amber-400 bg-transparent text-amber-900 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-200 dark:hover:bg-amber-900"
+					>
+						{item.reason === 'tie' ? 'Resolve tie' : 'Log winners'}
+					</Button>
+				</li>
+			{/each}
+		</ul>
+	</div>
+{/if}
 
 <Tabs.Root value="active">
 	<div class="overflow-x-auto">
