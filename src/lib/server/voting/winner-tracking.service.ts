@@ -1,10 +1,12 @@
 import type { Database, DBTransaction } from '$lib/server/db';
 import { game, sessionWinner, user, votingSession } from '$lib/server/db/schema';
-import { and, eq, lt, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, lt, max, sql } from 'drizzle-orm';
 
 type LeaderboardOptions = {
-	page: number;
 	limit: number;
+	gamesPage: number;
+	usersPage: number;
+	recentPage: number;
 	range?: string;
 };
 
@@ -29,37 +31,45 @@ export async function getCommunityLeaderboard(
 	communityId: string,
 	options: LeaderboardOptions
 ) {
+	const { limit, gamesPage, usersPage, recentPage } = options;
+
+	const gameWinCount = count().as('winCount');
+	const gameLastWin = max(sessionWinner.resolvedAt).as('lastWin');
+
 	const topGames = await db
 		.select({
 			gameId: sessionWinner.gameId,
 			title: game.title,
 			image: game.image,
-			winCount: sql`COUNT(*)`.as('win_count'),
-			lastWin: sql`MAX(session_winner.resolved_at)`.as('last_win')
+			winCount: gameWinCount,
+			lastWin: gameLastWin
 		})
 		.from(sessionWinner)
 		.leftJoin(game, eq(sessionWinner.gameId, game.id))
 		.where(eq(sessionWinner.communityId, communityId))
 		.groupBy(sessionWinner.gameId, game.title, game.image)
-		.orderBy(sql`win_count DESC`, sql`last_win DESC`, sessionWinner.gameId)
-		.limit(options.limit)
-		.offset((options.page - 1) * options.limit);
+		.orderBy(desc(gameWinCount), desc(gameLastWin), asc(sessionWinner.gameId))
+		.limit(limit)
+		.offset((gamesPage - 1) * limit);
+
+	const userWinCount = count().as('winCount');
+	const userLastWin = max(sessionWinner.resolvedAt).as('lastWin');
 
 	const topUsers = await db
 		.select({
 			userId: sessionWinner.winnerUserId,
 			name: user.name,
 			image: user.image,
-			winCount: sql`COUNT(*)`.as('win_count'),
-			lastWin: sql`MAX(session_winner.resolved_at)`.as('last_win')
+			winCount: userWinCount,
+			lastWin: userLastWin
 		})
 		.from(sessionWinner)
 		.leftJoin(user, eq(user.id, sessionWinner.winnerUserId))
 		.where(eq(sessionWinner.communityId, communityId))
 		.groupBy(sessionWinner.winnerUserId, user.name, user.image)
-		.orderBy(sql`win_count DESC`, sql`last_win DESC`, sessionWinner.winnerUserId)
-		.limit(options.limit)
-		.offset((options.page - 1) * options.limit);
+		.orderBy(desc(userWinCount), desc(userLastWin), asc(sessionWinner.winnerUserId))
+		.limit(limit)
+		.offset((usersPage - 1) * limit);
 
 	const recentWins = await db
 		.select({
@@ -75,9 +85,9 @@ export async function getCommunityLeaderboard(
 		.leftJoin(user, eq(user.id, sessionWinner.winnerUserId))
 		.leftJoin(game, eq(game.id, sessionWinner.gameId))
 		.where(eq(sessionWinner.communityId, communityId))
-		.orderBy(sql`session_winner.resolved_at DESC`)
-		.limit(options.limit)
-		.offset((options.page - 1) * options.limit);
+		.orderBy(desc(sessionWinner.resolvedAt))
+		.limit(limit)
+		.offset((recentPage - 1) * limit);
 
 	return { topGames, topUsers, recentWins };
 }
