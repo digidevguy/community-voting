@@ -13,6 +13,12 @@ import { env } from '$env/dynamic/private';
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	const { community, userRole } = await parent();
 
+	const launchDateStr = env.WINNER_TRACKING_LAUNCH_DATE;
+	const launchDate = launchDateStr ? new Date(launchDateStr) : undefined;
+	if (launchDate && isNaN(launchDate.getTime())) {
+		throw new Error(`WINNER_TRACKING_LAUNCH_DATE is not a valid date: "${launchDateStr}"`);
+	}
+
 	const [sessions, unresolvedWinnerSessions] = await Promise.all([
 		locals.db
 			.select({
@@ -28,7 +34,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 			.leftJoin(user, eq(user.id, votingSession.createdBy))
 			.where(eq(votingSession.communityId, community.id)),
 		getUnresolvedCompletedSessions(locals.db, community.id, {
-			createdAfter: new Date(env.WINNER_TRACKING_LAUNCH_DATE!)
+			createdAfter: launchDate
 		})
 	]);
 
