@@ -13,7 +13,8 @@
 		Trophy,
 		Users,
 		LayoutDashboard,
-		TriangleAlert
+		TriangleAlert,
+		Vote
 	} from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
@@ -117,6 +118,15 @@
 					{data.collectionCount}
 				</Badge></Button
 			>
+		</li>
+		<li>
+			<Button
+				class="w-full sm:w-auto"
+				href="/community/{data.community.id}/leaderboard"
+				variant="outline"
+			>
+				<Vote />Leaderboard
+			</Button>
 		</li>
 		<li>
 			<Button class="w-full sm:w-auto" href="/voting/create/{data.community.id}" variant="outline"

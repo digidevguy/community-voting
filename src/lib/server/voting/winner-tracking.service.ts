@@ -1,6 +1,6 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { game, sessionWinner, user, votingSession } from '$lib/server/db/schema';
-import { and, asc, count, desc, eq, lt, max, sql } from 'drizzle-orm';
+import { communityUser, game, sessionWinner, user, votingSession } from '$lib/server/db/schema';
+import { and, asc, count, desc, eq, isNotNull, lt, max, sql } from 'drizzle-orm';
 
 type LeaderboardOptions = {
 	limit: number;
@@ -64,8 +64,15 @@ export async function getCommunityLeaderboard(
 			lastWin: userLastWin
 		})
 		.from(sessionWinner)
+		.innerJoin(
+			communityUser,
+			and(
+				eq(communityUser.communityId, sessionWinner.communityId),
+				eq(communityUser.userId, sessionWinner.winnerUserId)
+			)
+		)
 		.leftJoin(user, eq(user.id, sessionWinner.winnerUserId))
-		.where(eq(sessionWinner.communityId, communityId))
+		.where(and(eq(sessionWinner.communityId, communityId), isNotNull(sessionWinner.winnerUserId)))
 		.groupBy(sessionWinner.winnerUserId, user.name, user.image)
 		.orderBy(desc(userWinCount), desc(userLastWin), asc(sessionWinner.winnerUserId))
 		.limit(limit)
@@ -82,9 +89,16 @@ export async function getCommunityLeaderboard(
 			resolvedAt: sessionWinner.resolvedAt
 		})
 		.from(sessionWinner)
+		.innerJoin(
+			communityUser,
+			and(
+				eq(communityUser.communityId, sessionWinner.communityId),
+				eq(communityUser.userId, sessionWinner.winnerUserId)
+			)
+		)
 		.leftJoin(user, eq(user.id, sessionWinner.winnerUserId))
 		.leftJoin(game, eq(game.id, sessionWinner.gameId))
-		.where(eq(sessionWinner.communityId, communityId))
+		.where(and(eq(sessionWinner.communityId, communityId), isNotNull(sessionWinner.winnerUserId)))
 		.orderBy(desc(sessionWinner.resolvedAt))
 		.limit(limit)
 		.offset((recentPage - 1) * limit);
@@ -153,8 +167,8 @@ export async function setSessionWinners(
 		await db.transaction(async (tx) => {
 			await tx.delete(sessionWinner).where(eq(sessionWinner.votingSessionId, votingSessionId));
 
-			for (const userId of winnerUserIds) {
-				await tx.insert(sessionWinner).values({
+			await tx.insert(sessionWinner).values(
+				winnerUserIds.map((userId) => ({
 					votingSessionId,
 					votingOptionId,
 					communityId,
@@ -164,8 +178,8 @@ export async function setSessionWinners(
 					winType,
 					resolvedBy,
 					resolvedAt: new Date()
-				});
-			}
+				}))
+			);
 		});
 		return { success: true };
 	} catch (error) {

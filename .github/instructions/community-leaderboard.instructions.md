@@ -198,8 +198,25 @@ Recommendation: start with shared wins for least friction, then add manual tie-b
 3. Route/page tests
    - session page winner rendering
    - unresolved session warning rendering
-   - community leaderboard pagination and sorting
-   - profile summary (if enabled)
+
+## Open Discussion Decisions
+
+These questions were resolved during implementation review and are recorded here as final decisions.
+
+### 1. Should non-member historical winners be shown on the community leaderboard?
+
+**Decision: No.**
+
+The `topUsers` and `recentWins` leaderboard queries must only include users who are currently members of the community. This is enforced by an `INNER JOIN community_user` on `(communityId, userId)` in `getCommunityLeaderboard`. Session winner rows for users who have since left the community are preserved in `session_winner` as canonical history, but they are excluded from leaderboard surfaces. The `topGames` query is not affected — game win counts reflect community history regardless of player membership.
+
+### 2. Should optional user-profile leaderboard summaries be implemented in this phase?
+
+**Decision: No — defer to a future feature.**
+
+Profile leaderboard integration (total wins, communities won in, recent wins) is out of scope for phase 1. The `session_winner` table is the canonical source and fully supports that query when needed later.
+
+- community leaderboard pagination and sorting
+- profile summary (if enabled)
 
 ## Implementation Blueprint
 
