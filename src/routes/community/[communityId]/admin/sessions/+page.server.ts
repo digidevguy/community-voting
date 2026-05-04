@@ -8,6 +8,7 @@ import {
 import { getUnresolvedCompletedSessions } from '$lib/server/voting/winner-tracking.service';
 import type { Actions, PageServerLoad } from './$types';
 import { getUserCommunityRole } from '$lib/server/communities/communities.service';
+import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	const { community, userRole } = await parent();
@@ -26,7 +27,9 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 			.from(votingSession)
 			.leftJoin(user, eq(user.id, votingSession.createdBy))
 			.where(eq(votingSession.communityId, community.id)),
-		getUnresolvedCompletedSessions(locals.db, community.id, {})
+		getUnresolvedCompletedSessions(locals.db, community.id, {
+			createdAfter: new Date(env.WINNER_TRACKING_LAUNCH_DATE!)
+		})
 	]);
 
 	return { sessions, unresolvedWinnerSessions, community, userRole };

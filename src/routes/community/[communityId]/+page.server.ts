@@ -12,6 +12,7 @@ import {
 } from '$lib/server/voting/voting-session.service';
 import { getUnresolvedCompletedSessions } from '$lib/server/voting/winner-tracking.service';
 import { error, fail, redirect } from '@sveltejs/kit';
+import { env } from '$env/dynamic/private';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -31,12 +32,20 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const userId = locals.user.id;
 	const { communityId } = params;
 
+	const launchDateStr = env.WINNER_TRACKING_LAUNCH_DATE;
+	const launchDate = launchDateStr ? new Date(launchDateStr) : undefined;
+	if (launchDate && isNaN(launchDate.getTime())) {
+		throw new Error(`WINNER_TRACKING_LAUNCH_DATE is not a valid date: "${launchDateStr}"`);
+	}
+
 	const [community, allSessions, collectionCount, userRole, unresolvedWinners] = await Promise.all([
 		getCommunityInfo(locals.db, communityId),
 		getCommunitySessions(locals.db, communityId, userId),
 		getCommunityCollectionCount(locals.db, communityId),
 		getUserCommunityRole(locals.db, userId, communityId),
-		getUnresolvedCompletedSessions(locals.db, communityId, {})
+		getUnresolvedCompletedSessions(locals.db, communityId, {
+			createdAfter: launchDate
+		})
 	]);
 
 	const isPrivileged = isPrivilegedRole(userRole);

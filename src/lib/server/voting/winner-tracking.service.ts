@@ -1,6 +1,6 @@
 import type { Database, DBTransaction } from '$lib/server/db';
 import { communityUser, game, sessionWinner, user, votingSession } from '$lib/server/db/schema';
-import { and, asc, count, desc, eq, isNotNull, lt, max, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, isNotNull, lt, max, sql } from 'drizzle-orm';
 
 type LeaderboardOptions = {
 	limit: number;
@@ -12,6 +12,7 @@ type LeaderboardOptions = {
 
 type UnresolvedCompletedSessionsOptions = {
 	olderThanHours?: number;
+	createdAfter?: Date;
 };
 
 export async function getSessionWinners(db: Database, votingSessionId: string) {
@@ -111,7 +112,7 @@ export async function getUnresolvedCompletedSessions(
 	communityId: string,
 	options: UnresolvedCompletedSessionsOptions
 ) {
-	const { olderThanHours } = options || {};
+	const { olderThanHours, createdAfter } = options || {};
 
 	const whereClauses = [
 		eq(votingSession.communityId, communityId),
@@ -122,6 +123,11 @@ export async function getUnresolvedCompletedSessions(
 	if (olderThanHours && typeof olderThanHours === 'number') {
 		const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
 		whereClauses.push(lt(votingSession.createdAt, cutoff));
+	}
+
+	// Created after filter
+	if (createdAfter) {
+		whereClauses.push(gt(votingSession.createdAt, createdAfter));
 	}
 
 	// Query sessions with zero non-null winner rows
