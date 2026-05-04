@@ -295,16 +295,59 @@ Leaderboard page requirements:
 
 ### Phase G - Backfill and verification
 
-- Backfill historical completed sessions with `selectedOptionId`
-- create rows with null `winner_user_id` when player identity is unavailable
-- verify completed sessions against resolved winner coverage
+- Backfill script lives at `migrations/manual/0009_backfill_session_winners.sql`
+- This is a **one-time manual operation**, not a Drizzle migration. Run it once against each environment:
+  ```bash
+  psql $DATABASE_URL -f migrations/manual/0009_backfill_session_winners.sql
+  ```
+- Backfills game-side history from `selectedOptionId` for all completed sessions
+- `winner_user_id` is null — player identity for historical sessions is unknown
+- `win_type` is null — no win type applies when there is no player winner
+- Idempotent via `ON CONFLICT DO NOTHING` (relies on the partial unique index on `voting_option_id, voting_session_id` where `winner_user_id IS NULL`)
+- Sessions created before `WINNER_TRACKING_LAUNCH_DATE` are excluded from the unresolved UI via the `createdAfter` filter in `getUnresolvedCompletedSessions`
 
 ### Phase H - Tests and rollout checks
 
-- Add `src/lib/server/voting/winner-tracking.service.test.ts`
-- Extend `src/lib/server/voting/voting-session.validation.test.ts`
-- Add route/action tests for permission and unresolved-state behavior
-- Manually verify unresolved-to-resolved flow after winner logging
+> Tests are deferred and will be added in a follow-up. The required coverage is documented below.
+
+**`winner-tracking.service.test.ts`** (new file):
+
+- single winner: 1 row inserted, `winType='single'`
+- shared tie (2 users): 2 rows, same `votingSessionId`/`votingOptionId`, `winType='shared_tie'`
+- idempotent rerun — same winners: no duplicates after two calls
+- correction — different users: second call replaces first set
+- `getUnresolvedCompletedSessions` — completed, no winners: returns session
+- `getUnresolvedCompletedSessions` — completed, winners logged: does not return session
+- `getUnresolvedCompletedSessions` — `olderThanHours` cutoff: respects rolling window
+- `getUnresolvedCompletedSessions` — `createdAfter` cutoff: excludes pre-launch sessions
+- `getCommunityLeaderboard` topUsers — non-member excluded from results
+- `getCommunityLeaderboard` topGames — null `winnerUserId` rows counted toward game wins
+- `getSessionWinners` — null `winnerUserId` returns without crashing
+
+**`voting-session.validation.test.ts`** (extend existing):
+
+- `winnerLoggingSchema` — valid payload parses successfully
+- empty `winnerUserIds` rejected (min(1))
+- invalid `winType` rejected
+- invalid UUID for `votingSessionId` rejected
+- missing `resolvedBy` rejected
+
+**Route/action tests**:
+
+- `logWinners` — unauthenticated redirects to `/auth`
+- `logWinners` — regular member returns 403
+- `logWinners` — session creator succeeds
+- `logWinners` — community moderator succeeds
+- `logWinners` — session in `draft` or `active` status returns 400
+- `logWinners` — session in `voting_ended` status succeeds
+- Unresolved warning renders for privileged user on a completed winner-less session
+- Unresolved warning not rendered for regular member
+
+**Manual rollout verification**:
+
+- Run `migrations/manual/0009_backfill_session_winners.sql` against each environment
+- Confirm pre-launch sessions are suppressed in unresolved UI
+- Confirm unresolved-to-resolved flow clears a session from the needs-action list
 
 ## Open Decisions
 
