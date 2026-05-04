@@ -1,5 +1,35 @@
 # Recent Updates
 
+## Leaderboard and Winner Tracking
+
+Communities now have a dedicated leaderboard and a formal winner-tracking system for game nights.
+
+### Community Leaderboard
+
+A new **Leaderboard** page is available from the community home. It shows three views:
+
+- **Top Games** — games ranked by total wins in the community
+- **Top Users** — players ranked by total wins in the community
+- **Recent Wins** — a chronological feed of the most recent game night outcomes
+
+All three views are paginated, and win counts are derived directly from logged game night outcomes.
+
+### Winner Logging
+
+Admins and moderators can now log which player(s) won each game night directly from **Admin → Sessions**. Wins are associated with a completed voting session, the winning game, and one or more players.
+
+**Shared wins are supported.** When a game night results in a tie or a team win, multiple players can be recorded as winners for the same session. Each player's win count will increase accordingly.
+
+### Unresolved Sessions
+
+Sessions that have been completed but have not had winners logged are tracked as **unresolved**. The community home page and the admin sessions view both surface these sessions so nothing falls through the cracks. Admins can log winners directly from either location.
+
+Leaderboard totals only reflect sessions that have been fully resolved.
+
+See [Leaderboard & Winner Tracking](/docs/leaderboard) for the full reference.
+
+---
+
 This release adds the first pass of Steam integration, makes ownership in community collections more visible, and starts building out the docs area.
 
 ## SteamID and Library Integration

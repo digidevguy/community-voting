@@ -14,6 +14,7 @@
 		{ path: '/docs/getting-started', label: 'Getting Started' },
 		{ path: '/docs/communities', label: 'Communities' },
 		{ path: '/docs/voting', label: 'Voting' },
+		{ path: '/docs/leaderboard', label: 'Leaderboard' },
 		{ path: '/docs/collections', label: 'Collections' },
 		{ path: '/docs/admin', label: 'Admin Guide' }
 	] as const;
