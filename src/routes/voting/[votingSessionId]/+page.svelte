@@ -374,7 +374,7 @@
 					<input type="hidden" name="userIds" value={winnerId} />
 				{/each}
 
-				<Dialog.Footer class="gap-2 sm:gap-0">
+				<Dialog.Footer class="gap-2">
 					<Dialog.Close type="button" class={buttonVariants({ variant: 'outline' })}>
 						Cancel
 					</Dialog.Close>
