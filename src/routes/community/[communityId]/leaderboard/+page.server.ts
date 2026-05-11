@@ -8,6 +8,8 @@ function getPage(url: URL, key: string): number {
 }
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
+	const communityId = params.communityId;
+
 	const data = await getCommunityLeaderboard(locals.db, params.communityId, {
 		limit: LIMIT,
 		gamesPage: getPage(url, 'gamesPage'),
@@ -15,5 +17,5 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		recentPage: getPage(url, 'recentPage')
 	});
 
-	return { ...data, limit: LIMIT };
+	return { communityId, ...data, limit: LIMIT };
 };

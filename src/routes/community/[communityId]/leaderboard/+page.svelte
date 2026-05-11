@@ -6,7 +6,7 @@
 	import * as Avatar from '$lib/components/ui/avatar';
 	import Button from '$lib/components/ui/button/button.svelte';
 	import { formatDate } from '$lib/utils';
-	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
+	import { ChevronLeft, ChevronRight, CircleChevronLeft } from '@lucide/svelte';
 
 	let { data }: { data: PageServerData } = $props();
 
@@ -35,6 +35,14 @@
 			.toUpperCase();
 	}
 </script>
+
+<Button
+	href="/community/{data.communityId}"
+	variant="outline"
+	class="mb-1 -ml-2 text-muted-foreground"
+>
+	<CircleChevronLeft />Back
+</Button>
 
 <h1 class="mb-3 text-xl font-semibold sm:mb-4 sm:text-2xl">Community Leaderboard</h1>
 
