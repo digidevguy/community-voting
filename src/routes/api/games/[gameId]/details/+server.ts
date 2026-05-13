@@ -10,6 +10,10 @@ import {
 } from '$lib/server/games/games.service';
 
 export const POST: RequestHandler = async ({ locals, params }) => {
+	if (!locals.user) {
+		throw error(401, 'Unauthorized');
+	}
+
 	const gameId = params.gameId;
 
 	if (isNaN(Number(gameId))) {
