@@ -11,6 +11,8 @@
 	import { signOut } from '$lib/auth-client';
 	import { toast } from 'svelte-sonner';
 	import { LogIn, LogOut, Menu, TestTubeDiagonal } from '@lucide/svelte';
+	import GithubIcon from '$lib/components/custom/GithubIcon.svelte';
+	import DiscordIcon from '$lib/components/custom/DiscordIcon.svelte';
 	import { dev } from '$app/environment';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
 	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
@@ -63,6 +65,27 @@
 			<Button variant="ghost" href="/auth" data-sveltekit-preload-data="tap"><LogIn /></Button>
 		{/if}
 
+		<Button
+			variant="ghost"
+			size="icon"
+			href="https://github.com/digidevguy/community-voting"
+			target="_blank"
+			rel="noopener noreferrer"
+			aria-label="GitHub Repository"
+		>
+			<GithubIcon />
+		</Button>
+		<Button
+			variant="ghost"
+			size="icon"
+			href="https://discord.gg/Gr4ZwVKdjy"
+			target="_blank"
+			rel="noopener noreferrer"
+			aria-label="Discord Server"
+		>
+			<DiscordIcon />
+		</Button>
+
 		<DarkModeToggle />
 	</div>
 
@@ -105,6 +128,27 @@
 				</nav>
 
 				<Sheet.Footer class="border-t px-4 py-4">
+					<Button
+						variant="ghost"
+						href="https://github.com/digidevguy/community-voting"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="w-full justify-start"
+						onclick={() => (mobileMenuOpen = false)}
+					>
+						<GithubIcon /> GitHub
+					</Button>
+					<Button
+						variant="ghost"
+						href="https://discord.gg/Gr4ZwVKdjy"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="w-full justify-start"
+						onclick={() => (mobileMenuOpen = false)}
+					>
+						<DiscordIcon /> Discord
+					</Button>
+					<div class="my-1 border-t"></div>
 					{#if data?.user}
 						<Button
 							variant="ghost"
@@ -144,6 +188,33 @@
 <main class="mx-auto my-2 min-h-screen w-full max-w-5xl rounded-md px-4 py-4 sm:px-6 md:px-8">
 	{@render children?.()}
 </main>
+
+<footer class="border-t px-4 py-4">
+	<div
+		class="mx-auto flex max-w-5xl items-center justify-center gap-6 text-sm text-muted-foreground"
+	>
+		<a
+			href="https://github.com/digidevguy/community-voting"
+			target="_blank"
+			rel="noopener noreferrer"
+			class="flex items-center gap-1.5 transition-colors hover:text-foreground"
+			aria-label="View project on GitHub"
+		>
+			<GithubIcon class="h-4 w-4" />
+			<span>GitHub</span>
+		</a>
+		<a
+			href="https://discord.gg/Gr4ZwVKdjy"
+			target="_blank"
+			rel="noopener noreferrer"
+			class="flex items-center gap-1.5 transition-colors hover:text-foreground"
+			aria-label="Join our Discord server"
+		>
+			<DiscordIcon class="h-4 w-4" />
+			<span>Discord</span>
+		</a>
+	</div>
+</footer>
 
 <style>
 	/* :global(body) {
