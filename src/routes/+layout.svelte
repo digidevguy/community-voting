@@ -10,10 +10,12 @@
 	import { resolve } from '$app/paths';
 	import { signOut } from '$lib/auth-client';
 	import { toast } from 'svelte-sonner';
-	import { LogIn, LogOut, Menu } from '@lucide/svelte';
+	import { LogIn, LogOut, Menu, TestTubeDiagonal } from '@lucide/svelte';
 	import { dev } from '$app/environment';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
 	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
+	import Badge from '$lib/components/ui/badge/badge.svelte';
+	import GlobalNotice from '$lib/components/custom/GlobalNotice.svelte';
 
 	injectSpeedInsights();
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
@@ -33,7 +35,10 @@
 <ModeWatcher defaultMode="dark" />
 <Toaster position="bottom-center" richColors />
 <header class="flex items-center justify-between border-b p-4">
-	<a href={resolve('/')} class="text-lg font-bold">Community Voting</a>
+	<div>
+		<a href={resolve('/')} class="text-lg font-bold">Community Voting</a>
+		<Badge class="bg-green-600 dark:bg-green-800"><TestTubeDiagonal />Beta</Badge>
+	</div>
 
 	<!-- Desktop nav -->
 	<div class="hidden items-center gap-4 sm:flex">
@@ -82,6 +87,7 @@
 						>
 							Community Voting
 						</a>
+						<Badge class="bg-green-600 dark:bg-green-800"><TestTubeDiagonal />Beta</Badge>
 					</Sheet.Title>
 				</Sheet.Header>
 
@@ -127,6 +133,14 @@
 		</Sheet.Root>
 	</div>
 </header>
+{#if data.banner?.enabled}
+	<GlobalNotice
+		message={data.banner.message}
+		type={data.banner.type}
+		link={data.banner.link}
+		storageKey={data.banner.storageKey}
+	/>
+{/if}
 <main class="mx-auto my-2 min-h-screen w-full max-w-5xl rounded-md px-4 py-4 sm:px-6 md:px-8">
 	{@render children?.()}
 </main>
