@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/sveltekit';
 import { sequence } from '@sveltejs/kit/hooks';
 import type { Handle } from '@sveltejs/kit';
 import { auth } from '$lib/server/auth';
@@ -6,19 +7,20 @@ import { building, dev } from '$app/environment';
 import { db } from '$lib/server/db';
 
 const handleDevTools: Handle = ({ event, resolve }) => {
-	if (dev && event.url.pathname === '/.well-known/appspecific/com.chrome.devtools.json') {
-		return new Response(undefined, { status: 404 });
-	}
-	return resolve(event);
+				if (dev && event.url.pathname === '/.well-known/appspecific/com.chrome.devtools.json') {
+								return new Response(undefined, { status: 404 });
+				}
+				return resolve(event);
 };
 
 const handleAuth: Handle = async ({ event, resolve }) => {
-	const session = await auth.api.getSession({ headers: event.request.headers });
-	event.locals.db = db;
-	event.locals.user = session?.user ?? null;
-	event.locals.session = session?.session ?? null;
+				const session = await auth.api.getSession({ headers: event.request.headers });
+				event.locals.db = db;
+				event.locals.user = session?.user ?? null;
+				event.locals.session = session?.session ?? null;
 
-	return svelteKitHandler({ event, resolve, auth, building });
+				return svelteKitHandler({ event, resolve, auth, building });
 };
 
-export const handle: Handle = sequence(handleDevTools, handleAuth);
+export const handle: Handle = sequence(Sentry.sentryHandle(), sequence(handleDevTools, handleAuth));
+export const handleError = Sentry.handleErrorWithSentry();

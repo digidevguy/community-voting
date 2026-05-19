@@ -1,9 +1,13 @@
+import { sentrySvelteKit } from "@sentry/sveltekit";
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit()],
+	plugins: [sentrySvelteKit({
+        org: "matthew-4j",
+        project: "javascript-sveltekit"
+    }), tailwindcss(), sveltekit()],
 	test: {
 		expect: { requireAssertions: true },
 		projects: [

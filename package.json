@@ -62,6 +62,7 @@
 		"vitest-browser-svelte": "^0.1.0"
 	},
 	"dependencies": {
+		"@sentry/sveltekit": "^10.53.1",
 		"@vercel/analytics": "^2.0.1",
 		"@vercel/blob": "^2.3.3",
 		"@vercel/config": "^0.1.0",

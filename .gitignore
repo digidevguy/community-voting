@@ -27,3 +27,6 @@ vite.config.ts.timestamp-*
 # Database
 postgres-data/
 
+
+# Sentry Config File
+.env.sentry-build-plugin
