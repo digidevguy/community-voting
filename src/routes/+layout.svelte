@@ -18,6 +18,8 @@
 	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
 	import Badge from '$lib/components/ui/badge/badge.svelte';
 	import GlobalNotice from '$lib/components/custom/GlobalNotice.svelte';
+	import { beforeNavigate } from '$app/navigation';
+	import { updated } from '$app/state';
 
 	injectSpeedInsights();
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
@@ -25,6 +27,21 @@
 	let { children, data }: LayoutProps = $props();
 
 	let mobileMenuOpen = $state(false);
+
+	beforeNavigate(({ willUnload, to }) => {
+		if (updated.current && !willUnload && to?.url) {
+			location.href = to.url.href;
+		}
+	});
+
+	$effect(() => {
+		if (updated.current) {
+			toast('A new version is available.', {
+				action: { label: 'Reload', onClick: () => location.reload() },
+				duration: Infinity
+			});
+		}
+	});
 </script>
 
 <svelte:head>

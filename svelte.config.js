@@ -4,44 +4,47 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
-				// Consult https://svelte.dev/docs/kit/integrations
-				// for more information about preprocessors
-				preprocess: [
-								vitePreprocess(),
-								mdsvex({
-												extensions: ['.svx', '.md']
-								})
+	// Consult https://svelte.dev/docs/kit/integrations
+	// for more information about preprocessors
+	preprocess: [
+		vitePreprocess(),
+		mdsvex({
+			extensions: ['.svx', '.md']
+		})
+	],
+	kit: {
+		version: {
+			pollInterval: 60000
+		},
+		adapter: adapter({
+			runtime: 'nodejs24.x',
+			regions: ['cle1'],
+			images: {
+				domains: [
+					'cdn.akamai.steamstatic.com',
+					'cdn.cloudflare.steamstatic.com',
+					'media.steampowered.com',
+					'avatars.steamstatic.com',
+					'cdn.discordapp.com',
+					'images.unsplash.com',
+					'pUUJW44V3BsjkSxl.public.blob.vercel-storage.com'
 				],
-				kit: {
-				 adapter: adapter({
-									runtime: 'nodejs24.x',
-									regions: ['cle1'],
-									images: {
-													domains: [
-																	'cdn.akamai.steamstatic.com',
-																	'cdn.cloudflare.steamstatic.com',
-																	'media.steampowered.com',
-																	'avatars.steamstatic.com',
-																	'cdn.discordapp.com',
-																	'images.unsplash.com',
-																	'pUUJW44V3BsjkSxl.public.blob.vercel-storage.com'
-													],
-													sizes: [320, 640, 800, 1080, 1920],
-													minimumCacheTTL: 3600
-									}
-					}),
+				sizes: [320, 640, 800, 1080, 1920],
+				minimumCacheTTL: 3600
+			}
+		}),
 
-				 experimental: {
-					 tracing: {
-						 server: true
-						},
+		experimental: {
+			tracing: {
+				server: true
+			},
 
-					 instrumentation: {
-						 server: true
-						}
-					}
-				},
-				extensions: ['.svelte', '.svx', '.md']
+			instrumentation: {
+				server: true
+			}
+		}
+	},
+	extensions: ['.svelte', '.svx', '.md']
 };
 
 export default config;
