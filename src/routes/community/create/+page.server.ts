@@ -6,6 +6,7 @@ import {
 	getOwnedCommunitiesCount
 } from '$lib/server/communities/communities.service';
 import { createCommunitySchema } from '$lib/server/communities/communites.validation';
+import * as Sentry from '@sentry/sveltekit';
 
 const MAX_OWNED_COMMUNITIES = 3;
 
@@ -51,21 +52,34 @@ export const actions: Actions = {
 
 		const ownedCommunityCount = await getOwnedCommunitiesCount(locals.db, locals.user.id);
 		if (ownedCommunityCount >= MAX_OWNED_COMMUNITIES) {
-			return error(403, { message: 'You have reached the maximum number of owned communities.' });
+			throw error(403, { message: 'You have reached the maximum number of owned communities.' });
 		}
 
-		const parsed = await parseCreateCommunityBody(await request.formData(), locals.user.id);
+		const user = locals.user;
+		const parsed = await parseCreateCommunityBody(await request.formData(), user.id);
 		if ('error' in parsed) return parsed.error;
 
 		let newCommunity;
 		try {
-			newCommunity = await createCommunity(locals.db, parsed.data);
-			await joinCommunity(locals.db, {
-				communityId: newCommunity.id,
-				userId: locals.user.id,
-				role: 'admin'
+			newCommunity = await locals.db.transaction(async (tx) => {
+				const created = await createCommunity(tx, parsed.data);
+				await joinCommunity(tx, {
+					communityId: created.id,
+					userId: user.id,
+					role: 'admin'
+				});
+				return created;
+			});
+			Sentry.logger.info('New Community created', {
+				userId: user.id,
+				communityId: newCommunity.id
 			});
 		} catch (err: unknown) {
+			Sentry.captureException(err, {
+				extra: {
+					userId: user.id
+				}
+			});
 			return fail(500, {
 				success: false,
 				message: err instanceof Error ? err.message : 'An unexpected error occurred'

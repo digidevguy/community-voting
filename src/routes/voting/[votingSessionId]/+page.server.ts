@@ -17,6 +17,7 @@ import { getUserCommunityRole } from '$lib/server/communities/communities.servic
 import type { Database } from '$lib/server/db';
 import { winnerLoggingSchema } from '$lib/server/voting/voting-session.validation';
 import { getSessionWinners, setSessionWinners } from '$lib/server/voting/winner-tracking.service';
+import * as Sentry from '@sentry/sveltekit';
 
 function getVotingSessionId(
 	formData: FormData
@@ -139,12 +140,20 @@ export const actions: Actions = {
 				validated.data.votingOptionId
 			);
 
+			Sentry.logger.info('Vote cast', {
+				userId: locals.user?.id,
+				votingSessionId: validated.data.votingSessionId,
+				votingOptionId: validated.data.votingOptionId
+			});
+
 			return {
 				success: true,
 				voteId: result.id
 			};
 		} catch (err: unknown) {
-			console.error('Err: ', err);
+			Sentry.captureException(err, {
+				extra: { votingSessionId: validated.data.votingSessionId, userId: locals.user?.id }
+			});
 			return fail(500, {
 				message: err instanceof Error ? err.message : 'Failed to cast vote'
 			});
@@ -162,9 +171,18 @@ export const actions: Actions = {
 
 		try {
 			await clearVoteForSession(locals.db, locals.user!.id, votingSessionId);
+			Sentry.logger.info('User vote cleared', {
+				userId: locals.user?.id,
+				votingSessionId
+			});
 			return { success: true };
-		} catch (e) {
-			console.error('Failed to clear user vote: ', e);
+		} catch (err) {
+			Sentry.captureException(err, {
+				extra: {
+					userId: locals.user?.id,
+					votingSessionId
+				}
+			});
 			return fail(500, { message: 'Failed to clear vote. Please try again.' });
 		}
 	},
@@ -175,9 +193,19 @@ export const actions: Actions = {
 
 		try {
 			await endVotingSession(locals.db, session.id, locals.user!.id);
+			Sentry.logger.info('Session ended', {
+				userId: locals.user?.id,
+				votingSessionId,
+				communityId: session.communityId
+			});
 			return { success: true };
-		} catch (err: unknown) {
-			console.error('Failed to end voting session: ', err);
+		} catch (err) {
+			Sentry.captureException(err, {
+				extra: {
+					userId: locals.user?.id,
+					votingSessionId
+				}
+			});
 			return fail(400, {
 				message: err instanceof Error ? err.message : 'Failed to end voting session'
 			});
@@ -198,9 +226,17 @@ export const actions: Actions = {
 
 		try {
 			await assignTieBreakWinner(locals.db, session.id, votingOptionId, locals.user.id);
+			Sentry.logger.info('Tie-break winner assigned', {
+				userId: locals.user.id,
+				votingSessionId,
+				votingOptionId,
+				communityId: session.communityId
+			});
 			return { success: true };
 		} catch (err) {
-			console.error('Failed to assign tie-break winner:', err);
+			Sentry.captureException(err, {
+				extra: { userId: locals.user.id, votingSessionId, votingOptionId }
+			});
 			return fail(400, {
 				message: err instanceof Error ? err.message : 'Failed to assign tie-break winner'
 			});
@@ -229,10 +265,18 @@ export const actions: Actions = {
 
 		try {
 			await setSessionWinners(locals.db, parsed.data);
-
+			Sentry.logger.info('Session winners logged', {
+				userId: locals.user.id,
+				votingSessionId,
+				gameId: parsed.data.gameId,
+				winType: parsed.data.winType,
+				communityId: session.communityId
+			});
 			return { success: true };
 		} catch (err) {
-			console.error('Failed to add winner data:', err);
+			Sentry.captureException(err, {
+				extra: { userId: locals.user.id, votingSessionId, communityId: session.communityId }
+			});
 			return fail(400, {
 				success: false,
 				message: 'Unable to add winner data, please try again'

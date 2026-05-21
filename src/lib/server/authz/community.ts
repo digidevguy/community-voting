@@ -1,4 +1,5 @@
 import { error, redirect } from '@sveltejs/kit';
+import * as Sentry from '@sentry/sveltekit';
 import { getVotingSession } from '../voting/voting-session.service';
 import { getUserCommunityRole, isPrivilegedRole } from '../communities/communities.service';
 
@@ -19,18 +20,30 @@ export async function requireVotingAccess(locals: App.Locals, votingSessionId: s
 	const session = await getVotingSession(locals.db, votingSessionId);
 
 	if (!session) {
+		Sentry.logger.warn('Authz denied: voting session not found', { userId: locals.user.id, votingSessionId });
 		throw error(404, 'Voting session not found');
 	}
 
 	const role = await getUserCommunityRole(locals.db, locals.user.id, session.communityId);
 
 	if (!role) {
+		Sentry.logger.warn('Authz denied: user is not a community member', {
+			userId: locals.user.id,
+			votingSessionId,
+			communityId: session.communityId
+		});
 		throw error(403, 'User is not a member of the community');
 	}
 
 	const isPrivileged = session.createdBy === locals.user.id || isPrivilegedRole(role);
 
 	if (session.status === 'draft' && !isPrivileged) {
+		Sentry.logger.warn('Authz denied: unprivileged access to draft session', {
+			userId: locals.user.id,
+			votingSessionId,
+			communityId: session.communityId,
+			role
+		});
 		throw error(403, 'This session is not yet published');
 	}
 
@@ -49,6 +62,7 @@ export async function requireSessionWriteAccess(locals: App.Locals, votingSessio
 	const session = await getVotingSession(locals.db, votingSessionId);
 
 	if (!session) {
+		Sentry.logger.warn('Authz denied: voting session not found', { userId: locals.user.id, votingSessionId });
 		throw error(404, 'Voting session not found');
 	}
 
@@ -61,6 +75,12 @@ export async function requireSessionWriteAccess(locals: App.Locals, votingSessio
 	const role = await getUserCommunityRole(locals.db, userId, session.communityId);
 
 	if (!isPrivilegedRole(role)) {
+		Sentry.logger.warn('Authz denied: insufficient role for session write access', {
+			userId,
+			votingSessionId,
+			communityId: session.communityId,
+			role
+		});
 		throw error(
 			403,
 			'Only the session creator or a community moderator/admin can perform this action'
