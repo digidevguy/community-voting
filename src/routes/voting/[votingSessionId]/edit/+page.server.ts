@@ -1,4 +1,5 @@
 import { error, fail, isHttpError, redirect } from '@sveltejs/kit';
+import * as Sentry from '@sentry/sveltekit';
 import type { Actions, PageServerLoad } from '../$types';
 import {
 	addGameToCollectionWithEnrichment,
@@ -54,8 +55,15 @@ export const actions: Actions = {
 
 		try {
 			await deleteVotingSession(locals.db, votingSessionId);
+			Sentry.logger.info('Voting session deleted', {
+				userId: locals.user?.id,
+				votingSessionId,
+				communityId: session.communityId
+			});
 		} catch (err) {
-			console.error('Failed to delete voting session:', err);
+			Sentry.captureException(err, {
+				extra: { votingSessionId, userId: locals.user?.id }
+			});
 			return fail(500, { message: 'Unable to delete voting session' });
 		}
 
@@ -201,12 +209,19 @@ export const actions: Actions = {
 				}
 			});
 
+			Sentry.logger.info('Voting session updated', {
+				userId,
+				votingSessionId: routeVotingSessionId,
+				communityId: existingSession.communityId
+			});
 			return {
 				success: true,
 				votingSessionId: routeVotingSessionId
 			};
 		} catch (err: unknown) {
-			console.error('Edit voting session error:', err);
+			Sentry.captureException(err, {
+				extra: { votingSessionId: routeVotingSessionId, userId }
+			});
 			return fail(500, {
 				success: false,
 				message: err instanceof Error ? err.message : 'Failed to update voting session.'
@@ -295,11 +310,18 @@ export const actions: Actions = {
 			});
 
 			if (status === 'active') {
+				Sentry.logger.info('Voting session published', {
+					userId,
+					votingSessionId,
+					communityId: existingSession.communityId
+				});
 				return { success: true };
 			}
 			return fail(500, { message: 'Session did not transition to active' });
 		} catch (error) {
-			console.error('Error publishing session', error);
+			Sentry.captureException(error, {
+				extra: { votingSessionId, userId }
+			});
 			return fail(500, {
 				message: error instanceof Error ? error.message : 'Failed to publish session'
 			});
