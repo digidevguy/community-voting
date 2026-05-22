@@ -26,8 +26,6 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	return svelteKitHandler({ event, resolve, auth, building });
 };
 
-// Todo: Use better-auth (hook or callback) event such as onSessionCreated / afterSignIn to track sign-in events
-
 const handleCacheHeaders: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
 	if (

@@ -17,6 +17,11 @@ export async function POST({ request, locals }) {
 	if (!ALLOWED_TYPES.includes(file.type)) error(400, 'Unsupported file type');
 	if (file.size > MAX_BYTES) error(400, 'File too large');
 
+	Sentry.metrics.distribution('image.upload.size', file.size, {
+		unit: 'byte',
+		attributes: { fileType: file.type }
+	});
+
 	try {
 		const ext = file.type.split('/')[1];
 		const blob = await put(`communities/${crypto.randomUUID()}.${ext}`, file, {

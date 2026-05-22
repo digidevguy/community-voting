@@ -149,6 +149,12 @@ export const actions: Actions = {
 				communityId,
 				votingSessionId: created.id
 			});
+			Sentry.metrics.count('voting.session.created', 1, {
+				attributes: {
+					communityId,
+					published: false
+				}
+			});
 		} catch (err: unknown) {
 			Sentry.captureException(err, {
 				tags: { communityId, userId: user.id },
@@ -202,6 +208,12 @@ export const actions: Actions = {
 				createdby: user.id,
 				communityId,
 				sessionId: session.id
+			});
+			Sentry.metrics.count('voting.session.created', 1, {
+				attributes: {
+					communityId,
+					published: true
+				}
 			});
 		} catch (err: unknown) {
 			Sentry.captureException(err, {

@@ -79,20 +79,24 @@ export async function fetchSteamGameData(
 	apiUrl: string,
 	gameId: string
 ): Promise<SteamGameResponse[string] | null> {
-	const response = await fetch(`${apiUrl}?appids=${gameId}`);
+	return Sentry.startSpan({ op: 'http.client', name: 'Steam App Details' }, async () => {
+		const start = performance.now();
+		const response = await fetch(`${apiUrl}?appids=${gameId}`);
 
-	if (!response.ok) {
-		throw new Error(`Steam API returned status ${response.status}`);
-	}
+		Sentry.metrics.distribution('steam.api.latency', performance.now() - start, {
+			unit: 'millisecond',
+			attributes: { success: String(response.ok) }
+		});
 
-	const apiResponse: SteamGameResponse = await response.json();
-	const app = apiResponse[gameId];
+		if (!response.ok) {
+			throw new Error(`Steam API returned status ${response.status}`);
+		}
 
-	if (!app || !app.success || !app.data) {
-		return null;
-	}
+		const apiResponse: SteamGameResponse = await response.json();
+		const app = apiResponse[gameId];
 
-	return app;
+		return !app || !app.success || !app.data ? null : app;
+	});
 }
 
 export function transformSteamData(steamData: SteamGameResponse[string]['data']): GameDetailsInput {

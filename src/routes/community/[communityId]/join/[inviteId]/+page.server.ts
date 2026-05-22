@@ -52,6 +52,11 @@ export const actions: Actions = {
 				inviteId,
 				invitedBy: invite.createdBy
 			});
+			Sentry.metrics.count('community.joined', 1, {
+				attributes: {
+					via: 'invite'
+				}
+			});
 		} catch (err) {
 			Sentry.captureException(err, {
 				tags: { communityId, userId: locals.user.id },

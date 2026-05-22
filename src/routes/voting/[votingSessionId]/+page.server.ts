@@ -146,6 +146,12 @@ export const actions: Actions = {
 				votingOptionId: validated.data.votingOptionId
 			});
 
+			Sentry.metrics.count('vote.cast', 1, {
+				attributes: {
+					communityId: sessionData.votingSessionDetails.communityId
+				}
+			});
+
 			return {
 				success: true,
 				voteId: result.id
@@ -178,6 +184,11 @@ export const actions: Actions = {
 			Sentry.logger.info('User vote cleared', {
 				userId: locals.user?.id,
 				votingSessionId
+			});
+			Sentry.metrics.count('vote.cleared', 1, {
+				attributes: {
+					communityId: sessionData.votingSessionDetails.communityId
+				}
 			});
 			return { success: true };
 		} catch (err) {
@@ -240,6 +251,11 @@ export const actions: Actions = {
 				votingSessionId,
 				votingOptionId,
 				communityId: session.communityId
+			});
+			Sentry.metrics.count('voting.session.tie_resolved', 1, {
+				attributes: {
+					communityId: session.communityId
+				}
 			});
 			return { success: true };
 		} catch (err) {

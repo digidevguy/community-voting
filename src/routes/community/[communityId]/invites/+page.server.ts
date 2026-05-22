@@ -88,6 +88,11 @@ export const actions: Actions = {
 				expiresAt: expiresAt ?? null,
 				maxUses: maxUses ?? null
 			});
+			Sentry.metrics.count('invite.created', 1, {
+				attributes: {
+					communityId: params.communityId
+				}
+			});
 			return { success: true, id: invite.id };
 		} catch (err) {
 			Sentry.captureException(err, {

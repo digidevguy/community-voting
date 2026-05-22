@@ -33,79 +33,81 @@ export async function getCommunityLeaderboard(
 	communityId: string,
 	options: LeaderboardOptions
 ) {
-	const { limit, gamesPage, usersPage, recentPage } = options;
+	return Sentry.startSpan({ op: 'db.query', name: 'Community Leaderboard' }, async () => {
+		const { limit, gamesPage, usersPage, recentPage } = options;
 
-	const gameWinCount = count().as('winCount');
-	const gameLastWin = max(sessionWinner.resolvedAt).as('lastWin');
+		const gameWinCount = count().as('winCount');
+		const gameLastWin = max(sessionWinner.resolvedAt).as('lastWin');
 
-	const topGames = await db
-		.select({
-			gameId: sessionWinner.gameId,
-			title: game.title,
-			image: game.image,
-			winCount: gameWinCount,
-			lastWin: gameLastWin
-		})
-		.from(sessionWinner)
-		.leftJoin(game, eq(sessionWinner.gameId, game.id))
-		.where(eq(sessionWinner.communityId, communityId))
-		.groupBy(sessionWinner.gameId, game.title, game.image)
-		.orderBy(desc(gameWinCount), desc(gameLastWin), asc(sessionWinner.gameId))
-		.limit(limit)
-		.offset((gamesPage - 1) * limit);
+		const topGames = await db
+			.select({
+				gameId: sessionWinner.gameId,
+				title: game.title,
+				image: game.image,
+				winCount: gameWinCount,
+				lastWin: gameLastWin
+			})
+			.from(sessionWinner)
+			.leftJoin(game, eq(sessionWinner.gameId, game.id))
+			.where(eq(sessionWinner.communityId, communityId))
+			.groupBy(sessionWinner.gameId, game.title, game.image)
+			.orderBy(desc(gameWinCount), desc(gameLastWin), asc(sessionWinner.gameId))
+			.limit(limit)
+			.offset((gamesPage - 1) * limit);
 
-	const userWinCount = count().as('winCount');
-	const userLastWin = max(sessionWinner.resolvedAt).as('lastWin');
+		const userWinCount = count().as('winCount');
+		const userLastWin = max(sessionWinner.resolvedAt).as('lastWin');
 
-	const topUsers = await db
-		.select({
-			userId: sessionWinner.winnerUserId,
-			name: user.name,
-			image: user.image,
-			winCount: userWinCount,
-			lastWin: userLastWin
-		})
-		.from(sessionWinner)
-		.innerJoin(
-			communityUser,
-			and(
-				eq(communityUser.communityId, sessionWinner.communityId),
-				eq(communityUser.userId, sessionWinner.winnerUserId)
+		const topUsers = await db
+			.select({
+				userId: sessionWinner.winnerUserId,
+				name: user.name,
+				image: user.image,
+				winCount: userWinCount,
+				lastWin: userLastWin
+			})
+			.from(sessionWinner)
+			.innerJoin(
+				communityUser,
+				and(
+					eq(communityUser.communityId, sessionWinner.communityId),
+					eq(communityUser.userId, sessionWinner.winnerUserId)
+				)
 			)
-		)
-		.leftJoin(user, eq(user.id, sessionWinner.winnerUserId))
-		.where(and(eq(sessionWinner.communityId, communityId), isNotNull(sessionWinner.winnerUserId)))
-		.groupBy(sessionWinner.winnerUserId, user.name, user.image)
-		.orderBy(desc(userWinCount), desc(userLastWin), asc(sessionWinner.winnerUserId))
-		.limit(limit)
-		.offset((usersPage - 1) * limit);
+			.leftJoin(user, eq(user.id, sessionWinner.winnerUserId))
+			.where(and(eq(sessionWinner.communityId, communityId), isNotNull(sessionWinner.winnerUserId)))
+			.groupBy(sessionWinner.winnerUserId, user.name, user.image)
+			.orderBy(desc(userWinCount), desc(userLastWin), asc(sessionWinner.winnerUserId))
+			.limit(limit)
+			.offset((usersPage - 1) * limit);
 
-	const recentWins = await db
-		.select({
-			winnerUserId: sessionWinner.winnerUserId,
-			userName: user.name,
-			userImage: user.image,
-			gameId: sessionWinner.gameId,
-			gameTitle: game.title,
-			gameImage: game.image,
-			resolvedAt: sessionWinner.resolvedAt
-		})
-		.from(sessionWinner)
-		.innerJoin(
-			communityUser,
-			and(
-				eq(communityUser.communityId, sessionWinner.communityId),
-				eq(communityUser.userId, sessionWinner.winnerUserId)
+		const recentWins = await db
+			.select({
+				winnerUserId: sessionWinner.winnerUserId,
+				userName: user.name,
+				userImage: user.image,
+				gameId: sessionWinner.gameId,
+				gameTitle: game.title,
+				gameImage: game.image,
+				resolvedAt: sessionWinner.resolvedAt
+			})
+			.from(sessionWinner)
+			.innerJoin(
+				communityUser,
+				and(
+					eq(communityUser.communityId, sessionWinner.communityId),
+					eq(communityUser.userId, sessionWinner.winnerUserId)
+				)
 			)
-		)
-		.leftJoin(user, eq(user.id, sessionWinner.winnerUserId))
-		.leftJoin(game, eq(game.id, sessionWinner.gameId))
-		.where(and(eq(sessionWinner.communityId, communityId), isNotNull(sessionWinner.winnerUserId)))
-		.orderBy(desc(sessionWinner.resolvedAt))
-		.limit(limit)
-		.offset((recentPage - 1) * limit);
+			.leftJoin(user, eq(user.id, sessionWinner.winnerUserId))
+			.leftJoin(game, eq(game.id, sessionWinner.gameId))
+			.where(and(eq(sessionWinner.communityId, communityId), isNotNull(sessionWinner.winnerUserId)))
+			.orderBy(desc(sessionWinner.resolvedAt))
+			.limit(limit)
+			.offset((recentPage - 1) * limit);
 
-	return { topGames, topUsers, recentWins };
+		return { topGames, topUsers, recentWins };
+	});
 }
 
 export async function getUnresolvedCompletedSessions(

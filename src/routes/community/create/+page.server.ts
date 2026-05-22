@@ -74,6 +74,7 @@ export const actions: Actions = {
 				userId: user.id,
 				communityId: newCommunity.id
 			});
+			Sentry.metrics.count('community.created', 1);
 		} catch (err: unknown) {
 			Sentry.captureException(err, {
 				extra: {
