@@ -1,14 +1,14 @@
 import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
-import { finalizeExpiredSessions } from '$lib/server/voting/voting-session.service';
+import { lt } from 'drizzle-orm';
+import { session } from '$lib/server/db/schema';
 import * as Sentry from '@sentry/sveltekit';
 
 /**
- * GET /api/cron/finalize-sessions
+ * GET /api/cron/purge-sessions
  *
- * Closes all active voting sessions whose gameDayDate has passed and automatically
- * selects the winning option, transitioning them to `completed`.
+ * Deletes all better-auth session records whose expiresAt timestamp has passed.
  *
  * Secured by a bearer token that must match the CRON_SECRET environment variable.
  * Intended to be called by an external scheduler (e.g. Vercel Cron, GitHub Actions).
@@ -27,11 +27,13 @@ export const GET: RequestHandler = async ({ request, locals }) => {
 		throw error(401, 'Unauthorized');
 	}
 
-	const result = await Sentry.withMonitor('finalize-voting-sessions', () =>
-		finalizeExpiredSessions(locals.db)
+	const now = new Date();
+
+	const deleted = await Sentry.withMonitor('purge-auth-sessions', () =>
+		locals.db.delete(session).where(lt(session.expiresAt, now)).returning({ id: session.id })
 	);
 
-	Sentry.logger.info('Voting sessions finalized', result);
+	Sentry.logger.info('Expired auth sessions purged', { deleted: deleted.length });
 
-	return json({ ok: true, ...result });
+	return json({ ok: true, deleted: deleted.length });
 };

@@ -3,6 +3,10 @@
 		{
 			"path": "/api/cron/finalize-sessions",
 			"schedule": "0 0 * * *"
+		},
+		{
+			"path": "/api/cron/purge-sessions",
+			"schedule": "0 3 * * *"
 		}
 	]
 }

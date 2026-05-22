@@ -12,6 +12,7 @@ import {
 	getUserLibraryCollection,
 	getUserLibraryGameIds
 } from '$lib/server/collections/collection.service';
+import * as Sentry from '@sentry/sveltekit';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -142,8 +143,19 @@ export const actions: Actions = {
 		if (!communityCoverage.success) return communityCoverage.error;
 
 		try {
-			await createVotingSessionWithOptions(locals.db, parsed.data, user.id);
+			const created = await createVotingSessionWithOptions(locals.db, parsed.data, user.id);
+			Sentry.logger.info('Voting session created', {
+				userId: locals.user.id,
+				communityId,
+				votingSessionId: created.id
+			});
 		} catch (err: unknown) {
+			Sentry.captureException(err, {
+				extra: {
+					userId: locals.user.id,
+					communityId
+				}
+			});
 			return fail(500, {
 				success: false,
 				message: err instanceof Error ? err.message : 'An unexpected error occurred'
@@ -180,9 +192,23 @@ export const actions: Actions = {
 
 		let session;
 		try {
-			session = await createVotingSessionWithOptions(locals.db, parsed.data, user.id);
-			await publishVotingSession(locals.db, session.id, user.id);
+			session = await locals.db.transaction(async (tx) => {
+				const created = await createVotingSessionWithOptions(tx, parsed.data, user.id);
+				await publishVotingSession(locals.db, created.id, user.id);
+				return created;
+			});
+			Sentry.logger.info('New voting session created and published', {
+				createdby: user.id,
+				communityId,
+				sessionId: session.id
+			});
 		} catch (err: unknown) {
+			Sentry.captureException(err, {
+				extra: {
+					userId: user.id,
+					communityId
+				}
+			});
 			return fail(500, {
 				success: false,
 				message: err instanceof Error ? err.message : 'An unexpected error occurred'

@@ -161,7 +161,7 @@ export async function createVotingSession(
  * `data.gameIds` must already be validated as belonging to the community collection.
  */
 export async function createVotingSessionWithOptions(
-	db: Database,
+	db: Database | DBTransaction,
 	data: CreateVotingSessionInput,
 	userId: string
 ) {
