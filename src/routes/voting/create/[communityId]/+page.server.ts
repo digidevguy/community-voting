@@ -201,7 +201,7 @@ export const actions: Actions = {
 		try {
 			session = await locals.db.transaction(async (tx) => {
 				const created = await createVotingSessionWithOptions(tx, parsed.data, user.id);
-				await publishVotingSession(locals.db, created.id, user.id);
+				await publishVotingSession(tx, created.id, user.id);
 				return created;
 			});
 			Sentry.logger.info('New voting session created and published', {
