@@ -19,6 +19,10 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	event.locals.user = session?.user ?? null;
 	event.locals.session = session?.session ?? null;
 
+	if (session?.user) {
+		Sentry.setUser({ id: session?.user.id, email: session?.user.email, name: session?.user.name });
+	}
+
 	return svelteKitHandler({ event, resolve, auth, building });
 };
 

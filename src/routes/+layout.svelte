@@ -20,11 +20,20 @@
 	import GlobalNotice from '$lib/components/custom/GlobalNotice.svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import { updated } from '$app/state';
+	import * as Sentry from '@sentry/sveltekit';
 
 	injectSpeedInsights();
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
 
 	let { children, data }: LayoutProps = $props();
+
+	$effect(() => {
+		if (data.user) {
+			Sentry.setUser({ id: data.user.id, email: data.user.email, name: data.user.name });
+		} else {
+			Sentry.setUser(null);
+		}
+	});
 
 	let mobileMenuOpen = $state(false);
 
