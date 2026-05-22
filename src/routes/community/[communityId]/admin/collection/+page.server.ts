@@ -4,6 +4,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { getUserCommunityRole } from '$lib/server/communities/communities.service';
+import * as Sentry from '@sentry/sveltekit';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	const { community, userRole } = await parent();
@@ -61,7 +62,7 @@ export const actions: Actions = {
 		const role = await getUserCommunityRole(locals.db, locals.user.id, params.communityId);
 
 		if (!role || (role !== 'moderator' && role !== 'admin')) {
-			return fail(403, { message: 'You are not authorized to acces this route' });
+			return fail(403, { message: 'You are not authorized to access this route' });
 		}
 
 		const formData = await request.formData();
@@ -88,11 +89,10 @@ export const actions: Actions = {
 			}
 
 			return { success: true };
-		} catch (error) {
-			console.error(
-				'Error removing game from collection:',
-				error instanceof Error ? error.message : error
-			);
+		} catch (err) {
+			Sentry.captureException(err, {
+				tags: { communityId: params.communityId, userId: locals.user.id, gameId }
+			});
 			return fail(500, { message: 'Failed to remove game from collection' });
 		}
 	},
@@ -131,11 +131,10 @@ export const actions: Actions = {
 			}
 
 			return { success: true };
-		} catch (error) {
-			console.error(
-				'Error hard-deleting game from collection:',
-				error instanceof Error ? error.message : error
-			);
+		} catch (err) {
+			Sentry.captureException(err, {
+				tags: { communityId: params.communityId, userId: locals.user.id, gameId }
+			});
 			return fail(500, { message: 'Failed to delete game from collection' });
 		}
 	}

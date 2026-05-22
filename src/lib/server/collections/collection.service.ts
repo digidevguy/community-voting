@@ -10,6 +10,7 @@ import {
 } from '$lib/server/db/schema';
 import type { CreateCommunityCollectionInput } from './collection.validation';
 import { enrichGameData } from '../games/games.service';
+import * as Sentry from '@sentry/sveltekit';
 
 export async function getCommunityCollection(db: Database | DBTransaction, communityId: string) {
 	const collection = await db
@@ -127,10 +128,9 @@ export async function addGameToCollectionWithEnrichment(
 		try {
 			await enrichGameData('video_game', db, existingGame.steamAppId.toString());
 		} catch (err) {
-			console.error(
-				`Failed to enrich game data for gameId ${gameId}:`,
-				err instanceof Error ? err.message : err
-			);
+			Sentry.captureException(err, {
+				extra: { gameId, communityId }
+			});
 		}
 	}
 

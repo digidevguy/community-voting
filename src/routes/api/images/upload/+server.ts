@@ -1,6 +1,7 @@
 import { put } from '@vercel/blob';
 import { error, json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import * as Sentry from '@sentry/sveltekit';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -25,7 +26,10 @@ export async function POST({ request, locals }) {
 		});
 		return json({ url: blob.url });
 	} catch (err) {
-		console.error('Blob upload failed:', err);
+		Sentry.captureException(err, {
+			tags: { userId: locals.user.id },
+			extra: { fileType: file.type, fileSize: file.size }
+		});
 		return error(500, 'Image upload failed');
 	}
 }

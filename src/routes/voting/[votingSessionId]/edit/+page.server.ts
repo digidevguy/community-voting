@@ -62,6 +62,7 @@ export const actions: Actions = {
 			});
 		} catch (err) {
 			Sentry.captureException(err, {
+				tags: { communityId: session.communityId, userId: locals.user?.id },
 				extra: { votingSessionId, userId: locals.user?.id }
 			});
 			return fail(500, { message: 'Unable to delete voting session' });
@@ -220,6 +221,7 @@ export const actions: Actions = {
 			};
 		} catch (err: unknown) {
 			Sentry.captureException(err, {
+				tags: { communityId: existingSession.communityId, userId },
 				extra: { votingSessionId: routeVotingSessionId, userId }
 			});
 			return fail(500, {
@@ -320,6 +322,7 @@ export const actions: Actions = {
 			return fail(500, { message: 'Session did not transition to active' });
 		} catch (error) {
 			Sentry.captureException(error, {
+				tags: { communityId: existingSession.communityId, userId },
 				extra: { votingSessionId, userId }
 			});
 			return fail(500, {

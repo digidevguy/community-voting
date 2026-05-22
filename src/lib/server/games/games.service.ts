@@ -4,6 +4,7 @@ import { game } from '$lib/server/db/schema';
 import { eq, ilike } from 'drizzle-orm';
 import type { GameDetailsInput } from './games.validation';
 import type { Category, Genre, SteamGameResponse } from '$lib/types';
+import * as Sentry from '@sentry/sveltekit';
 
 // Find a games details from DB
 export async function findGameDetails(db: Database | DBTransaction, gameId: string) {
@@ -124,7 +125,7 @@ function parseSteamDate(dateString: string | undefined): Date | null {
 		!/^\w{3}\s+\d{1,2},\s+\d{4}$/.test(dateString);
 
 	if (!isValidFormat) {
-		console.warn(`Invalid Steam date format: ${dateString}`);
+		Sentry.logger.warn('Invalid Steam date format', { dateString });
 		return null;
 	}
 

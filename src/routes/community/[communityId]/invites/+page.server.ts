@@ -11,6 +11,7 @@ import {
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { createInviteSchema } from '$lib/server/communities/communites.validation';
+import * as Sentry from '@sentry/sveltekit';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -44,11 +45,10 @@ export const actions: Actions = {
 		try {
 			await clearInactiveInvites(locals.db, communityId);
 			return { success: true };
-		} catch (error) {
-			console.error(
-				'Error clearing inactive invite:',
-				error instanceof Error ? error.message : error
-			);
+		} catch (err) {
+			Sentry.captureException(err, {
+				tags: { communityId, userId: locals.user.id }
+			});
 			return fail(500, { message: 'Failed to clear inactive invites' });
 		}
 	},
@@ -83,8 +83,10 @@ export const actions: Actions = {
 			);
 
 			return { success: true, id: invite.id };
-		} catch (error) {
-			console.error('Error creating invite:', error instanceof Error ? error.message : error);
+		} catch (err) {
+			Sentry.captureException(err, {
+				tags: { communityId: params.communityId, userId: locals.user.id }
+			});
 			return fail(500, { message: 'Failed to create invite!' });
 		}
 	},
@@ -114,8 +116,11 @@ export const actions: Actions = {
 		try {
 			await revokeInvite(locals.db, inviteId);
 			return { success: true };
-		} catch (error) {
-			console.error('Error when revoking invite:', error instanceof Error ? error.message : error);
+		} catch (err) {
+			Sentry.captureException(err, {
+				tags: { communityId: params.communityId, userId: locals.user.id },
+				extra: { inviteId }
+			});
 			return fail(500, { message: 'Failed to revoke invite!' });
 		}
 	}

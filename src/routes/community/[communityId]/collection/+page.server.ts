@@ -16,6 +16,7 @@ import {
 import { searchGamesByTitle } from '$lib/server/games/games.service';
 import { getUserSteamId } from '$lib/server/users/users.service';
 import { fail } from '@sveltejs/kit';
+import * as Sentry from '@sentry/sveltekit';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -79,14 +80,13 @@ export const actions: Actions = {
 				gameId
 			);
 			return { success: true, addedCollectionItem };
-		} catch (error) {
-			if (error instanceof Error && error.message === 'Game already exists in collection') {
+		} catch (err) {
+			if (err instanceof Error && err.message === 'Game already exists in collection') {
 				return fail(400, { message: 'Game is already in the collection' });
 			}
-			console.error(
-				'Error adding game to collection:',
-				error instanceof Error ? error.message : error
-			);
+			Sentry.captureException(err, {
+				tags: { communityId, userId: locals.user.id, gameId }
+			});
 			return fail(500, { message: 'Failed to add game to collection' });
 		}
 	},
@@ -133,11 +133,10 @@ export const actions: Actions = {
 			}
 
 			return { success: true };
-		} catch (error) {
-			console.error(
-				'Error removing game from collection:',
-				error instanceof Error ? error.message : error
-			);
+		} catch (err) {
+			Sentry.captureException(err, {
+				tags: { comunityId: params.communityId, userId: locals.user.id }
+			});
 			return fail(500, { message: 'Failed to remove game from collection' });
 		}
 	}

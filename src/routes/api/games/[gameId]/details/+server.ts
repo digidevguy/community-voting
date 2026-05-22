@@ -8,6 +8,7 @@ import {
 	transformSteamData,
 	updateGameDetails
 } from '$lib/server/games/games.service';
+import * as Sentry from '@sentry/sveltekit';
 
 export const POST: RequestHandler = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -34,7 +35,10 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 	try {
 		steamApp = await fetchSteamGameData(env.STEAM_API_DETAILS_URL, gameId);
 	} catch (err) {
-		console.error(`Steam API fetch failed for gameId ${gameId}:`, err);
+		Sentry.captureException(err, {
+			tags: { userId: locals.user.id, gameId },
+			extra: { context: 'Steam API fetch' }
+		});
 		throw error(502, 'Failed to fetch game details from Steam API');
 	}
 
@@ -54,7 +58,10 @@ export const POST: RequestHandler = async ({ locals, params }) => {
 
 		return json(updatedGame);
 	} catch (err) {
-		console.error(`Failed to update game ${gameId}:`, err);
+		Sentry.captureException(err, {
+			tags: { userId: locals.user.id, gameId },
+			extra: { context: 'DB update after Steam fetch' }
+		});
 		throw error(500, 'Failed to update game');
 	}
 };

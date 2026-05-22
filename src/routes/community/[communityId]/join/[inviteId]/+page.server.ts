@@ -6,6 +6,7 @@ import {
 } from '$lib/server/communities/communities.service';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import * as Sentry from '@sentry/sveltekit';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const { communityId, inviteId } = params;
@@ -45,8 +46,11 @@ export const actions: Actions = {
 
 		try {
 			await redeemInvite(locals.db, inviteId, locals.user.id);
-		} catch (error) {
-			console.error('Registration error during invite join:', error);
+		} catch (err) {
+			Sentry.captureException(err, {
+				tags: { communityId, userId: locals.user.id },
+				extra: { inviteId }
+			});
 			return fail(500, { message: 'Failed to redeem invite. Please try again.' });
 		}
 

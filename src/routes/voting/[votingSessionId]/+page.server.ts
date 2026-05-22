@@ -126,7 +126,7 @@ export const actions: Actions = {
 			});
 		}
 
-		const { error: sessionError } = await requireOpenVotingSession(
+		const { error: sessionError, sessionData } = await requireOpenVotingSession(
 			locals.db,
 			validated.data.votingSessionId
 		);
@@ -152,6 +152,7 @@ export const actions: Actions = {
 			};
 		} catch (err: unknown) {
 			Sentry.captureException(err, {
+				tags: { communityId: sessionData.votingSessionDetails.communityId, userId: userId },
 				extra: { votingSessionId: validated.data.votingSessionId, userId: locals.user?.id }
 			});
 			return fail(500, {
@@ -166,7 +167,10 @@ export const actions: Actions = {
 
 		await requireVotingAccess(locals, votingSessionId);
 
-		const { error: sessionError } = await requireOpenVotingSession(locals.db, votingSessionId);
+		const { error: sessionError, sessionData } = await requireOpenVotingSession(
+			locals.db,
+			votingSessionId
+		);
 		if (sessionError) return sessionError;
 
 		try {
@@ -178,6 +182,10 @@ export const actions: Actions = {
 			return { success: true };
 		} catch (err) {
 			Sentry.captureException(err, {
+				tags: {
+					communityId: sessionData.votingSessionDetails.communityId,
+					userId: locals.user?.id
+				},
 				extra: {
 					userId: locals.user?.id,
 					votingSessionId
@@ -201,6 +209,7 @@ export const actions: Actions = {
 			return { success: true };
 		} catch (err) {
 			Sentry.captureException(err, {
+				tags: { communityId: session.communityId, userId: locals.user?.id },
 				extra: {
 					userId: locals.user?.id,
 					votingSessionId
@@ -235,6 +244,7 @@ export const actions: Actions = {
 			return { success: true };
 		} catch (err) {
 			Sentry.captureException(err, {
+				tags: { communityId: session.communityId, userId: locals.user.id },
 				extra: { userId: locals.user.id, votingSessionId, votingOptionId }
 			});
 			return fail(400, {
@@ -275,6 +285,7 @@ export const actions: Actions = {
 			return { success: true };
 		} catch (err) {
 			Sentry.captureException(err, {
+				tags: { communityId: session.communityId, userId: locals.user.id },
 				extra: { userId: locals.user.id, votingSessionId, communityId: session.communityId }
 			});
 			return fail(400, {

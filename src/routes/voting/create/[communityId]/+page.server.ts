@@ -136,7 +136,7 @@ export const actions: Actions = {
 		const communityCoverage = await ensureSelectedGamesAreInCommunityCollection(
 			locals.db,
 			communityId,
-			locals.user.id,
+			user.id,
 			parsed.data.gameIds
 		);
 
@@ -145,12 +145,13 @@ export const actions: Actions = {
 		try {
 			const created = await createVotingSessionWithOptions(locals.db, parsed.data, user.id);
 			Sentry.logger.info('Voting session created', {
-				userId: locals.user.id,
+				userId: user.id,
 				communityId,
 				votingSessionId: created.id
 			});
 		} catch (err: unknown) {
 			Sentry.captureException(err, {
+				tags: { communityId, userId: user.id },
 				extra: {
 					userId: locals.user.id,
 					communityId
@@ -184,7 +185,7 @@ export const actions: Actions = {
 		const communityCoverage = await ensureSelectedGamesAreInCommunityCollection(
 			locals.db,
 			communityId,
-			locals.user.id,
+			user.id,
 			parsed.data.gameIds
 		);
 
@@ -204,6 +205,7 @@ export const actions: Actions = {
 			});
 		} catch (err: unknown) {
 			Sentry.captureException(err, {
+				tags: { communityId, userId: user.id },
 				extra: {
 					userId: user.id,
 					communityId

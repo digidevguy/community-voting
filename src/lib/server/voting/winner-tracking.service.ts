@@ -1,6 +1,7 @@
 import type { Database, DBTransaction } from '$lib/server/db';
 import { communityUser, game, sessionWinner, user, votingSession } from '$lib/server/db/schema';
 import { and, asc, count, desc, eq, gt, isNotNull, lt, max, sql } from 'drizzle-orm';
+import * as Sentry from '@sentry/sveltekit';
 
 type LeaderboardOptions = {
 	limit: number;
@@ -189,7 +190,9 @@ export async function setSessionWinners(
 		});
 		return { success: true };
 	} catch (error) {
-		console.error('Failed to set session winners:', error);
+		Sentry.captureException(error, {
+			extra: { votingSessionId, communityId, winnerUserIds, winType }
+		});
 		return { success: false, error };
 	}
 }

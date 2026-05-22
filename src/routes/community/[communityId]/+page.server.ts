@@ -13,6 +13,7 @@ import {
 import { getUnresolvedCompletedSessions } from '$lib/server/voting/winner-tracking.service';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import * as Sentry from '@sentry/sveltekit';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -99,9 +100,12 @@ export const actions: Actions = {
 		let newSession;
 		try {
 			newSession = await renewVotingSession(locals.db, votingSessionId, locals.user.id);
-		} catch (e) {
-			const message = e instanceof Error ? e.message : 'Failed to renew session';
-			console.error(message);
+		} catch (err) {
+			const message = err instanceof Error ? err.message : 'Failed to renew session';
+			Sentry.captureException(err, {
+				tags: { communityId, userId: locals.user.id },
+				extra: { votingSessionId }
+			});
 			return fail(400, { message });
 		}
 
