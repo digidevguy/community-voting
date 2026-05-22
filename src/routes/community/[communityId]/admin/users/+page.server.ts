@@ -8,6 +8,7 @@ import {
 	updateCommunityUserRole
 } from '$lib/server/communities/communities.service';
 import type { Actions, PageServerLoad } from './$types';
+import * as Sentry from '@sentry/sveltekit';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	const { community, userRole } = await parent();
@@ -76,6 +77,12 @@ export const actions: Actions = {
 				}
 				try {
 					await leaveCommunity(locals.db, communityId, targetUserId);
+					Sentry.logger.info('User kicked from community', {
+						actorUserId: locals.user.id,
+						targetUserId,
+						communityId,
+						targetRole
+					});
 				} catch {
 					return fail(500, { message: 'Failed to remove user' });
 				}
@@ -87,6 +94,13 @@ export const actions: Actions = {
 				}
 				try {
 					await updateCommunityUserRole(locals.db, communityId, targetUserId, 'moderator');
+					Sentry.logger.info('Community user role changed', {
+						actorUserId: locals.user.id,
+						targetUserId,
+						communityId,
+						previousRole: targetRole,
+						newRole: 'moderator'
+					});
 				} catch {
 					return fail(500, { message: 'Failed to update role' });
 				}
@@ -98,6 +112,13 @@ export const actions: Actions = {
 				}
 				try {
 					await updateCommunityUserRole(locals.db, communityId, targetUserId, 'member');
+					Sentry.logger.info('Community user role changed', {
+						actorUserId: locals.user.id,
+						targetUserId,
+						communityId,
+						previousRole: targetRole,
+						newRole: 'member'
+					});
 				} catch {
 					return fail(500, { message: 'Failed to update role' });
 				}
@@ -109,6 +130,13 @@ export const actions: Actions = {
 				}
 				try {
 					await updateCommunityUserRole(locals.db, communityId, targetUserId, 'admin');
+					Sentry.logger.info('Community user role changed', {
+						actorUserId: locals.user.id,
+						targetUserId,
+						communityId,
+						previousRole: targetRole,
+						newRole: 'admin'
+					});
 				} catch {
 					return fail(500, { message: 'Failed to update role' });
 				}

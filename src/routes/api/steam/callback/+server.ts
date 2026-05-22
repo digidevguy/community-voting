@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { user } from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
 import { STEAM_ID_REGEX, verifyAssertion } from '$lib/server/steam';
+import * as Sentry from '@sentry/sveltekit';
 
 export const GET: RequestHandler = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -29,7 +30,18 @@ export const GET: RequestHandler = async ({ locals, url }) => {
 
 	const steamId = steamIdMatch[1];
 
-	await locals.db.update(user).set({ steamId }).where(eq(user.id, locals.user.id));
+	try {
+		await locals.db.update(user).set({ steamId }).where(eq(user.id, locals.user.id));
+		Sentry.logger.info('Steam ID linked', {
+			userId: locals.user.id,
+			steamId
+		});
+	} catch (err) {
+		Sentry.captureException(err, {
+			tags: { userId: locals.user.id, steamId }
+		});
+		throw error(500, 'Failed to link Steam account');
+	}
 
 	throw redirect(302, '/profile');
 };

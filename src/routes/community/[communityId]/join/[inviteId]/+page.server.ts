@@ -46,6 +46,12 @@ export const actions: Actions = {
 
 		try {
 			await redeemInvite(locals.db, inviteId, locals.user.id);
+			Sentry.logger.info('Invite redeemed', {
+				userId: locals.user.id,
+				communityId,
+				inviteId,
+				invitedBy: invite.createdBy
+			});
 		} catch (err) {
 			Sentry.captureException(err, {
 				tags: { communityId, userId: locals.user.id },

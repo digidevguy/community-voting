@@ -9,6 +9,7 @@ import { getUnresolvedCompletedSessions } from '$lib/server/voting/winner-tracki
 import type { Actions, PageServerLoad } from './$types';
 import { getUserCommunityRole } from '$lib/server/communities/communities.service';
 import { env } from '$env/dynamic/private';
+import * as Sentry from '@sentry/sveltekit';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	const { community, userRole } = await parent();
@@ -66,6 +67,11 @@ export const actions: Actions = {
 			case 'end_voting': {
 				try {
 					const result = await closeExpiredVotingSession(locals.db, sessionId);
+					Sentry.logger.info('Voting session ended by admin', {
+						userId: locals.user.id,
+						communityId: params.communityId,
+						votingSessionId: sessionId
+					});
 					if (!result) return fail(400, { message: 'Session is not currently active' });
 				} catch {
 					return fail(500, { message: 'Failed to end voting' });
@@ -76,6 +82,11 @@ export const actions: Actions = {
 			case 'delete': {
 				try {
 					await deleteVotingSession(locals.db, sessionId);
+					Sentry.logger.info('Session deleted by admin', {
+						userId: locals.user.id,
+						communityId: params.communityId,
+						votingSessionId: sessionId
+					});
 				} catch {
 					return fail(500, { message: 'Failed to delete session' });
 				}

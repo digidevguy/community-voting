@@ -81,7 +81,13 @@ export const actions: Actions = {
 				expiresAt,
 				maxUses
 			);
-
+			Sentry.logger.info('Invite created', {
+				userId: locals.user.id,
+				communityId: params.communityId,
+				inviteId: invite.id,
+				expiresAt: expiresAt ?? null,
+				maxUses: maxUses ?? null
+			});
 			return { success: true, id: invite.id };
 		} catch (err) {
 			Sentry.captureException(err, {
@@ -115,6 +121,12 @@ export const actions: Actions = {
 
 		try {
 			await revokeInvite(locals.db, inviteId);
+			Sentry.logger.info('Invite revoked', {
+				userId: locals.user.id,
+				communityId: params.communityId,
+				inviteId,
+				ownInvite: isCreator
+			});
 			return { success: true };
 		} catch (err) {
 			Sentry.captureException(err, {
