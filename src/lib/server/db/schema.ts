@@ -11,7 +11,8 @@ import {
 	uniqueIndex,
 	primaryKey,
 	boolean,
-	check
+	check,
+	foreignKey
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -39,7 +40,8 @@ export const notificationType = pgEnum('notification_type', [
 	'vote_started',
 	'vote_ended',
 	'new_option_added',
-	'vote_reminder'
+	'vote_reminder',
+	'app_update'
 ]);
 
 export const relatedEntityType = pgEnum('related_entity_type', ['voting_session', 'game', 'user']);
@@ -176,7 +178,10 @@ export const communityUser = pgTable(
 			.references(() => user.id, { onDelete: 'cascade' })
 			.notNull(),
 		role: communityRole('role').default('member').notNull(),
-		joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow()
+		joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+		notifyVoteStarted: boolean('notify_vote_started').notNull().default(false),
+		notifyVoteEnded: boolean('notify_vote_ended').notNull().default(false),
+		notifyVoteReminder: boolean('notify_vote_reminder').notNull().default(false)
 	},
 	(table) => [
 		primaryKey({ columns: [table.communityId, table.userId] }),
@@ -350,6 +355,38 @@ export const notification = pgTable(
 	(table) => [
 		index('user_id_is_read_idx').on(table.userId, table.isRead),
 		index('notification_created_at_idx').on(table.createdAt)
+	]
+);
+
+export const pushSubscription = pgTable('push_subscription', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	endpoint: text('endpoint').notNull().unique(),
+	p256dhKey: text('p256dh_key').notNull(),
+	authKey: text('auth_key').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+export const userNotificationPreference = pgTable('user_notification_preference', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	notifyAppUpdates: boolean('notify_app_updates').notNull().default(false)
+});
+
+export const votingSessionSubscription = pgTable(
+	'voting_session_subscription',
+	{
+		userId: text('user_id').notNull(),
+		votingSessionId: uuid('voting_session_id').notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => [
+		primaryKey({ columns: [table.userId, table.votingSessionId] }),
+		foreignKey({ columns: [table.userId], foreignColumns: [user.id], name: 'vss_user_id_fk' }).onDelete('cascade'),
+		foreignKey({ columns: [table.votingSessionId], foreignColumns: [votingSession.id], name: 'vss_voting_session_id_fk' }).onDelete('cascade')
 	]
 );
 
