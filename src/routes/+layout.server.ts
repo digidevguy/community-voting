@@ -1,4 +1,8 @@
 import type { LayoutServerLoad } from './$types';
+import {
+	getUnreadCount,
+	getRecentNotifications
+} from '$lib/server/notifications/notifications.service';
 
 export type BannerConfig = {
 	enabled: boolean;
@@ -29,8 +33,20 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 		{ href: '/profile', label: 'Profile' }
 	];
 
+	let unreadCount = 0;
+	let recentNotifications: Awaited<ReturnType<typeof getRecentNotifications>> | undefined;
+	if (locals.user) {
+		const db = locals.db;
+		[unreadCount, recentNotifications] = await Promise.all([
+			getUnreadCount(db, locals.user.id),
+			getRecentNotifications(db, locals.user.id, 5)
+		]);
+	}
+
 	return {
 		user: locals.user,
+		unreadCount,
+		recentNotifications,
 		navigation,
 		banner
 	};
