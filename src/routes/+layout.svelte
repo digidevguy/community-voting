@@ -21,6 +21,7 @@
 	import { beforeNavigate } from '$app/navigation';
 	import { updated } from '$app/state';
 	import * as Sentry from '@sentry/sveltekit';
+	import PushSubscribeButton from '$lib/components/custom/PushSubscribeButton.svelte';
 
 	injectSpeedInsights();
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
@@ -32,6 +33,12 @@
 			Sentry.setUser({ id: data.user.id, email: data.user.email, name: data.user.name });
 		} else {
 			Sentry.setUser(null);
+		}
+
+		if ('serviceWorker' in navigator) {
+			(async () => {
+				await navigator.serviceWorker.register('/sw.js');
+			})();
 		}
 	});
 
@@ -77,6 +84,7 @@
 		</nav>
 
 		{#if data?.user}
+			<PushSubscribeButton />
 			<Button
 				variant="ghost"
 				onclick={async () => {
