@@ -1,5 +1,6 @@
 import type { Database, DBTransaction } from '$lib/server/db';
 import {
+	communityUser,
 	game,
 	gameStatistics,
 	user,
@@ -14,8 +15,23 @@ import type {
 	CreateVotingSessionInput,
 	UpdateVotingSessionInput
 } from './voting-session.validation';
+import { BETTER_AUTH_URL } from '$env/static/private';
 import { isGameInCollection } from '../collections/collection.service';
 import { getUserCommunityRole, isPrivilegedRole } from '../communities/communities.service';
+import { createNotificationForUsers } from '../notifications/notifications.service';
+import { sendPushToUsers } from '../notifications/push.service';
+
+async function getCommunityUserIdsForNotification(
+	db: Database | DBTransaction,
+	communityId: string,
+	column: 'notifyVoteStarted' | 'notifyVoteEnded'
+): Promise<string[]> {
+	const rows = await db
+		.select({ id: communityUser.userId })
+		.from(communityUser)
+		.where(and(eq(communityUser.communityId, communityId), eq(communityUser[column], true)));
+	return rows.map((r) => r.id);
+}
 
 /**
  * Throws if `userId` is neither the session creator nor a privileged community member.
@@ -446,6 +462,28 @@ export async function publishVotingSession(
 		.set({ status: 'active', updatedBy: userId })
 		.where(eq(votingSession.id, votingSessionId))
 		.returning({ status: votingSession.status });
+
+	const userIds = await getCommunityUserIdsForNotification(
+		db,
+		existingSession.communityId,
+		'notifyVoteStarted'
+	);
+
+	if (userIds.length > 0) {
+		await createNotificationForUsers(db, userIds, {
+			type: 'vote_started',
+			title: 'New voting session started!',
+			message: existingSession.title,
+			relatedEntityType: 'voting_session',
+			relatedEntityId: votingSessionId
+		});
+
+		await sendPushToUsers(db, userIds, {
+			title: 'New voting session started!',
+			body: existingSession.title,
+			url: `${BETTER_AUTH_URL}/voting/${votingSessionId}`
+		});
+	}
 
 	return updatedVotingSessionStatus;
 }
