@@ -6,7 +6,8 @@ import {
 	user,
 	vote,
 	votingOption,
-	votingSession
+	votingSession,
+	votingSessionSubscription
 } from '$lib/server/db/schema';
 import { and, count, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 import { tieBreakSchema } from './voting-session.validation';
@@ -715,21 +716,25 @@ export async function finalizeExpiredSessions(db: Database) {
 	const now = new Date();
 
 	const expiredSessions = await db
-		.select({ id: votingSession.id })
+		.select({
+			votingSessionId: votingSession.id,
+			communityId: votingSession.communityId,
+			title: votingSession.title
+		})
 		.from(votingSession)
 		.where(and(eq(votingSession.status, 'active'), lt(votingSession.gameDayDate, now)));
 
 	let finalized = 0;
 
-	for (const { id } of expiredSessions) {
+	for (const { votingSessionId, communityId, title } of expiredSessions) {
 		await db.transaction(async (tx) => {
 			// Transition active → voting_ended
 			await tx
 				.update(votingSession)
 				.set({ status: 'voting_ended' })
-				.where(and(eq(votingSession.id, id), eq(votingSession.status, 'active')));
+				.where(and(eq(votingSession.id, votingSessionId), eq(votingSession.status, 'active')));
 
-			const selectedOptionId = await resolveWinner(tx, id);
+			const selectedOptionId = await resolveWinner(tx, votingSessionId);
 
 			// Transition voting_ended → completed
 			if (selectedOptionId) {
@@ -739,14 +744,45 @@ export async function finalizeExpiredSessions(db: Database) {
 						status: 'completed',
 						selectedOptionId
 					})
-					.where(and(eq(votingSession.id, id), eq(votingSession.status, 'voting_ended')));
+					.where(
+						and(eq(votingSession.id, votingSessionId), eq(votingSession.status, 'voting_ended'))
+					);
 
-				const completedSession = await requireVotingSession(tx, id);
+				const completedSession = await requireVotingSession(tx, votingSessionId);
 				await refreshGameStatisticsForWinningOption(
 					tx,
 					completedSession.communityId,
 					selectedOptionId
 				);
+			}
+
+			// Collect users who opted in via community preference or per-session subscription
+			const communityUserIds = await getCommunityUserIdsForNotification(
+				tx,
+				communityId,
+				'notifyVoteEnded'
+			);
+			const subscribers = await tx
+				.select({ id: votingSessionSubscription.userId })
+				.from(votingSessionSubscription)
+				.where(eq(votingSessionSubscription.votingSessionId, votingSessionId));
+
+			const allUserIds = [...new Set([...communityUserIds, ...subscribers.map((s) => s.id)])];
+
+			if (allUserIds.length > 0) {
+				await createNotificationForUsers(tx, allUserIds, {
+					type: 'vote_ended',
+					title: 'Voting session has ended',
+					message: title,
+					relatedEntityType: 'voting_session',
+					relatedEntityId: votingSessionId
+				});
+
+				await sendPushToUsers(db, allUserIds, {
+					title: 'Voting session has ended',
+					body: title,
+					url: `${BETTER_AUTH_URL}/voting/${votingSessionId}`
+				});
 			}
 		});
 
