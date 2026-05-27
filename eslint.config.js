@@ -29,7 +29,12 @@ export default ts.config(
 	{
 		// The generic Button component handles both internal and external hrefs,
 		// so resolve() cannot be blindly applied inside it.
-		files: ['**/components/ui/button/button.svelte', '**/components/custom/GlobalNotice.svelte'],
+		// NotificationBell uses dynamic notification-routing URLs that cannot be expressed as typed routes.
+		files: [
+			'**/components/ui/button/button.svelte',
+			'**/components/custom/GlobalNotice.svelte',
+			'**/components/custom/NotificationBell.svelte'
+		],
 		rules: {
 			'svelte/no-navigation-without-resolve': ['error', { ignoreLinks: true }]
 		}

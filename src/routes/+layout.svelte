@@ -21,12 +21,14 @@
 	import { beforeNavigate } from '$app/navigation';
 	import { updated } from '$app/state';
 	import * as Sentry from '@sentry/sveltekit';
-	import PushSubscribeButton from '$lib/components/custom/PushSubscribeButton.svelte';
+	import NotificationBell from '$lib/components/custom/NotificationBell.svelte';
 
 	injectSpeedInsights();
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
 
 	let { children, data }: LayoutProps = $props();
+	const unreadCount = $derived(data.unreadCount);
+	const recentNotifications = $derived(data.recentNotifications);
 
 	$effect(() => {
 		if (data.user) {
@@ -84,7 +86,7 @@
 		</nav>
 
 		{#if data?.user}
-			<PushSubscribeButton />
+			<NotificationBell {unreadCount} {recentNotifications} />
 			<Button
 				variant="ghost"
 				onclick={async () => {
@@ -125,6 +127,9 @@
 
 	<!-- Mobile controls -->
 	<div class="flex items-center gap-2 sm:hidden">
+		{#if data?.user}
+			<NotificationBell {unreadCount} {recentNotifications} />
+		{/if}
 		<DarkModeToggle />
 
 		<Sheet.Root bind:open={mobileMenuOpen}>
