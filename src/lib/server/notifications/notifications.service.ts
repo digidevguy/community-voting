@@ -69,12 +69,18 @@ export async function getAllNotifications(
 	db: Database | DBTransaction,
 	userId: string,
 	page = 1,
-	limit = 20
+	limit = 20,
+	isRead?: boolean
 ) {
 	const notifications = await db
 		.select()
 		.from(notification)
-		.where(eq(notification.userId, userId))
+		.where(
+			and(
+				eq(notification.userId, userId),
+				isRead !== undefined ? eq(notification.isRead, isRead) : undefined
+			)
+		)
 		.orderBy(desc(notification.createdAt))
 		.limit(limit)
 		.offset((page - 1) * limit);
@@ -82,7 +88,12 @@ export async function getAllNotifications(
 	const [{ total }] = await db
 		.select({ total: count() })
 		.from(notification)
-		.where(eq(notification.userId, userId));
+		.where(
+			and(
+				eq(notification.userId, userId),
+				isRead !== undefined ? eq(notification.isRead, isRead) : undefined
+			)
+		);
 
 	return { notifications, total };
 }
