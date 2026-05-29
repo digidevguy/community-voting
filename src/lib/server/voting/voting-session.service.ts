@@ -756,34 +756,7 @@ export async function finalizeExpiredSessions(db: Database) {
 				);
 			}
 
-			// Collect users who opted in via community preference or per-session subscription
-			const communityUserIds = await getCommunityUserIdsForNotification(
-				tx,
-				communityId,
-				'notifyVoteEnded'
-			);
-			const subscribers = await tx
-				.select({ id: votingSessionSubscription.userId })
-				.from(votingSessionSubscription)
-				.where(eq(votingSessionSubscription.votingSessionId, votingSessionId));
-
-			const allUserIds = [...new Set([...communityUserIds, ...subscribers.map((s) => s.id)])];
-
-			if (allUserIds.length > 0) {
-				await createNotificationForUsers(tx, allUserIds, {
-					type: 'vote_ended',
-					title: 'Voting session has ended',
-					message: title,
-					relatedEntityType: 'voting_session',
-					relatedEntityId: votingSessionId
-				});
-
-				await sendPushToUsers(db, allUserIds, {
-					title: 'Voting session has ended',
-					body: title,
-					url: `${BETTER_AUTH_URL}/voting/${votingSessionId}`
-				});
-			}
+			await dispatchVoteEndedNotifications(db, votingSessionId, communityId, title);
 		});
 
 		finalized++;
@@ -829,6 +802,8 @@ export async function endVotingSession(
 		.returning();
 
 	await refreshGameStatisticsForWinningOption(db, session.communityId, selectedOptionId);
+
+	await dispatchVoteEndedNotifications(db, votingSessionId, session.communityId, session.title);
 
 	return updated;
 }
@@ -885,6 +860,8 @@ export async function assignTieBreakWinner(
 
 	await refreshGameStatisticsForWinningOption(db, session.communityId, votingOptionId);
 
+	await dispatchVoteEndedNotifications(db, session.id, session.communityId, session.title);
+
 	return updated;
 }
 
@@ -940,4 +917,39 @@ export async function unsubscribeFromSession(
 				eq(votingSessionSubscription.votingSessionId, votingSessionId)
 			)
 		);
+}
+
+export async function dispatchVoteEndedNotifications(
+	db: Database | DBTransaction,
+	votingSessionId: string,
+	communityId: string,
+	title: string
+) {
+	const communityUserIds = await getCommunityUserIdsForNotification(
+		db,
+		communityId,
+		'notifyVoteEnded'
+	);
+
+	const subscribers = await db
+		.select({ id: votingSessionSubscription.userId })
+		.from(votingSessionSubscription)
+		.where(eq(votingSessionSubscription.votingSessionId, votingSessionId));
+
+	const allUserIds = [...new Set([...communityUserIds, ...subscribers.map((sub) => sub.id)])];
+	if (allUserIds.length === 0) return;
+
+	await createNotificationForUsers(db, allUserIds, {
+		type: 'vote_ended',
+		title: 'Voting session has ended',
+		message: title,
+		relatedEntityType: 'voting_session',
+		relatedEntityId: votingSessionId
+	});
+
+	await sendPushToUsers(db, allUserIds, {
+		title: 'Voting session has ended',
+		body: title,
+		url: `${BETTER_AUTH_URL}/voting/${votingSessionId}`
+	});
 }
