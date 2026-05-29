@@ -1,5 +1,6 @@
 import { handleErrorWithSentry, replayIntegration } from '@sentry/sveltekit';
 import * as Sentry from '@sentry/sveltekit';
+import type { HandleClientError } from '@sveltejs/kit';
 import { dev } from '$app/environment';
 
 Sentry.init({
@@ -28,4 +29,24 @@ Sentry.init({
 });
 
 // If you have a custom error handler, pass it to `handleErrorWithSentry`
-export const handleError = handleErrorWithSentry();
+const _sentryHandleError = handleErrorWithSentry() as HandleClientError;
+
+// SvelteKit's client router throws its internal data envelope object
+// ({ type: 'error', status, error }) when a server load returns an error during
+// client-side navigation in versions where the envelope isn't unwrapped before
+// reaching handleError. This is an expected/handled error — not an unhandled
+// exception — so we skip Sentry capture to prevent false-positive noise.
+export const handleError: HandleClientError = async (input) => {
+	const { error } = input;
+	if (
+		error !== null &&
+		typeof error === 'object' &&
+		!Array.isArray(error) &&
+		'type' in error &&
+		'status' in error &&
+		'error' in error
+	) {
+		return { message: input.message };
+	}
+	return _sentryHandleError(input);
+};
