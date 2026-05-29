@@ -1,0 +1,1 @@
+CREATE INDEX "notification_type_created_at_idx" ON "notification" USING btree ("type","created_at");

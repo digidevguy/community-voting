@@ -354,7 +354,8 @@ export const notification = pgTable(
 	},
 	(table) => [
 		index('user_id_is_read_idx').on(table.userId, table.isRead),
-		index('notification_created_at_idx').on(table.createdAt)
+		index('notification_created_at_idx').on(table.createdAt),
+		index('notification_type_created_at_idx').on(table.type, table.createdAt)
 	]
 );
 
@@ -385,8 +386,16 @@ export const votingSessionSubscription = pgTable(
 	},
 	(table) => [
 		primaryKey({ columns: [table.userId, table.votingSessionId] }),
-		foreignKey({ columns: [table.userId], foreignColumns: [user.id], name: 'vss_user_id_fk' }).onDelete('cascade'),
-		foreignKey({ columns: [table.votingSessionId], foreignColumns: [votingSession.id], name: 'vss_voting_session_id_fk' }).onDelete('cascade')
+		foreignKey({
+			columns: [table.userId],
+			foreignColumns: [user.id],
+			name: 'vss_user_id_fk'
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [table.votingSessionId],
+			foreignColumns: [votingSession.id],
+			name: 'vss_voting_session_id_fk'
+		}).onDelete('cascade')
 	]
 );
 
