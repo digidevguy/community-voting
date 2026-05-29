@@ -3,12 +3,19 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Card from '$lib/components/ui/card';
 	import { Badge } from '$lib/components/ui/badge';
+	import * as Checkbox from '$lib/components/ui/checkbox';
+	import { Label } from '$lib/components/ui/label';
+	import PushSubscribeButton from '$lib/components/custom/PushSubscribeButton.svelte';
 	import { enhance } from '$app/forms';
 	import { LoaderCircle } from '@lucide/svelte';
 	import { toast } from 'svelte-sonner';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 	let loading = $state(false);
+	// null = no optimistic override; use server value
+	let notifyAppUpdatesOverride = $state<boolean | null>(null);
+	const notifyAppUpdates = $derived(notifyAppUpdatesOverride ?? data.notifyAppUpdates);
+	let appUpdatesForm = $state<HTMLFormElement | undefined>(undefined);
 
 	const steamLinked = $derived(!!data.steamId);
 </script>
@@ -107,4 +114,60 @@
 			</Card.Content>
 		</Card.Root>
 	{/if}
+
+	<Card.Root>
+		<Card.Header>
+			<Card.Title>Notifications</Card.Title>
+			<Card.Description>
+				Manage how and when you receive notifications from the app.
+			</Card.Description>
+		</Card.Header>
+		<Card.Content class="flex flex-col divide-y">
+			<form
+				bind:this={appUpdatesForm}
+				action="?/toggleAppUpdates"
+				method="post"
+				class="flex flex-col gap-1 pb-4"
+				use:enhance={({ formData }) => {
+					const next = !notifyAppUpdates;
+					formData.set('notifyAppUpdates', String(next));
+					notifyAppUpdatesOverride = next;
+					return async ({ result, update }) => {
+						if (result.type === 'failure') {
+							notifyAppUpdatesOverride = null;
+							toast.error('Failed to update notification preference.');
+						} else {
+							await update({ reset: false });
+							notifyAppUpdatesOverride = null;
+						}
+					};
+				}}
+			>
+				<div class="flex items-center gap-3">
+					<Label for="notify-app-updates" class="cursor-pointer leading-none font-medium"
+						>App updates</Label
+					>
+					<Checkbox.Root
+						id="notify-app-updates"
+						checked={notifyAppUpdates}
+						onCheckedChange={() => appUpdatesForm?.requestSubmit()}
+						class="shrink-0"
+					/>
+				</div>
+				<p class="text-sm text-muted-foreground">
+					Receive notifications when new features or updates are released.
+				</p>
+			</form>
+
+			<div class="flex flex-col gap-1 pt-4">
+				<div class="flex items-center gap-3">
+					<span class="text-sm leading-none font-medium">Push notifications</span>
+					<PushSubscribeButton />
+				</div>
+				<p class="text-sm text-muted-foreground">
+					Receive real-time alerts in your browser, even when the app isn't open.
+				</p>
+			</div>
+		</Card.Content>
+	</Card.Root>
 </div>

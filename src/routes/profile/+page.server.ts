@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { eq, max, sql } from 'drizzle-orm';
-import { game, userGameLibrary } from '$lib/server/db/schema';
+import { game, userGameLibrary, userNotificationPreference } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 import { getUserSteamId } from '$lib/server/users/users.service';
 import { formatSyncCooldownMessage } from '$lib/server/steam';
@@ -14,10 +14,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw redirect(302, '/auth');
 	}
 
-	const steamId = await getUserSteamId(locals.db, locals.user.id);
+	const [steamId, notifPref] = await Promise.all([
+		getUserSteamId(locals.db, locals.user.id),
+		locals.db
+			.select({ notifyAppUpdates: userNotificationPreference.notifyAppUpdates })
+			.from(userNotificationPreference)
+			.where(eq(userNotificationPreference.userId, locals.user.id))
+			.then((rows) => rows[0] ?? null)
+	]);
 
 	return {
-		steamId
+		steamId,
+		notifyAppUpdates: notifPref?.notifyAppUpdates ?? false
 	};
 };
 
@@ -99,5 +107,24 @@ export const actions: Actions = {
 			});
 
 		return { synced: libraryRows.length };
+	},
+
+	toggleAppUpdates: async ({ locals, request }) => {
+		if (!locals.user) {
+			throw redirect(302, '/auth');
+		}
+
+		const formData = await request.formData();
+		const notifyAppUpdates = formData.get('notifyAppUpdates') === 'true';
+
+		await locals.db
+			.insert(userNotificationPreference)
+			.values({ userId: locals.user.id, notifyAppUpdates })
+			.onConflictDoUpdate({
+				target: userNotificationPreference.userId,
+				set: { notifyAppUpdates }
+			});
+
+		return { notifyAppUpdates };
 	}
 };
