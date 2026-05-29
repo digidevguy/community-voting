@@ -887,3 +887,57 @@ export async function assignTieBreakWinner(
 
 	return updated;
 }
+
+/**
+ * Returns `true` if the user is subscribed to end-of-session notifications for the given session.
+ */
+export async function getUserSessionSubscription(
+	db: Database | DBTransaction,
+	userId: string,
+	votingSessionId: string
+): Promise<boolean> {
+	const [row] = await db
+		.select({ userId: votingSessionSubscription.userId })
+		.from(votingSessionSubscription)
+		.where(
+			and(
+				eq(votingSessionSubscription.userId, userId),
+				eq(votingSessionSubscription.votingSessionId, votingSessionId)
+			)
+		);
+	return row !== undefined;
+}
+
+/**
+ * Subscribes a user to end-of-session notifications for the given session.
+ * Idempotent — safe to call when already subscribed.
+ */
+export async function subscribeToSession(
+	db: Database | DBTransaction,
+	userId: string,
+	votingSessionId: string
+): Promise<void> {
+	await db
+		.insert(votingSessionSubscription)
+		.values({ userId, votingSessionId })
+		.onConflictDoNothing();
+}
+
+/**
+ * Removes a user's subscription to end-of-session notifications for the given session.
+ * Idempotent — safe to call when not subscribed.
+ */
+export async function unsubscribeFromSession(
+	db: Database | DBTransaction,
+	userId: string,
+	votingSessionId: string
+): Promise<void> {
+	await db
+		.delete(votingSessionSubscription)
+		.where(
+			and(
+				eq(votingSessionSubscription.userId, userId),
+				eq(votingSessionSubscription.votingSessionId, votingSessionId)
+			)
+		);
+}

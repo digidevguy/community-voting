@@ -8,6 +8,8 @@
 	import type { PageProps } from './$types';
 	import { Badge } from '$lib/components/ui/badge';
 	import {
+		Bell,
+		BellOff,
 		CalendarDays,
 		Check,
 		CircleChevronLeft,
@@ -24,6 +26,8 @@
 	const votingSessionDetails = $derived(data.session.votingSessionDetails);
 	const options = $derived(data.session.options);
 	const participants = $derived(data.participants ?? []);
+	const isSubscribed = $derived(data.isSubscribed ?? false);
+	let subscribing = $state(false);
 
 	const loggedWinners = $derived(data.winnerInfo);
 	let winnerSelection = $state<string[]>([]);
@@ -117,6 +121,41 @@
 				<Button href="/voting/{votingSessionDetails.id}/edit" variant="outline">
 					<Pencil />Edit
 				</Button>
+			{/if}
+			{#if isVotingOpen}
+				<form
+					action={isSubscribed ? '?/unsubscribeFromSession' : '?/subscribeToSession'}
+					method="POST"
+					use:enhance={() => {
+						subscribing = true;
+						const wasSubscribed = isSubscribed;
+						return async ({ result, update }) => {
+							await update();
+							subscribing = false;
+							if (result.type === 'success') {
+								toast.success(
+									wasSubscribed
+										? 'Unsubscribed from session notifications'
+										: 'You will be notified when this session ends'
+								);
+							} else if (result.type === 'failure') {
+								const d = result.data as { message?: string };
+								toast.error(d?.message ?? 'Failed to update subscription');
+							}
+						};
+					}}
+				>
+					<Button type="submit" variant="outline" disabled={subscribing}>
+						{#if subscribing}
+							<LoaderCircle class="animate-spin" />
+						{:else if isSubscribed}
+							<BellOff />
+						{:else}
+							<Bell />
+						{/if}
+						{isSubscribed ? 'Unsubscribe' : 'Notify me'}
+					</Button>
+				</form>
 			{/if}
 		</nav>
 		<div class="flex flex-col gap-4 rounded-2xl border bg-card/60 p-5 sm:p-6">
@@ -471,7 +510,6 @@
 			</p>
 		</div>
 		{#if isVotingOpen && userVote}
-			<!-- TODO: Add refactored clearVote UI -->
 			<ClearVoteButton votingSessionId={votingSessionDetails.id}></ClearVoteButton>
 		{/if}
 		<ul class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">

@@ -7,9 +7,12 @@ import {
 	clearVoteForSession,
 	endVotingSession,
 	finalizeExpiredSessions,
+	getUserSessionSubscription,
 	getUserVoteForSession,
 	getVotingSessionParticipants,
-	getVotingSessionWithResults
+	getVotingSessionWithResults,
+	subscribeToSession,
+	unsubscribeFromSession
 } from '$lib/server/voting/voting-session.service';
 import { createVoteSchema } from '$lib/server/voting/voting-session.validation';
 import { requireSessionWriteAccess, requireVotingAccess } from '$lib/server/authz/community';
@@ -64,16 +67,21 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	const sessionData = await getVotingSessionWithResults(locals.db, votingSessionId);
 
+	const [userVote, participants, winnerInfo, userRole, isSubscribed] = await Promise.all([
+		getUserVoteForSession(locals.db, locals.user!.id, votingSessionId),
+		getVotingSessionParticipants(locals.db, votingSessionId),
+		getSessionWinners(locals.db, votingSessionId),
+		getUserCommunityRole(locals.db, locals.user!.id, sessionData.votingSessionDetails.communityId),
+		getUserSessionSubscription(locals.db, locals.user!.id, votingSessionId)
+	]);
+
 	return {
 		session: sessionData,
-		userVote: await getUserVoteForSession(locals.db, locals.user!.id, votingSessionId),
-		participants: await getVotingSessionParticipants(locals.db, votingSessionId),
-		winnerInfo: await getSessionWinners(locals.db, votingSessionId),
-		userRole: await getUserCommunityRole(
-			locals.db,
-			locals.user!.id,
-			sessionData.votingSessionDetails.communityId
-		)
+		userVote,
+		participants,
+		winnerInfo,
+		userRole,
+		isSubscribed
 	};
 };
 
@@ -308,6 +316,34 @@ export const actions: Actions = {
 				success: false,
 				message: 'Unable to add winner data, please try again'
 			});
+		}
+	},
+	subscribeToSession: async ({ locals, params }) => {
+		if (!locals.user) return redirect(302, '/auth');
+
+		const { votingSessionId } = params;
+		await requireVotingAccess(locals, votingSessionId);
+
+		try {
+			await subscribeToSession(locals.db, locals.user.id, votingSessionId);
+			return { success: true };
+		} catch (err) {
+			Sentry.captureException(err, { extra: { userId: locals.user.id, votingSessionId } });
+			return fail(500, { message: 'Failed to subscribe to session notifications' });
+		}
+	},
+	unsubscribeFromSession: async ({ locals, params }) => {
+		if (!locals.user) return redirect(302, '/auth');
+
+		const { votingSessionId } = params;
+		await requireVotingAccess(locals, votingSessionId);
+
+		try {
+			await unsubscribeFromSession(locals.db, locals.user.id, votingSessionId);
+			return { success: true };
+		} catch (err) {
+			Sentry.captureException(err, { extra: { userId: locals.user.id, votingSessionId } });
+			return fail(500, { message: 'Failed to unsubscribe from session notifications' });
 		}
 	}
 };
