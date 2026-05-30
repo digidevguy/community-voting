@@ -2,11 +2,12 @@ import { put } from '@vercel/blob';
 import { error, json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import * as Sentry from '@sentry/sveltekit';
+import type { RequestHandler } from './$types';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_BYTES = 2 * 1024 * 1024;
 
-export async function POST({ request, locals }) {
+export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user) {
 		return error(401);
 	}
@@ -37,4 +38,4 @@ export async function POST({ request, locals }) {
 		});
 		return error(500, 'Image upload failed');
 	}
-}
+};
