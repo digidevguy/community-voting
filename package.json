@@ -66,6 +66,8 @@
 	"dependencies": {
 		"@sentry/sveltekit": "^10.53.1",
 		"@types/web-push": "^3.6.4",
+		"@upstash/ratelimit": "^2.0.8",
+		"@upstash/redis": "^1.38.0",
 		"@vercel/analytics": "^2.0.1",
 		"@vercel/blob": "^2.3.3",
 		"@vercel/config": "^0.1.0",

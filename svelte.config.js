@@ -34,6 +34,51 @@ const config = {
 			}
 		}),
 
+		csp: {
+			mode: 'auto',
+			directives: {
+				'default-src': ['self'],
+				// 'self' covers same-origin JS bundles and /_vercel/* (Analytics, Speed Insights).
+				// SvelteKit automatically appends the per-request nonce to script-src when mode:'auto'.
+				'script-src': ['self'],
+				// unsafe-inline is required because Svelte's style: directive and some UI
+				// primitives (bits-ui, Tailwind) emit inline style="" attributes at runtime.
+				'style-src': ['self', 'unsafe-inline'],
+				'img-src': [
+					'self',
+					'data:',
+					// Steam game artwork & user avatars
+					'cdn.akamai.steamstatic.com',
+					'cdn.cloudflare.steamstatic.com',
+					'media.steampowered.com',
+					'avatars.steamstatic.com',
+					// Discord user avatars
+					'cdn.discordapp.com',
+					// Unsplash (listed in Vercel image domains)
+					'images.unsplash.com',
+					// Vercel Blob storage (community cover images)
+					'pUUJW44V3BsjkSxl.public.blob.vercel-storage.com'
+				],
+				'connect-src': [
+					'self',
+					// Sentry error / replay ingestion (from DSN in hooks.client.ts)
+					'https://o4511413908930560.ingest.us.sentry.io',
+					'wss://o4511413908930560.ingest.us.sentry.io'
+				],
+				// Sentry Replay spawns its processing worker from a blob: URL
+				'worker-src': ['blob:'],
+				'font-src': ['self'],
+				// Prevent this app from being embedded in any iframe
+				'frame-ancestors': ['none'],
+				// Block Flash / legacy plugin embeds
+				'object-src': ['none'],
+				// Prevent <base href="..."> injection attacks
+				'base-uri': ['self'],
+				// Restrict where forms can POST to
+				'form-action': ['self']
+			}
+		},
+
 		experimental: {
 			tracing: {
 				server: true
