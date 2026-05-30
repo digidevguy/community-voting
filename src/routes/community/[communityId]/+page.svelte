@@ -86,67 +86,67 @@
 <p class="mb-4 text-sm text-muted-foreground">{data.community.description}</p>
 
 <nav aria-label="Community submenu" class="py-2">
-	<ul class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
-		{#if role === 'admin' || role === 'moderator'}
+	{#if role === 'admin' || role === 'moderator'}
+		<div class="mb-2 flex justify-end">
+			<Button
+				size="sm"
+				href="/community/{data.community.id}/admin"
+				variant="ghost"
+				class="gap-1.5 text-muted-foreground"
+				aria-label="Admin dashboard"
+			>
+				<LayoutDashboard />
+				<span>Admin Dashboard</span>
+			</Button>
+		</div>
+	{/if}
+	<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+		<ul class="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:gap-2">
 			<li>
 				<Button
-					class="w-full gap-1.5 sm:w-auto"
-					href="/community/{data.community.id}/admin"
-					variant="outline"
-					aria-label="Admin dashboard"
+					size="sm"
+					class="w-full sm:w-auto"
+					href="/community/{data.community.id}/invites"
+					variant="outline"><Send /><span>Invites</span></Button
 				>
-					<LayoutDashboard />
-					<span>Admin Dashboard</span>
-				</Button>
 			</li>
-		{/if}
-		<li>
-			<Button
-				class="w-full sm:w-auto"
-				href="/community/{data.community.id}/invites"
-				variant="outline"><Send /><span>Invites</span></Button
-			>
-		</li>
-		<li>
-			<Button
-				class="w-full sm:w-auto"
-				href="/community/{data.community.id}/collection"
-				variant="outline"
-				><Library /><span>Collection</span><Badge
-					class="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
-					variant="secondary"
-				>
-					{data.collectionCount}
-				</Badge></Button
-			>
-		</li>
-		<li>
-			<Button
-				class="w-full sm:w-auto"
-				href="/community/{data.community.id}/leaderboard"
-				variant="outline"
-			>
-				<Vote />Leaderboard
-			</Button>
-		</li>
-		<li>
-			<Button
-				class="w-full sm:w-auto"
-				href="/community/{data.community.id}/notifications"
-				variant="outline"
-			>
-				<Bell />Notifications{#if data.communityUnreadCount > 0}<Badge
+			<li>
+				<Button
+					size="sm"
+					class="w-full sm:w-auto"
+					href="/community/{data.community.id}/collection"
+					variant="outline"
+					><Library /><span>Collection</span><Badge
 						class="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
-						variant="default">{data.communityUnreadCount}</Badge
-					>{/if}
-			</Button>
-		</li>
-		<li>
-			<Button class="w-full sm:w-auto" href="/voting/create/{data.community.id}" variant="outline"
-				><CirclePlus /><span>New voting session</span></Button
-			>
-		</li>
-	</ul>
+						variant="secondary">{data.collectionCount}</Badge
+					></Button
+				>
+			</li>
+			<li>
+				<Button
+					size="sm"
+					class="w-full sm:w-auto"
+					href="/community/{data.community.id}/leaderboard"
+					variant="outline"><Vote />Leaderboard</Button
+				>
+			</li>
+			<li>
+				<Button
+					size="sm"
+					class="w-full sm:w-auto"
+					href="/community/{data.community.id}/notifications"
+					variant="outline"
+					><Bell /><span>Notifications</span>{#if data.communityUnreadCount > 0}<Badge
+							class="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
+							variant="default">{data.communityUnreadCount}</Badge
+						>{/if}</Button
+				>
+			</li>
+		</ul>
+		<Button class="w-full sm:w-auto" href="/voting/create/{data.community.id}">
+			<CirclePlus /><span>New voting session</span>
+		</Button>
+	</div>
 </nav>
 
 {#snippet tab(sessionType: SessionTabStatus, filteredSessions: SessionList)}
