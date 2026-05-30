@@ -24,6 +24,7 @@
 	});
 
 	function getNotificationUrl(n: Notification): string | null {
+		if (n.type === 'app_update') return '/docs/updates';
 		if (!n.relatedEntityType || !n.relatedEntityId) return null;
 		switch (n.relatedEntityType) {
 			case 'voting_session':

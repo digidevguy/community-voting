@@ -15,6 +15,10 @@
 		{
 			"path": "/api/cron/purge-notifications",
 			"schedule": "0 5 * * *"
+		},
+		{
+			"path": "/api/cron/send-app-updates",
+			"schedule": "0 23 * * *"
 		}
 	]
 }

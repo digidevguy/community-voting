@@ -399,6 +399,14 @@ export const votingSessionSubscription = pgTable(
 	]
 );
 
+export const release = pgTable('release', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	version: text('version').notNull().unique(),
+	title: text('title').notNull(),
+	publishedAt: timestamp('published_at', { withTimezone: true }).notNull().defaultNow(),
+	notifiedAt: timestamp('notified_at', { withTimezone: true })
+});
+
 // Join userGameLibrary + communityUser for user collections
 export const userGameLibrary = pgTable(
 	'user_game_library',
@@ -520,3 +528,5 @@ export type GameStatistics = typeof gameStatistics.$inferSelect;
 export type Notification = typeof notification.$inferSelect;
 
 export type SessionWinner = typeof sessionWinner.$inferSelect;
+
+export type Release = typeof release.$inferSelect;

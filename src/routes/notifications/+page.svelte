@@ -155,6 +155,17 @@
 					>
 						{@render notificationCard(n)}
 					</Button>
+				{:else if n.type === 'app_update'}
+					<Button
+						href={resolve('/docs/updates')}
+						variant="ghost"
+						class="block h-auto w-full rounded-lg p-0 font-normal"
+						onclick={() => {
+							if (!n.isRead) markAsRead(n.id);
+						}}
+					>
+						{@render notificationCard(n)}
+					</Button>
 				{:else}
 					<button
 						class="w-full rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
