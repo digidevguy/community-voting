@@ -3,8 +3,16 @@ import type { Actions, PageServerLoad } from './$types';
 import { communityUser } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { confirmUserInCommunity } from '$lib/server/communities/communities.service';
+import { getCommunityNotifications } from '$lib/server/notifications/notifications.service';
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+const LIMIT = 20;
+
+function getPage(url: URL): number {
+	const parsed = parseInt(url.searchParams.get('page') ?? '1', 10);
+	return Math.max(1, isNaN(parsed) ? 1 : parsed);
+}
+
+export const load: PageServerLoad = async ({ params, locals, url }) => {
 	if (!locals.user) {
 		throw redirect(302, '/auth');
 	}
@@ -19,23 +27,41 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		throw error(403, 'You do not have access to this community');
 	}
 
-	const [communityNotificationPreferences] = await locals.db
-		.select({
-			notifyVoteStarted: communityUser.notifyVoteStarted,
-			notifyVoteEnded: communityUser.notifyVoteEnded,
-			notifyVoteReminder: communityUser.notifyVoteReminder
-		})
-		.from(communityUser)
-		.where(
-			and(
-				eq(communityUser.communityId, params.communityId),
-				eq(communityUser.userId, locals.user.id)
-			)
-		);
+	const filterParam = url.searchParams.get('filter');
+	const effectiveFilter = filterParam === 'all' ? 'all' : 'unread';
+	const isRead = effectiveFilter === 'unread' ? false : undefined;
+
+	const [[communityNotificationPreferences], { notifications, total }] = await Promise.all([
+		locals.db
+			.select({
+				notifyVoteStarted: communityUser.notifyVoteStarted,
+				notifyVoteEnded: communityUser.notifyVoteEnded,
+				notifyVoteReminder: communityUser.notifyVoteReminder
+			})
+			.from(communityUser)
+			.where(
+				and(
+					eq(communityUser.communityId, params.communityId),
+					eq(communityUser.userId, locals.user.id)
+				)
+			),
+		getCommunityNotifications(
+			locals.db,
+			locals.user.id,
+			params.communityId,
+			getPage(url),
+			LIMIT,
+			isRead
+		)
+	]);
 
 	return {
 		communityId: params.communityId,
-		communityNotificationPreferences: communityNotificationPreferences ?? false
+		communityNotificationPreferences: communityNotificationPreferences ?? false,
+		notifications,
+		total,
+		filter: effectiveFilter,
+		page: getPage(url)
 	};
 };
 

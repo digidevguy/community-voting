@@ -1,6 +1,6 @@
 import type { Database, DBTransaction } from '$lib/server/db';
-import { notification } from '$lib/server/db/schema';
-import { and, eq, count, desc } from 'drizzle-orm';
+import { notification, votingSession } from '$lib/server/db/schema';
+import { and, eq, count, desc, sql } from 'drizzle-orm';
 import * as Sentry from '@sentry/sveltekit';
 
 type CreateNotificationInput = Omit<
@@ -118,4 +118,78 @@ export async function markAllAsRead(db: Database | DBTransaction, userId: string
 		.set({ isRead: true })
 		.where(and(eq(notification.userId, userId), eq(notification.isRead, false)))
 		.returning();
+}
+
+export async function getCommunityUnreadCount(
+	db: Database | DBTransaction,
+	userId: string,
+	communityId: string
+) {
+	const result = await db
+		.select({ count: count() })
+		.from(notification)
+		.innerJoin(
+			votingSession,
+			and(
+				sql`${notification.relatedEntityId}::uuid = ${votingSession.id}`,
+				eq(notification.relatedEntityType, 'voting_session')
+			)
+		)
+		.where(
+			and(
+				eq(notification.userId, userId),
+				eq(notification.isRead, false),
+				eq(votingSession.communityId, communityId)
+			)
+		);
+
+	return result[0]?.count ?? 0;
+}
+
+export async function getCommunityNotifications(
+	db: Database | DBTransaction,
+	userId: string,
+	communityId: string,
+	page = 1,
+	limit = 20,
+	isRead?: boolean
+) {
+	const filters = and(
+		eq(notification.userId, userId),
+		eq(notification.relatedEntityType, 'voting_session'),
+		eq(votingSession.communityId, communityId),
+		isRead !== undefined ? eq(notification.isRead, isRead) : undefined
+	);
+
+	const sessionJoin = and(
+		sql`${notification.relatedEntityId}::uuid = ${votingSession.id}`,
+		eq(notification.relatedEntityType, 'voting_session')
+	);
+
+	const notifications = await db
+		.select({
+			id: notification.id,
+			userId: notification.userId,
+			type: notification.type,
+			title: notification.title,
+			message: notification.message,
+			relatedEntityType: notification.relatedEntityType,
+			relatedEntityId: notification.relatedEntityId,
+			isRead: notification.isRead,
+			createdAt: notification.createdAt
+		})
+		.from(notification)
+		.innerJoin(votingSession, sessionJoin)
+		.where(filters)
+		.orderBy(desc(notification.createdAt))
+		.limit(limit)
+		.offset((page - 1) * limit);
+
+	const [{ total }] = await db
+		.select({ total: count() })
+		.from(notification)
+		.innerJoin(votingSession, sessionJoin)
+		.where(filters);
+
+	return { notifications, total };
 }

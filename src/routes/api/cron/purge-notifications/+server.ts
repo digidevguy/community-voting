@@ -1,9 +1,9 @@
 import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
-import { notification } from '$lib/server/db/schema';
+import { notification, votingSession } from '$lib/server/db/schema';
 import * as Sentry from '@sentry/sveltekit';
-import { and, eq, inArray, lt, or } from 'drizzle-orm';
+import { and, eq, inArray, lt, notExists, or, sql } from 'drizzle-orm';
 
 const RETENTION_MS = {
 	vote_reminder: 1 * 24 * 60 * 60 * 1000,
@@ -29,27 +29,44 @@ export const GET: RequestHandler = async ({ request, locals }) => {
 	};
 
 	const result = await Sentry.withMonitor('purge-notifications', async () => {
-		const deleted = await locals.db
-			.delete(notification)
-			.where(
-				or(
-					and(
-						eq(notification.type, 'vote_reminder'),
-						lt(notification.createdAt, thresholds.oneDayAgo)
-					),
-					and(
-						inArray(notification.type, ['vote_started', 'vote_ended', 'new_option_added']),
-						lt(notification.createdAt, thresholds.sevenDaysAgo)
-					),
-					and(
-						eq(notification.type, 'app_update'),
-						lt(notification.createdAt, thresholds.thirtyDaysAgo)
+		const [aged, orphaned] = await Promise.all([
+			locals.db
+				.delete(notification)
+				.where(
+					or(
+						and(
+							eq(notification.type, 'vote_reminder'),
+							lt(notification.createdAt, thresholds.oneDayAgo)
+						),
+						and(
+							inArray(notification.type, ['vote_started', 'vote_ended', 'new_option_added']),
+							lt(notification.createdAt, thresholds.sevenDaysAgo)
+						),
+						and(
+							eq(notification.type, 'app_update'),
+							lt(notification.createdAt, thresholds.thirtyDaysAgo)
+						)
 					)
 				)
-			)
-			.returning({ id: notification.id });
+				.returning({ id: notification.id }),
 
-		return { deleted: deleted.length };
+			locals.db
+				.delete(notification)
+				.where(
+					and(
+						eq(notification.relatedEntityType, 'voting_session'),
+						notExists(
+							locals.db
+								.select({ id: votingSession.id })
+								.from(votingSession)
+								.where(sql`${votingSession.id} = ${notification.relatedEntityId}::uuid`)
+						)
+					)
+				)
+				.returning({ id: notification.id })
+		]);
+
+		return { deleted: aged.length, orphansDeleted: orphaned.length };
 	});
 
 	Sentry.logger.info('Notifications purged', result);

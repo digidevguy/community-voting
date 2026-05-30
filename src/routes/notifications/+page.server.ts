@@ -15,7 +15,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	}
 
 	const filterParam = url.searchParams.get('filter');
-	const isRead = filterParam === 'unread' ? false : undefined;
+	const effectiveFilter = filterParam === 'all' ? 'all' : 'unread';
+	const isRead = effectiveFilter === 'unread' ? false : undefined;
 
 	const { notifications, total } = await getAllNotifications(
 		locals.db,
@@ -28,7 +29,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	return {
 		notifications,
 		total,
-		filter: filterParam ?? 'unread',
+		filter: effectiveFilter,
 		page: getPage(url)
 	};
 };

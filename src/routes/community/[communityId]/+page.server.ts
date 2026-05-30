@@ -11,6 +11,7 @@ import {
 	renewVotingSession
 } from '$lib/server/voting/voting-session.service';
 import { getUnresolvedCompletedSessions } from '$lib/server/voting/winner-tracking.service';
+import { getCommunityUnreadCount } from '$lib/server/notifications/notifications.service';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import * as Sentry from '@sentry/sveltekit';
@@ -39,14 +40,22 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		throw new Error(`WINNER_TRACKING_LAUNCH_DATE is not a valid date: "${launchDateStr}"`);
 	}
 
-	const [community, allSessions, collectionCount, userRole, unresolvedWinners] = await Promise.all([
+	const [
+		community,
+		allSessions,
+		collectionCount,
+		userRole,
+		unresolvedWinners,
+		communityUnreadCount
+	] = await Promise.all([
 		getCommunityInfo(locals.db, communityId),
 		getCommunitySessions(locals.db, communityId, userId),
 		getCommunityCollectionCount(locals.db, communityId),
 		getUserCommunityRole(locals.db, userId, communityId),
 		getUnresolvedCompletedSessions(locals.db, communityId, {
 			createdAfter: launchDate
-		})
+		}),
+		getCommunityUnreadCount(locals.db, userId, communityId)
 	]);
 
 	const isPrivileged = isPrivilegedRole(userRole);
@@ -73,7 +82,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 					: ('missing_winners' as const)
 		}));
 
-	return { community, sessions, collectionCount, userRole, sessionsNeedingAction };
+	return {
+		community,
+		sessions,
+		collectionCount,
+		userRole,
+		sessionsNeedingAction,
+		communityUnreadCount
+	};
 };
 
 export const actions: Actions = {

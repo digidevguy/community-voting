@@ -14,7 +14,8 @@
 		Users,
 		LayoutDashboard,
 		TriangleAlert,
-		Vote
+		Vote,
+		Bell
 	} from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
@@ -126,6 +127,18 @@
 				variant="outline"
 			>
 				<Vote />Leaderboard
+			</Button>
+		</li>
+		<li>
+			<Button
+				class="w-full sm:w-auto"
+				href="/community/{data.community.id}/notifications"
+				variant="outline"
+			>
+				<Bell />Notifications{#if data.communityUnreadCount > 0}<Badge
+						class="h-5 min-w-5 rounded-full px-1 font-mono tabular-nums"
+						variant="default">{data.communityUnreadCount}</Badge
+					>{/if}
 			</Button>
 		</li>
 		<li>

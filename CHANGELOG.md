@@ -11,6 +11,7 @@ Format: `[version] - date` — types: **Added**, **Changed**, **Fixed**, **Remov
 ### Added
 
 #### Push Notifications
+
 - `web-push` package integrated for Web Push Protocol support
 - New DB schema tables: `pushSubscription`, `userNotificationPreference` (migration `0008`)
 - `push.service.ts` — service layer for sending push notifications to individual users and batches (`sendPushToUser`, `sendPushToUsers`)
@@ -23,6 +24,7 @@ Format: `[version] - date` — types: **Added**, **Changed**, **Fixed**, **Remov
 - `NotificationBell` component — nav bell with unread badge, wraps push subscription management; added to root layout navs
 
 #### In-App Notifications
+
 - `notification` DB table added for persisted in-app notifications (migration `0008`)
 - `getAllNotifications(db, userId, isRead?)` — optional `isRead` filter param added
 - `/notifications` route — full notification list UI with read/unread state and mark-as-read actions
@@ -31,22 +33,26 @@ Format: `[version] - date` — types: **Added**, **Changed**, **Fixed**, **Remov
 - Profile page updated with a dedicated notifications section
 
 #### Session Subscriptions
+
 - `sessionSubscription` DB table tracks per-user session subscriptions (migration `0008`)
 - `subscribeToSession` / `unsubscribeFromSession` service functions extracted into `session-subscriptions.service.ts`
 - Subscribe/unsubscribe toggle added to session detail UI
 - Voting session server route updated to handle subscription API calls
 
 #### Notification Triggers
+
 - `publishVotingSession` — dispatches push + in-app notifications to community members on session publish
 - `finalizeExpiredSessions` — dispatches push + in-app notifications when sessions auto-expire
 - `dispatchVoteEndedNotification` — extracted shared end-of-voting notification logic into a reusable service function, replacing duplicated inline dispatch in multiple routes
 
 #### Cron Jobs
+
 - `POST /api/cron/send-vote-reminders` — finds active sessions with `gameDayDate` matching today and sends vote-reminder push + in-app notifications to subscribed users; registered in `vercel.json`
 - `POST /api/cron/send-app-updates` — checks the `release` table for rows with `notifiedAt IS NULL`, sends push + in-app app-update notifications to opted-in users, then stamps `notifiedAt`; registered in `vercel.json`
 - `POST /api/cron/purge-notifications` — deletes read notifications older than a configurable TTL to keep the table lean; registered in `vercel.json` (migration `0011` adds `expiresAt` column to `notification`)
 
 #### Observability (Sentry.io)
+
 - Sentry SDK integrated via official SvelteKit wizard (`@sentry/sveltekit`)
 - `instrumentation.server.ts` initialises Sentry on the server
 - `hooks.client.ts` initialises Sentry on the client
@@ -57,11 +63,13 @@ Format: `[version] - date` — types: **Added**, **Changed**, **Fixed**, **Remov
 - Performance spans and metric tracking added to key DB query paths
 
 #### Branding & Navigation
+
 - Custom SVG icon set created under `src/lib/assets/`
 - Support Discord link and project repository link added to main nav and footer
 - `GlobalNotice` component available for broadcasting site-wide notices to all users
 
 #### Version Polling
+
 - Root `+layout.svelte` now polls for a `version` header on each navigation and prompts users to hard-reload when a new deployment is detected
 - `Cache-Control` headers tightened on API responses to prevent stale asset issues post-deploy
 
