@@ -47,11 +47,12 @@
 			permission = Notification.permission as PermissionState;
 
 			const json = sub.toJSON();
-			await fetch('/api/push/subscribe', {
+			const res = await fetch('/api/push/subscribe', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(json)
 			});
+			if (!res.ok) throw new Error('Server failed to save subscription');
 
 			subscribed = true;
 			toast.success('Push notifications enabled.');
