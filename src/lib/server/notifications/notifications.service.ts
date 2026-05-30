@@ -72,30 +72,41 @@ export async function getAllNotifications(
 	limit = 20,
 	isRead?: boolean
 ) {
-	const notifications = await db
-		.select()
+	const filter = and(
+		eq(notification.userId, userId),
+		isRead !== undefined ? eq(notification.isRead, isRead) : undefined
+	);
+
+	const rows = await db
+		.select({
+			id: notification.id,
+			userId: notification.userId,
+			type: notification.type,
+			title: notification.title,
+			message: notification.message,
+			relatedEntityType: notification.relatedEntityType,
+			relatedEntityId: notification.relatedEntityId,
+			isRead: notification.isRead,
+			createdAt: notification.createdAt,
+			total: sql<number>`count(*) OVER ()`
+		})
 		.from(notification)
-		.where(
-			and(
-				eq(notification.userId, userId),
-				isRead !== undefined ? eq(notification.isRead, isRead) : undefined
-			)
-		)
+		.where(filter)
 		.orderBy(desc(notification.createdAt))
 		.limit(limit)
 		.offset((page - 1) * limit);
 
-	const [{ total }] = await db
-		.select({ total: count() })
-		.from(notification)
-		.where(
-			and(
-				eq(notification.userId, userId),
-				isRead !== undefined ? eq(notification.isRead, isRead) : undefined
-			)
-		);
+	let total = rows[0]?.total ?? 0;
 
-	return { notifications, total };
+	if (rows.length === 0) {
+		const [{ fallbackTotal }] = await db
+			.select({ fallbackTotal: count() })
+			.from(notification)
+			.where(filter);
+		total = fallbackTotal ?? 0;
+	}
+
+	return { notifications: rows.map(({ total: _, ...n }) => n), total };
 }
 
 export async function markAsRead(
