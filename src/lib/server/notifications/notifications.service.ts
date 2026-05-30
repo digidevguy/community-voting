@@ -4,7 +4,7 @@ import { and, eq, count, desc, sql } from 'drizzle-orm';
 import * as Sentry from '@sentry/sveltekit';
 
 type CreateNotificationInput = Omit<
-	typeof notification.$inferSelect,
+	typeof notification.$inferInsert,
 	'id' | 'isRead' | 'createdAt'
 >;
 type BulkNotificationInput = Omit<CreateNotificationInput, 'userId'>;

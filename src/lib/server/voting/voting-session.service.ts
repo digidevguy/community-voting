@@ -755,9 +755,8 @@ export async function finalizeExpiredSessions(db: Database) {
 					selectedOptionId
 				);
 			}
-
-			await dispatchVoteEndedNotifications(db, votingSessionId, communityId, title);
 		});
+		await dispatchVoteEndedNotifications(db, votingSessionId, communityId, title);
 
 		finalized++;
 	}
