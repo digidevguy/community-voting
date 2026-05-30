@@ -219,142 +219,144 @@
 	</div>
 
 	<!-- ── Activity tab ──────────────────────────────────────────────────── -->
-	{#if activeTab === 'activity'}
-		<div transition:fly={{ x: -16, duration: 180 }}>
-			<!-- Filter + mark-all toolbar -->
-			<div class="mb-4 flex items-center justify-between gap-4">
-				<div class="inline-flex h-9 items-center rounded-lg bg-muted p-1 text-muted-foreground">
-					<Button
-						href={resolve(`/community/${data.communityId}/notifications?filter=unread&page=1`)}
-						variant="ghost"
-						size="sm"
-						class={tabClass(data.filter === 'unread')}
-					>
-						Unread
-						{#if data.filter === 'unread' && data.total > 0}
-							<Badge class="ml-1.5 h-5 min-w-5 justify-center rounded-full px-1 text-xs">
-								{data.total}
-							</Badge>
-						{/if}
-					</Button>
-					<Button
-						href={resolve(`/community/${data.communityId}/notifications?filter=all&page=1`)}
-						variant="ghost"
-						size="sm"
-						class={tabClass(data.filter === 'all')}
-					>
-						All
-					</Button>
+	<div class="grid overflow-hidden">
+		{#if activeTab === 'activity'}
+			<div class="col-start-1 row-start-1 w-full" transition:fly={{ x: -16, duration: 180 }}>
+				<!-- Filter + mark-all toolbar -->
+				<div class="mb-4 flex items-center justify-between gap-4">
+					<div class="inline-flex h-9 items-center rounded-lg bg-muted p-1 text-muted-foreground">
+						<Button
+							href={resolve(`/community/${data.communityId}/notifications?filter=unread&page=1`)}
+							variant="ghost"
+							size="sm"
+							class={tabClass(data.filter === 'unread')}
+						>
+							Unread
+							{#if data.filter === 'unread' && data.total > 0}
+								<Badge class="ml-1.5 h-5 min-w-5 justify-center rounded-full px-1 text-xs">
+									{data.total}
+								</Badge>
+							{/if}
+						</Button>
+						<Button
+							href={resolve(`/community/${data.communityId}/notifications?filter=all&page=1`)}
+							variant="ghost"
+							size="sm"
+							class={tabClass(data.filter === 'all')}
+						>
+							All
+						</Button>
+					</div>
+
+					{#if data.filter === 'unread' && hasUnread}
+						<Button variant="ghost" size="sm" onclick={markAllRead} disabled={markingAllRead}>
+							Mark all as read
+						</Button>
+					{/if}
 				</div>
 
-				{#if data.filter === 'unread' && hasUnread}
-					<Button variant="ghost" size="sm" onclick={markAllRead} disabled={markingAllRead}>
-						Mark all as read
-					</Button>
+				<!-- Notification list -->
+				{#if localNotifications.length === 0}
+					{#if data.filter === 'unread'}
+						<div class="py-12 text-center">
+							<Bell class="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
+							<p class="text-sm text-muted-foreground">All caught up in this community!</p>
+							<Button
+								href={resolve(`/community/${data.communityId}/notifications?filter=all`)}
+								variant="link"
+								class="mt-1 h-auto p-0 text-sm"
+							>
+								View all activity
+							</Button>
+						</div>
+					{:else}
+						<div class="py-12 text-center">
+							<Bell class="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
+							<p class="text-sm text-muted-foreground">No community notifications yet.</p>
+						</div>
+					{/if}
+				{:else}
+					<ul class="flex flex-col gap-2">
+						{#each localNotifications as n (n.id)}
+							<li>
+								{#if n.relatedEntityId}
+									<button
+										class="w-full rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+										onclick={() => openNotification(n)}
+									>
+										{@render notificationCard(n)}
+									</button>
+								{:else}
+									<button
+										class="w-full rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+										onclick={() => handleNoEntityClick(n)}
+									>
+										{@render notificationCard(n)}
+									</button>
+								{/if}
+							</li>
+						{/each}
+					</ul>
+				{/if}
+
+				<!-- Pagination -->
+				{#if totalPages > 1}
+					<div class="mt-6 flex items-center justify-center gap-3">
+						<Button
+							href={pageUrl(data.page - 1)}
+							variant="outline"
+							size="sm"
+							disabled={data.page <= 1}
+							aria-label="Previous page"
+						>
+							<ChevronLeft class="h-4 w-4" />
+						</Button>
+						<span class="text-sm text-muted-foreground">Page {data.page} of {totalPages}</span>
+						<Button
+							href={pageUrl(data.page + 1)}
+							variant="outline"
+							size="sm"
+							disabled={data.page >= totalPages}
+							aria-label="Next page"
+						>
+							<ChevronRight class="h-4 w-4" />
+						</Button>
+					</div>
 				{/if}
 			</div>
 
-			<!-- Notification list -->
-			{#if localNotifications.length === 0}
-				{#if data.filter === 'unread'}
-					<div class="py-12 text-center">
-						<Bell class="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
-						<p class="text-sm text-muted-foreground">All caught up in this community!</p>
-						<Button
-							href={resolve(`/community/${data.communityId}/notifications?filter=all`)}
-							variant="link"
-							class="mt-1 h-auto p-0 text-sm"
-						>
-							View all activity
-						</Button>
-					</div>
-				{:else}
-					<div class="py-12 text-center">
-						<Bell class="mx-auto mb-3 h-8 w-8 text-muted-foreground/50" />
-						<p class="text-sm text-muted-foreground">No community notifications yet.</p>
-					</div>
-				{/if}
-			{:else}
-				<ul class="flex flex-col gap-2">
-					{#each localNotifications as n (n.id)}
-						<li>
-							{#if n.relatedEntityId}
-								<button
-									class="w-full rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-									onclick={() => openNotification(n)}
-								>
-									{@render notificationCard(n)}
-								</button>
-							{:else}
-								<button
-									class="w-full rounded-lg text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-									onclick={() => handleNoEntityClick(n)}
-								>
-									{@render notificationCard(n)}
-								</button>
-							{/if}
-						</li>
-					{/each}
-				</ul>
-			{/if}
-
-			<!-- Pagination -->
-			{#if totalPages > 1}
-				<div class="mt-6 flex items-center justify-center gap-3">
-					<Button
-						href={pageUrl(data.page - 1)}
-						variant="outline"
-						size="sm"
-						disabled={data.page <= 1}
-						aria-label="Previous page"
-					>
-						<ChevronLeft class="h-4 w-4" />
-					</Button>
-					<span class="text-sm text-muted-foreground">Page {data.page} of {totalPages}</span>
-					<Button
-						href={pageUrl(data.page + 1)}
-						variant="outline"
-						size="sm"
-						disabled={data.page >= totalPages}
-						aria-label="Next page"
-					>
-						<ChevronRight class="h-4 w-4" />
-					</Button>
-				</div>
-			{/if}
-		</div>
-
-		<!-- ── Preferences tab ───────────────────────────────────────────────── -->
-	{:else}
-		<div transition:fly={{ x: 16, duration: 180 }}>
-			<Card.Root>
-				<Card.Header>
-					<Card.Title>Voting Notifications</Card.Title>
-					<Card.Description>
-						Manage how and when you receive notifications from this community.
-					</Card.Description>
-				</Card.Header>
-				<Card.Content class="flex flex-col divide-y">
-					{@render notificationToggle(
-						'notifyVoteStarted',
-						notifyVoteStarted,
-						'Vote started',
-						'Notified when a new voting session opens.'
-					)}
-					{@render notificationToggle(
-						'notifyVoteEnded',
-						notifyVoteEnded,
-						'Vote ended',
-						'Notified when a voting session closes.'
-					)}
-					{@render notificationToggle(
-						'notifyVoteReminder',
-						notifyVoteReminder,
-						'Vote reminder',
-						'Reminded to vote before a session closes.'
-					)}
-				</Card.Content>
-			</Card.Root>
-		</div>
-	{/if}
+			<!-- ── Preferences tab ───────────────────────────────────────────────── -->
+		{:else}
+			<div class="col-start-1 row-start-1 w-full" transition:fly={{ x: 16, duration: 180 }}>
+				<Card.Root>
+					<Card.Header>
+						<Card.Title>Voting Notifications</Card.Title>
+						<Card.Description>
+							Manage how and when you receive notifications from this community.
+						</Card.Description>
+					</Card.Header>
+					<Card.Content class="flex flex-col divide-y">
+						{@render notificationToggle(
+							'notifyVoteStarted',
+							notifyVoteStarted,
+							'Vote started',
+							'Notified when a new voting session opens.'
+						)}
+						{@render notificationToggle(
+							'notifyVoteEnded',
+							notifyVoteEnded,
+							'Vote ended',
+							'Notified when a voting session closes.'
+						)}
+						{@render notificationToggle(
+							'notifyVoteReminder',
+							notifyVoteReminder,
+							'Vote reminder',
+							'Reminded to vote before a session closes.'
+						)}
+					</Card.Content>
+				</Card.Root>
+			</div>
+		{/if}
+	</div>
 </div>

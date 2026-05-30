@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { Button } from '$lib/components/ui/button';
 	import { CircleChevronLeft } from '@lucide/svelte';
+	import { fly } from 'svelte/transition';
 
 	let { children, data } = $props();
 
@@ -19,6 +20,23 @@
 	function isActive(href: string, exact: boolean) {
 		return exact ? page.url.pathname === href : page.url.pathname.startsWith(href);
 	}
+
+	const currentIndex = $derived(
+		navItems.findIndex((item) =>
+			item.exact ? page.url.pathname === item.href : page.url.pathname.startsWith(item.href)
+		)
+	);
+
+	let prevIndex = $state(-1);
+	let flyX = $state(0);
+
+	$effect.pre(() => {
+		const curr = currentIndex;
+		if (prevIndex !== -1 && curr !== prevIndex) {
+			flyX = curr > prevIndex ? 16 : -16;
+		}
+		prevIndex = curr;
+	});
 </script>
 
 <svelte:head>
@@ -58,4 +76,14 @@
 	</ul>
 </nav>
 
-{@render children()}
+<div class="grid overflow-hidden">
+	{#key page.url.pathname}
+		<div
+			class="col-start-1 row-start-1 w-full"
+			in:fly={{ x: flyX, duration: 180 }}
+			out:fly={{ x: -flyX, duration: 180 }}
+		>
+			{@render children()}
+		</div>
+	{/key}
+</div>
