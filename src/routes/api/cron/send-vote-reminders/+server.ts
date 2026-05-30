@@ -2,8 +2,8 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { env } from '$env/dynamic/private';
 import * as Sentry from '@sentry/sveltekit';
-import { communityUser, votingSession } from '$lib/server/db/schema';
-import { eq, and, gte, lt } from 'drizzle-orm';
+import { notification, communityUser, votingSession } from '$lib/server/db/schema';
+import { eq, and, gte, lt, inArray } from 'drizzle-orm';
 import { createNotificationForUsers } from '$lib/server/notifications/notifications.service';
 import { sendPushToUsers } from '$lib/server/notifications/push.service';
 
@@ -58,21 +58,38 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			const userIds = rows.map((r) => r.userId);
 
 			if (userIds.length > 0) {
-				await createNotificationForUsers(locals.db, userIds, {
-					type: 'vote_reminder',
-					title: 'Vote reminder',
-					message: title,
-					relatedEntityType: 'voting_session',
-					relatedEntityId: votingSessionId
-				});
+				const alreadyNotified = await locals.db
+					.select({ userId: notification.userId })
+					.from(notification)
+					.where(
+						and(
+							inArray(notification.userId, userIds),
+							eq(notification.type, 'vote_reminder'),
+							eq(notification.relatedEntityId, votingSessionId),
+							gte(notification.createdAt, startOfToday)
+						)
+					);
 
-				await sendPushToUsers(locals.db, userIds, {
-					title: 'Vote reminder',
-					body: title,
-					url: `${env.BETTER_AUTH_URL}/voting/${votingSessionId}`
-				});
+				const alreadyNotifiedSet = new Set(alreadyNotified.map((r) => r.userId));
+				const newUserIds = userIds.filter((id) => !alreadyNotifiedSet.has(id));
 
-				notified += userIds.length;
+				if (newUserIds.length > 0) {
+					await createNotificationForUsers(locals.db, newUserIds, {
+						type: 'vote_reminder',
+						title: 'Vote reminder',
+						message: title,
+						relatedEntityType: 'voting_session',
+						relatedEntityId: votingSessionId
+					});
+
+					await sendPushToUsers(locals.db, newUserIds, {
+						title: 'Vote reminder',
+						body: title,
+						url: `${env.BETTER_AUTH_URL}/voting/${votingSessionId}`
+					});
+
+					notified += newUserIds.length;
+				}
 			}
 		}
 
