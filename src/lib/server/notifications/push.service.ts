@@ -22,12 +22,12 @@ async function dispatchPushNotification(
 		);
 	} catch (err: unknown) {
 		const statusCode = (err as { statusCode?: number }).statusCode;
-		if (statusCode === 410 || statusCode === 404) {
-			// Subscription has been revoked by the browser — remove it
+		if (statusCode === 410 || statusCode === 404 || statusCode === 400) {
+			// Subscription has been revoked, not found, or is invalid (e.g. VAPID key mismatch) — remove it
 			await db.delete(pushSubscription).where(eq(pushSubscription.endpoint, sub.endpoint));
 		} else {
 			// Error captured by Sentry; allSettled prevents propagation
-			Sentry.captureException(err);
+			Sentry.captureException(err, { extra: { statusCode } });
 		}
 	}
 }
