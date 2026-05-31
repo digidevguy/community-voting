@@ -45,7 +45,14 @@ const config = {
 				// 'self' covers same-origin JS bundles and /_vercel/* (Analytics, Speed Insights).
 				// SvelteKit automatically appends the per-request nonce to script-src when mode:'auto'.
 				// va.vercel-scripts.com is required for Vercel Analytics and Speed Insights.
-				'script-src': ['self', 'https://va.vercel-scripts.com'],
+				// The hash covers the small inline bootstrap script injected by @vercel/analytics and
+				// @vercel/speed-insights (injectAnalytics / injectSpeedInsights) which cannot receive
+				// a nonce because it is added via DOM manipulation after the initial HTML render.
+				'script-src': [
+					'self',
+					'https://va.vercel-scripts.com',
+					"'sha256-oOU4MxtCWQ62F7icj69SaREaDhbdyXILlAZ+wog1m9M='"
+				],
 				// unsafe-inline is required because Svelte's style: directive and some UI
 				// primitives (bits-ui, Tailwind) emit inline style="" attributes at runtime.
 				'style-src': ['self', 'unsafe-inline'],
