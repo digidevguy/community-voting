@@ -12,6 +12,7 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { createInviteSchema } from '$lib/server/communities/communites.validation';
 import * as Sentry from '@sentry/sveltekit';
+import { checkRateLimit, inviteCreateLimiter } from '$lib/server/rate-limit';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -59,6 +60,16 @@ export const actions: Actions = {
 		const isMember = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
 		if (!isMember) {
 			throw error(403, 'Forbidden');
+		}
+
+		const rateLimit = await checkRateLimit(
+			inviteCreateLimiter,
+			`${locals.user.id}:${params.communityId}`
+		);
+		if (!rateLimit.allowed) {
+			return fail(429, {
+				message: `Too many invites created. Try again in ${rateLimit.retryAfter} seconds.`
+			});
 		}
 
 		const body = await request.formData();
