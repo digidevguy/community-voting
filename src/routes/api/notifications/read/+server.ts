@@ -10,11 +10,16 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const body = await request.json().catch(() => null);
-	const parsed = notificationReadSchema.safeParse(body);
-	if (!parsed.success) {
-		throw error(400, 'Invalid request body');
+
+	let id: string | undefined;
+
+	if (body !== null) {
+		const parsed = notificationReadSchema.safeParse(body);
+		if (!parsed.success) {
+			throw error(400, 'Invalid request body');
+		}
+		id = parsed.data.id;
 	}
-	const { id } = parsed.data;
 
 	let updatedCount: number;
 

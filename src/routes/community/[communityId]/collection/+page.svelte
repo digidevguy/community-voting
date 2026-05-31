@@ -241,7 +241,7 @@
 							<Dialog.Content>
 								<Dialog.Title>Delete collection item?</Dialog.Title>
 								<Dialog.Description>Are you sure you want to do this?</Dialog.Description>
-								<Dialog.Footer>
+								<Dialog.Footer class="flex-row justify-end gap-2">
 									<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Cancel</Dialog.Close>
 									<form
 										method="POST"
