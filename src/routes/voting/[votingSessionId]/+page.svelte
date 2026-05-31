@@ -19,6 +19,7 @@
 		Users
 	} from '@lucide/svelte';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
+	import AddToCalendarButton from '$lib/components/custom/AddToCalendarButton.svelte';
 	import { toast } from 'svelte-sonner';
 	import ScrollArea from '$lib/components/ui/scroll-area/scroll-area.svelte';
 
@@ -198,6 +199,14 @@
 						<p class="mt-1 text-sm text-muted-foreground">
 							Voting opens immediately once the session is published.
 						</p>
+					{:else if votingSessionDetails.gameDayDate}
+						<div class="mt-3">
+							<AddToCalendarButton
+								title={votingSessionDetails.title}
+								description={votingSessionDetails.description}
+								startDate={new Date(votingSessionDetails.gameDayDate)}
+							/>
+						</div>
 					{/if}
 				</div>
 			</div>
