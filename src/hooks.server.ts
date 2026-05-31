@@ -92,6 +92,44 @@ const RATE_LIMIT_RULES: RateLimitRule[] = [
 	}
 ];
 
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+// API routes that serve JSON bodies (application/json) get CORS preflight protection
+// automatically — the browser blocks the request before it reaches the server.
+// However, "simple" content types (multipart/form-data, no body) do NOT trigger
+// preflight, so a cross-origin page could forge a state-mutating request with the
+// victim's session cookies attached.  Validate the Origin header for those cases.
+const handleCsrf: Handle = async ({ event, resolve }) => {
+	const { pathname } = event.url;
+	const method = event.request.method;
+
+	if (SAFE_METHODS.has(method) || !pathname.startsWith('/api/')) {
+		return resolve(event);
+	}
+
+	const contentType = event.request.headers.get('content-type') ?? '';
+	// application/json is non-simple → browser sends CORS preflight → already protected.
+	if (contentType.includes('application/json')) {
+		return resolve(event);
+	}
+
+	const origin = event.request.headers.get('origin');
+	// No Origin header = same-origin browser request or a non-browser client
+	// (server-to-server, cron, etc.) where session cookies are not involved.
+	if (!origin) {
+		return resolve(event);
+	}
+
+	if (origin !== event.url.origin) {
+		return new Response(JSON.stringify({ message: 'Forbidden' }), {
+			status: 403,
+			headers: { 'Content-Type': 'application/json' }
+		});
+	}
+
+	return resolve(event);
+};
+
 const handleDevTools: Handle = ({ event, resolve }) => {
 	if (dev && event.url.pathname === '/.well-known/appspecific/com.chrome.devtools.json') {
 		return new Response(undefined, { status: 404 });
@@ -182,6 +220,13 @@ const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 
 export const handle: Handle = sequence(
 	Sentry.sentryHandle(),
-	sequence(handleDevTools, handleAuth, handleRateLimit, handleCacheHeaders, handleSecurityHeaders)
+	sequence(
+		handleDevTools,
+		handleAuth,
+		handleCsrf,
+		handleRateLimit,
+		handleCacheHeaders,
+		handleSecurityHeaders
+	)
 );
 export const handleError = Sentry.handleErrorWithSentry();
