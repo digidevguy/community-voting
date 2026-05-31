@@ -78,7 +78,11 @@ export const actions: Actions = {
 					if (!result) return fail(400, { message: 'Session is not currently active' });
 				} catch (err) {
 					Sentry.captureException(err, {
-						extra: { userId: locals.user.id, communityId: params.communityId, votingSessionId: sessionId }
+						extra: {
+							userId: locals.user.id,
+							communityId: params.communityId,
+							votingSessionId: sessionId
+						}
 					});
 					return fail(500, { message: 'Failed to end voting' });
 				}
@@ -95,7 +99,11 @@ export const actions: Actions = {
 					});
 				} catch (err) {
 					Sentry.captureException(err, {
-						extra: { userId: locals.user.id, communityId: params.communityId, votingSessionId: sessionId }
+						extra: {
+							userId: locals.user.id,
+							communityId: params.communityId,
+							votingSessionId: sessionId
+						}
 					});
 					return fail(500, { message: 'Failed to delete session' });
 				}
