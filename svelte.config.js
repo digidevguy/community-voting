@@ -21,9 +21,13 @@ const config = {
 			regions: ['cle1'],
 			images: {
 				domains: [
+					// Steam CDN — covers cdn.*, shared.*, avatars.*, etc.
 					'cdn.akamai.steamstatic.com',
 					'cdn.cloudflare.steamstatic.com',
+					'shared.akamai.steamstatic.com',
+					'shared.cloudflare.steamstatic.com',
 					'media.steampowered.com',
+					'store.steampowered.com',
 					'avatars.steamstatic.com',
 					'cdn.discordapp.com',
 					'images.unsplash.com',
@@ -48,11 +52,9 @@ const config = {
 				'img-src': [
 					'self',
 					'data:',
-					// Steam game artwork & user avatars
-					'cdn.akamai.steamstatic.com',
-					'cdn.cloudflare.steamstatic.com',
-					'media.steampowered.com',
-					'avatars.steamstatic.com',
+					// Steam game artwork & user avatars — wildcard covers all CDN subdomain variants
+					'*.steamstatic.com',
+					'*.steampowered.com',
 					// Discord user avatars
 					'cdn.discordapp.com',
 					// Unsplash (listed in Vercel image domains)
