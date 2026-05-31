@@ -14,6 +14,7 @@
 
 <CommunityForm
 	action="?/update"
+	communityId={data.community.id}
 	initialData={{
 		title: data.community.title,
 		description: data.community.description ?? undefined,

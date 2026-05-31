@@ -159,6 +159,12 @@ const handleRateLimit: Handle = async ({ event, resolve }) => {
 const handleSecurityHeaders: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
 
+	// In dev mode Vite injects inline HMR scripts that have no nonce, which causes
+	// CSP violations. Drop the header so local development is not disrupted.
+	if (dev) {
+		response.headers.delete('content-security-policy');
+	}
+
 	response.headers.set('X-Content-Type-Options', 'nosniff');
 	response.headers.set('X-Frame-Options', 'DENY');
 	response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');

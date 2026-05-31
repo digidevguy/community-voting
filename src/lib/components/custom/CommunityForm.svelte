@@ -21,8 +21,15 @@
 		initialData,
 		action,
 		form,
-		submitLabel = 'Submit'
-	}: { initialData: InitialData; action: string; form: TForm; submitLabel?: string } = $props();
+		submitLabel = 'Submit',
+		communityId = undefined
+	}: {
+		initialData: InitialData;
+		action: string;
+		form: TForm;
+		submitLabel?: string;
+		communityId?: string;
+	} = $props();
 
 	let title = $state(untrack(() => initialData?.title ?? ''));
 	let description = $state(untrack(() => initialData?.description ?? ''));
@@ -52,6 +59,7 @@
 		try {
 			const formData = new FormData();
 			formData.append('file', file);
+			if (communityId) formData.append('communityId', communityId);
 
 			const res = await fetch('/api/images/upload', { method: 'POST', body: formData });
 

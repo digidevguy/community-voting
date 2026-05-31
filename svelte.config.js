@@ -40,7 +40,8 @@ const config = {
 				'default-src': ['self'],
 				// 'self' covers same-origin JS bundles and /_vercel/* (Analytics, Speed Insights).
 				// SvelteKit automatically appends the per-request nonce to script-src when mode:'auto'.
-				'script-src': ['self'],
+				// va.vercel-scripts.com is required for Vercel Analytics and Speed Insights.
+				'script-src': ['self', 'https://va.vercel-scripts.com'],
 				// unsafe-inline is required because Svelte's style: directive and some UI
 				// primitives (bits-ui, Tailwind) emit inline style="" attributes at runtime.
 				'style-src': ['self', 'unsafe-inline'],
@@ -65,8 +66,9 @@ const config = {
 					'https://o4511413908930560.ingest.us.sentry.io',
 					'wss://o4511413908930560.ingest.us.sentry.io'
 				],
-				// Sentry Replay spawns its processing worker from a blob: URL
-				'worker-src': ['blob:'],
+				// Sentry Replay spawns its processing worker from a blob: URL.
+				// 'self' is required for the service worker at /sw.js.
+				'worker-src': ['blob:', 'self'],
 				'font-src': ['self'],
 				// Prevent this app from being embedded in any iframe
 				'frame-ancestors': ['none'],
