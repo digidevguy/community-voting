@@ -88,7 +88,11 @@ export const actions: Actions = {
 			if (!item) {
 				return fail(400, { message: 'Game not found in community collection' });
 			}
-
+			Sentry.logger.info('Collection game reactivated', {
+				userId: locals.user.id,
+				communityId: params.communityId,
+				gameId
+			});
 			return { success: true };
 		} catch (err) {
 			Sentry.captureException(err, {
@@ -130,7 +134,11 @@ export const actions: Actions = {
 			if (!deleted) {
 				return fail(400, { message: 'Game not found in community collection' });
 			}
-
+			Sentry.logger.info('Collection game hard deleted', {
+				userId: locals.user.id,
+				communityId: params.communityId,
+				gameId
+			});
 			return { success: true };
 		} catch (err) {
 			Sentry.captureException(err, {

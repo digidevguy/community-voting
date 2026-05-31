@@ -2,6 +2,7 @@ import { redirect, fail, error } from '@sveltejs/kit';
 import { z } from 'zod';
 import { del } from '@vercel/blob';
 import { env } from '$env/dynamic/private';
+import * as Sentry from '@sentry/sveltekit';
 import type { Actions, PageServerLoad } from './$types';
 import {
 	getCommunityInfo,
@@ -60,9 +61,15 @@ export const actions: Actions = {
 			if (parsed.data.headerImage && current.header_image) {
 				await del(current.header_image, { token: env.BLOB_READ_WRITE_TOKEN });
 			}
-
+			Sentry.logger.info('Community settings updated', {
+				userId: locals.user.id,
+				communityId: params.communityId
+			});
 			return { success: true };
-		} catch {
+		} catch (err) {
+			Sentry.captureException(err, {
+				extra: { userId: locals.user.id, communityId: params.communityId }
+			});
 			return fail(500, { message: 'Failed to update community settings' });
 		}
 	}

@@ -86,7 +86,10 @@ export const actions: Actions = {
 						communityId,
 						targetRole
 					});
-				} catch {
+				} catch (err) {
+					Sentry.captureException(err, {
+						extra: { actorUserId: locals.user.id, targetUserId, communityId }
+					});
 					return fail(500, { message: 'Failed to remove user' });
 				}
 				break;
@@ -104,7 +107,10 @@ export const actions: Actions = {
 						previousRole: targetRole,
 						newRole: 'moderator'
 					});
-				} catch {
+				} catch (err) {
+					Sentry.captureException(err, {
+						extra: { actorUserId: locals.user.id, targetUserId, communityId }
+					});
 					return fail(500, { message: 'Failed to update role' });
 				}
 				break;
@@ -122,7 +128,10 @@ export const actions: Actions = {
 						previousRole: targetRole,
 						newRole: 'member'
 					});
-				} catch {
+				} catch (err) {
+					Sentry.captureException(err, {
+						extra: { actorUserId: locals.user.id, targetUserId, communityId }
+					});
 					return fail(500, { message: 'Failed to update role' });
 				}
 				break;
@@ -140,7 +149,10 @@ export const actions: Actions = {
 						previousRole: targetRole,
 						newRole: 'admin'
 					});
-				} catch {
+				} catch (err) {
+					Sentry.captureException(err, {
+						extra: { actorUserId: locals.user.id, targetUserId, communityId }
+					});
 					return fail(500, { message: 'Failed to update role' });
 				}
 				break;

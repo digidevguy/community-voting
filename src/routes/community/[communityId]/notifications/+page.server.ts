@@ -5,6 +5,7 @@ import { and, eq } from 'drizzle-orm';
 import { confirmUserInCommunity } from '$lib/server/communities/communities.service';
 import { getCommunityNotifications } from '$lib/server/notifications/notifications.service';
 import { toggleNotificationPreferenceSchema } from '$lib/server/communities/communites.validation';
+import * as Sentry from '@sentry/sveltekit';
 
 const LIMIT = 20;
 
@@ -92,14 +93,21 @@ export const actions: Actions = {
 		}
 		const { preference, value } = parsed.data;
 
-		await locals.db
-			.update(communityUser)
-			.set({ [preference]: value })
-			.where(
-				and(
-					eq(communityUser.communityId, params.communityId),
-					eq(communityUser.userId, locals.user.id)
-				)
-			);
+		try {
+			await locals.db
+				.update(communityUser)
+				.set({ [preference]: value })
+				.where(
+					and(
+						eq(communityUser.communityId, params.communityId),
+						eq(communityUser.userId, locals.user.id)
+					)
+				);
+		} catch (err) {
+			Sentry.captureException(err, {
+				extra: { userId: locals.user.id, communityId: params.communityId, preference, value }
+			});
+			return fail(500, { message: 'Failed to update notification preference' });
+		}
 	}
 };

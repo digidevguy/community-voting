@@ -6,7 +6,7 @@ import { dev } from '$app/environment';
 Sentry.init({
 	dsn: 'https://109e57454e4f94f01cc9586c8d2f6b64@o4511413908930560.ingest.us.sentry.io/4511413911814144',
 
-	tracesSampleRate: 1.0,
+	tracesSampleRate: dev ? 1.0 : 0.2,
 
 	// Enable logs to be sent to Sentry
 	enableLogs: true,
