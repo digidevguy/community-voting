@@ -17,6 +17,10 @@ import { searchGamesByTitle } from '$lib/server/games/games.service';
 import { getUserSteamId } from '$lib/server/users/users.service';
 import { fail } from '@sveltejs/kit';
 import * as Sentry from '@sentry/sveltekit';
+import {
+	collectionGameActionSchema,
+	collectionSearchSchema
+} from '$lib/server/collections/collection.validation';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -67,10 +71,11 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		const gameId = formData.get('gameId')?.toString();
-		if (!gameId) {
-			return fail(400, { message: 'Invalid game selected' });
+		const parsed = collectionGameActionSchema.safeParse({ gameId: formData.get('gameId') });
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid game selected' });
 		}
+		const { gameId } = parsed.data;
 
 		try {
 			const addedCollectionItem = await addGameToCollectionWithEnrichment(
@@ -96,11 +101,11 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		const searchTerm = formData.get('searchTerm')?.toString().trim() || '';
-
-		if (!searchTerm || searchTerm.length < 2) {
-			return fail(400, { message: 'Query must be at least 2 characters long.' });
+		const parsed = collectionSearchSchema.safeParse({ searchTerm: formData.get('searchTerm') });
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid search query.' });
 		}
+		const { searchTerm } = parsed.data;
 
 		const games = await searchGamesByTitle(locals.db, searchTerm);
 
@@ -113,11 +118,11 @@ export const actions: Actions = {
 
 		const communityId = params.communityId;
 		const formData = await request.formData();
-		const gameId = formData.get('gameId')?.toString();
-
-		if (!gameId) {
-			return fail(400, { message: 'Invalid game selected' });
+		const parsed = collectionGameActionSchema.safeParse({ gameId: formData.get('gameId') });
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid game selected' });
 		}
+		const { gameId } = parsed.data;
 
 		const role = await getUserCommunityRole(locals.db, locals.user.id, communityId);
 

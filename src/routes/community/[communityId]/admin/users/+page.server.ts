@@ -7,6 +7,7 @@ import {
 	leaveCommunity,
 	updateCommunityUserRole
 } from '$lib/server/communities/communities.service';
+import { manageUserActionSchema } from '$lib/server/communities/communites.validation';
 import type { Actions, PageServerLoad } from './$types';
 import * as Sentry from '@sentry/sveltekit';
 
@@ -39,12 +40,14 @@ export const actions: Actions = {
 		if (!locals.user) return redirect(302, '/auth');
 
 		const formData = await request.formData();
-		const targetUserId = formData.get('userId');
-		const action = formData.get('action');
-
-		if (typeof targetUserId !== 'string' || typeof action !== 'string') {
-			return fail(400, { message: 'Invalid request' });
+		const parsed = manageUserActionSchema.safeParse({
+			userId: formData.get('userId'),
+			action: formData.get('action')
+		});
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid request' });
 		}
+		const { userId: targetUserId, action } = parsed.data;
 
 		if (targetUserId === locals.user.id) {
 			return fail(400, { message: 'Cannot perform this action on yourself' });

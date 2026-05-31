@@ -4,6 +4,7 @@ import { communityUser } from '$lib/server/db/schema';
 import { and, eq } from 'drizzle-orm';
 import { confirmUserInCommunity } from '$lib/server/communities/communities.service';
 import { getCommunityNotifications } from '$lib/server/notifications/notifications.service';
+import { toggleNotificationPreferenceSchema } from '$lib/server/communities/communites.validation';
 
 const LIMIT = 20;
 
@@ -82,14 +83,14 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		const preference = formData.get('preference') as
-			| 'notifyVoteStarted'
-			| 'notifyVoteEnded'
-			| 'notifyVoteReminder';
-		const value = formData.get('value') === 'true';
-
-		const allowed = ['notifyVoteStarted', 'notifyVoteEnded', 'notifyVoteReminder'];
-		if (!allowed.includes(preference)) return fail(400, { message: 'Invalid preference' });
+		const parsed = toggleNotificationPreferenceSchema.safeParse({
+			preference: formData.get('preference'),
+			value: formData.get('value')
+		});
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid preference' });
+		}
+		const { preference, value } = parsed.data;
 
 		await locals.db
 			.update(communityUser)

@@ -4,6 +4,7 @@ import { and, asc, eq, sql } from 'drizzle-orm';
 import type { Actions, PageServerLoad } from './$types';
 import { fail, redirect } from '@sveltejs/kit';
 import { getUserCommunityRole } from '$lib/server/communities/communities.service';
+import { collectionGameActionSchema } from '$lib/server/collections/collection.validation';
 import * as Sentry from '@sentry/sveltekit';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
@@ -66,11 +67,11 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		const gameId = formData.get('gameId')?.toString();
-
-		if (!gameId) {
-			return fail(400, { message: 'Invalid game selected' });
+		const parsed = collectionGameActionSchema.safeParse({ gameId: formData.get('gameId') });
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid game selected' });
 		}
+		const { gameId } = parsed.data;
 
 		try {
 			const [item] = await locals.db
@@ -109,11 +110,11 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		const gameId = formData.get('gameId')?.toString();
-
-		if (!gameId) {
-			return fail(400, { message: 'Invalid game selected' });
+		const parsed = collectionGameActionSchema.safeParse({ gameId: formData.get('gameId') });
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid game selected' });
 		}
+		const { gameId } = parsed.data;
 
 		try {
 			const [deleted] = await locals.db

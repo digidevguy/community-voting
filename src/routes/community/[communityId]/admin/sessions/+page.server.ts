@@ -8,6 +8,7 @@ import {
 import { getUnresolvedCompletedSessions } from '$lib/server/voting/winner-tracking.service';
 import type { Actions, PageServerLoad } from './$types';
 import { getUserCommunityRole } from '$lib/server/communities/communities.service';
+import { manageSessionActionSchema } from '$lib/server/communities/communites.validation';
 import { env } from '$env/dynamic/private';
 import * as Sentry from '@sentry/sveltekit';
 
@@ -53,12 +54,14 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		const sessionId = formData.get('sessionId');
-		const action = formData.get('action');
-
-		if (typeof sessionId !== 'string' || typeof action !== 'string') {
-			return fail(400, { message: 'Invalid request' });
+		const parsed = manageSessionActionSchema.safeParse({
+			sessionId: formData.get('sessionId'),
+			action: formData.get('action')
+		});
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid request' });
 		}
+		const { sessionId, action } = parsed.data;
 
 		switch (action) {
 			case 'edit':

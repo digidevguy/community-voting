@@ -2,6 +2,7 @@ import { notification } from '$lib/server/db/schema';
 import { error, json } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
+import { notificationReadSchema } from '$lib/server/notifications/notifications.validation';
 
 export const PATCH: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user) {
@@ -9,7 +10,11 @@ export const PATCH: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const body = await request.json().catch(() => null);
-	const id: unknown = body?.id;
+	const parsed = notificationReadSchema.safeParse(body);
+	if (!parsed.success) {
+		throw error(400, 'Invalid request body');
+	}
+	const { id } = parsed.data;
 
 	let updatedCount: number;
 

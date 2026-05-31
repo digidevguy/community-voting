@@ -2,6 +2,10 @@ import { pushSubscription } from '$lib/server/db/schema';
 import { error, json } from '@sveltejs/kit';
 import { and, eq } from 'drizzle-orm';
 import type { RequestHandler } from './$types';
+import {
+	pushSubscribeSchema,
+	pushUnsubscribeSchema
+} from '$lib/server/notifications/notifications.validation';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user) {
@@ -9,13 +13,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const body = await request.json().catch(() => null);
-	const endpoint: unknown = body?.endpoint;
-	const p256dh: unknown = body?.keys?.p256dh;
-	const auth: unknown = body?.keys?.auth;
-
-	if (typeof endpoint !== 'string' || typeof p256dh !== 'string' || typeof auth !== 'string') {
+	const parsed = pushSubscribeSchema.safeParse(body);
+	if (!parsed.success) {
 		throw error(400, 'Invalid subscription payload');
 	}
+	const {
+		endpoint,
+		keys: { p256dh, auth }
+	} = parsed.data;
 
 	await locals.db
 		.insert(pushSubscription)
@@ -34,11 +39,11 @@ export const DELETE: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const body = await request.json().catch(() => null);
-	const endpoint: unknown = body?.endpoint;
-
-	if (typeof endpoint !== 'string') {
+	const parsed = pushUnsubscribeSchema.safeParse(body);
+	if (!parsed.success) {
 		throw error(400, 'Missing endpoint');
 	}
+	const { endpoint } = parsed.data;
 
 	await locals.db
 		.delete(pushSubscription)

@@ -3,6 +3,7 @@ import { eq, max, sql } from 'drizzle-orm';
 import { game, userGameLibrary, userNotificationPreference } from '$lib/server/db/schema';
 import type { Actions, PageServerLoad } from './$types';
 import { getUserSteamId } from '$lib/server/users/users.service';
+import { toggleAppUpdatesSchema } from '$lib/server/users/users.validation';
 import { formatSyncCooldownMessage } from '$lib/server/steam';
 import { env } from '$env/dynamic/private';
 import { randomUUID } from 'crypto';
@@ -115,7 +116,13 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		const notifyAppUpdates = formData.get('notifyAppUpdates') === 'true';
+		const parsed = toggleAppUpdatesSchema.safeParse({
+			notifyAppUpdates: formData.get('notifyAppUpdates')
+		});
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid preference value' });
+		}
+		const { notifyAppUpdates } = parsed.data;
 
 		await locals.db
 			.insert(userNotificationPreference)
