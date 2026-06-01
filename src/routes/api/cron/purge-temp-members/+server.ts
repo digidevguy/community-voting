@@ -34,7 +34,10 @@ export const GET: RequestHandler = async ({ request, locals }) => {
 		locals.db
 			.delete(communityUser)
 			.where(
-				and(isNotNull(communityUser.membershipExpiresAt), lt(communityUser.membershipExpiresAt, now))
+				and(
+					isNotNull(communityUser.membershipExpiresAt),
+					lt(communityUser.membershipExpiresAt, now)
+				)
 			)
 			.returning({ communityId: communityUser.communityId, userId: communityUser.userId })
 	);

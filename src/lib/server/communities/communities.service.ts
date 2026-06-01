@@ -239,7 +239,15 @@ export async function createCommunityInvite(
 ) {
 	const [invite] = await db
 		.insert(invitations)
-		.values({ communityId, createdBy, expiresAt, maxUses, label, grantedRole, membershipDurationDays })
+		.values({
+			communityId,
+			createdBy,
+			expiresAt,
+			maxUses,
+			label,
+			grantedRole,
+			membershipDurationDays
+		})
 		.returning();
 
 	if (!invite) throw new Error('Failed to create community invite');
@@ -361,7 +369,12 @@ export async function updateInvite(db: Database | DBTransaction, data: UpdateInv
 export async function purgeExpiredMembers(db: Database | DBTransaction) {
 	return await db
 		.delete(communityUser)
-		.where(and(isNotNull(communityUser.membershipExpiresAt), lt(communityUser.membershipExpiresAt, new Date())))
+		.where(
+			and(
+				isNotNull(communityUser.membershipExpiresAt),
+				lt(communityUser.membershipExpiresAt, new Date())
+			)
+		)
 		.returning({ communityId: communityUser.communityId, userId: communityUser.userId });
 }
 

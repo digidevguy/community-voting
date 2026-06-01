@@ -58,7 +58,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		community: communityInfo,
 		ownersByGame,
 		suggestedGames,
-		canAdd: canAddToCollection(communityInfo, membership?.role ?? null, membership?.membershipExpiresAt)
+		canAdd: canAddToCollection(
+			communityInfo,
+			membership?.role ?? null,
+			membership?.membershipExpiresAt
+		)
 	};
 };
 
@@ -77,7 +81,9 @@ export const actions: Actions = {
 			return fail(403, { message: 'Not a member of this community' });
 		}
 		if (!canAddToCollection(communityInfo, membership.role, membership.membershipExpiresAt)) {
-			return fail(403, { message: 'You do not have permission to add games to this community collection' });
+			return fail(403, {
+				message: 'You do not have permission to add games to this community collection'
+			});
 		}
 
 		const formData = await request.formData();

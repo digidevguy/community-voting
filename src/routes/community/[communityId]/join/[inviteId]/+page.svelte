@@ -50,8 +50,10 @@
 				</Card.Description>
 				{#if data.invite.membershipDurationDays != null}
 					<p class="mt-2 text-xs text-muted-foreground">
-						This is a temporary membership that lasts <strong>{data.invite.membershipDurationDays} days</strong>.
-						You will be removed from the community after that unless a moderator assigns you a permanent role.
+						This is a temporary membership that lasts <strong
+							>{data.invite.membershipDurationDays} days</strong
+						>. You will be removed from the community after that unless a moderator assigns you a
+						permanent role.
 					</p>
 				{/if}
 			</div>

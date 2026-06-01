@@ -37,8 +37,8 @@
 	<Card.Header>
 		<Card.Title>Member Permissions</Card.Title>
 		<Card.Description>
-			Control what regular members can do. Moderators and admins are always unrestricted.
-			Temporary members are always restricted regardless of these settings.
+			Control what regular members can do. Moderators and admins are always unrestricted. Temporary
+			members are always restricted regardless of these settings.
 		</Card.Description>
 	</Card.Header>
 	<Card.Content>
@@ -67,11 +67,9 @@
 					<Label for="allowMembersCreateSessions">Allow members to create voting sessions</Label>
 				</div>
 				<div class="flex items-center gap-3">
-					<Checkbox.Root
-						id="allowMembersAddCollection"
-						bind:checked={allowMembersAddCollection}
-					/>
-					<Label for="allowMembersAddCollection">Allow members to add games to the collection</Label>
+					<Checkbox.Root id="allowMembersAddCollection" bind:checked={allowMembersAddCollection} />
+					<Label for="allowMembersAddCollection">Allow members to add games to the collection</Label
+					>
 				</div>
 			</div>
 

@@ -93,7 +93,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		userRole,
 		sessionsNeedingAction,
 		communityUnreadCount,
-		canCreateSession: canCreateSession(community, membership?.role ?? null, membership?.membershipExpiresAt)
+		canCreateSession: canCreateSession(
+			community,
+			membership?.role ?? null,
+			membership?.membershipExpiresAt
+		)
 	};
 };
 

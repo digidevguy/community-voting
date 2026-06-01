@@ -5,7 +5,12 @@ import {
 import { createVotingSessionSchema } from '$lib/server/voting/voting-session.validation';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { confirmUserInCommunity, getCommunityInfo, getUserCommunityMembership, canCreateSession } from '$lib/server/communities/communities.service';
+import {
+	confirmUserInCommunity,
+	getCommunityInfo,
+	getUserCommunityMembership,
+	canCreateSession
+} from '$lib/server/communities/communities.service';
 import {
 	addGameToCollectionWithEnrichment,
 	getCommunityCollection,
@@ -145,7 +150,9 @@ export const actions: Actions = {
 			getCommunityInfo(locals.db, communityId),
 			getUserCommunityMembership(locals.db, user.id, communityId)
 		]);
-		if (!canCreateSession(communityInfo, membership?.role ?? null, membership?.membershipExpiresAt)) {
+		if (
+			!canCreateSession(communityInfo, membership?.role ?? null, membership?.membershipExpiresAt)
+		) {
 			return error(403, {
 				message: 'You do not have permission to create voting sessions in this community.'
 			});
@@ -210,7 +217,9 @@ export const actions: Actions = {
 			getCommunityInfo(locals.db, communityId),
 			getUserCommunityMembership(locals.db, user.id, communityId)
 		]);
-		if (!canCreateSession(communityInfo, membership?.role ?? null, membership?.membershipExpiresAt)) {
+		if (
+			!canCreateSession(communityInfo, membership?.role ?? null, membership?.membershipExpiresAt)
+		) {
 			return error(403, {
 				message: 'You do not have permission to create voting sessions in this community.'
 			});

@@ -190,7 +190,8 @@
 				}}
 			>
 				<input type="hidden" name="inviteId" value={revokeTargetId} />
-				<Button type="submit" variant="destructive" class="w-full sm:w-auto"><Trash />Revoke</Button>
+				<Button type="submit" variant="destructive" class="w-full sm:w-auto"><Trash />Revoke</Button
+				>
 			</form>
 		</Dialog.Footer>
 	</Dialog.Content>
@@ -233,7 +234,9 @@
 			<div class="flex flex-col gap-4 py-4">
 				<!-- Label — full width -->
 				<div class="flex flex-col gap-2">
-					<Label for="create-label">Label <span class="text-muted-foreground">(optional)</span></Label>
+					<Label for="create-label"
+						>Label <span class="text-muted-foreground">(optional)</span></Label
+					>
 					<Input
 						id="create-label"
 						name="label"
@@ -295,7 +298,8 @@
 							<Label>Membership duration</Label>
 							<Select.Root type="single" bind:value={createMembershipDays}>
 								<Select.Trigger>
-									{MEMBERSHIP_OPTIONS.find((o) => o.value === createMembershipDays)?.label ?? 'Select'}
+									{MEMBERSHIP_OPTIONS.find((o) => o.value === createMembershipDays)?.label ??
+										'Select'}
 								</Select.Trigger>
 								<Select.Content>
 									{#each MEMBERSHIP_OPTIONS as opt (opt.value)}
@@ -315,7 +319,10 @@
 			</div>
 
 			<Dialog.Footer class="flex-row gap-2">
-				<Dialog.Close class={buttonVariants({ variant: 'secondary', className: 'flex-1 sm:flex-none' })}>Cancel</Dialog.Close>
+				<Dialog.Close
+					class={buttonVariants({ variant: 'secondary', className: 'flex-1 sm:flex-none' })}
+					>Cancel</Dialog.Close
+				>
 				<Button type="submit" class="flex-1 sm:flex-none"><CirclePlus />Create</Button>
 			</Dialog.Footer>
 		</form>
@@ -354,7 +361,8 @@
 			<div class="flex flex-col gap-4 py-4">
 				<!-- Label — full width -->
 				<div class="flex flex-col gap-2">
-					<Label for="edit-label">Label <span class="text-muted-foreground">(optional)</span></Label>
+					<Label for="edit-label">Label <span class="text-muted-foreground">(optional)</span></Label
+					>
 					<Input
 						id="edit-label"
 						name="label"
@@ -397,7 +405,10 @@
 			</div>
 
 			<Dialog.Footer class="flex-row gap-2">
-				<Dialog.Close class={buttonVariants({ variant: 'secondary', className: 'flex-1 sm:flex-none' })}>Cancel</Dialog.Close>
+				<Dialog.Close
+					class={buttonVariants({ variant: 'secondary', className: 'flex-1 sm:flex-none' })}
+					>Cancel</Dialog.Close
+				>
 				<Button type="submit" class="flex-1 sm:flex-none"><Check />Save</Button>
 			</Dialog.Footer>
 		</form>
