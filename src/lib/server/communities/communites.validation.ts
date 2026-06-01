@@ -59,7 +59,7 @@ export type UpdateInviteInput = z.infer<typeof updateInviteSchema>;
 
 export const manageUserActionSchema = z.object({
 	userId: z.string().min(1, 'User ID is required'),
-	action: z.enum(['kick', 'set_moderator', 'set_member', 'set_admin'])
+	action: z.enum(['kick', 'set_moderator', 'set_member', 'set_admin', 'make_permanent'])
 });
 
 export const manageSessionActionSchema = z.object({

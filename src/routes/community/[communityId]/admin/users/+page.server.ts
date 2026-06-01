@@ -2,6 +2,7 @@ import { communityUser, user, vote, votingSession } from '$lib/server/db/schema'
 import { and, countDistinct, eq } from 'drizzle-orm';
 import { fail, redirect } from '@sveltejs/kit';
 import {
+	clearMembershipExpiry,
 	getCommunityInfo,
 	getUserCommunityRole,
 	leaveCommunity,
@@ -20,6 +21,7 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 			name: user.name,
 			role: communityUser.role,
 			joinedAt: communityUser.joinedAt,
+			membershipExpiresAt: communityUser.membershipExpiresAt,
 			sessionCount: countDistinct(vote.votingSessionId)
 		})
 		.from(communityUser)
@@ -30,7 +32,13 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 			and(eq(vote.userId, communityUser.userId), eq(vote.votingSessionId, votingSession.id))
 		)
 		.where(eq(communityUser.communityId, community.id))
-		.groupBy(communityUser.userId, communityUser.role, communityUser.joinedAt, user.name);
+		.groupBy(
+			communityUser.userId,
+			communityUser.role,
+			communityUser.joinedAt,
+			communityUser.membershipExpiresAt,
+			user.name
+		);
 
 	return { members, userRole, community, currentUserId: locals.user!.id };
 };
@@ -154,6 +162,25 @@ export const actions: Actions = {
 						extra: { actorUserId: locals.user.id, targetUserId, communityId }
 					});
 					return fail(500, { message: 'Failed to update role' });
+				}
+				break;
+			}
+			case 'make_permanent': {
+				if (!isActorOwner && actorRole !== 'admin') {
+					return fail(403, { message: 'Only admins and the owner can change membership status' });
+				}
+				try {
+					await clearMembershipExpiry(locals.db, communityId, targetUserId);
+					Sentry.logger.info('Temporary membership made permanent', {
+						actorUserId: locals.user.id,
+						targetUserId,
+						communityId
+					});
+				} catch (err) {
+					Sentry.captureException(err, {
+						extra: { actorUserId: locals.user.id, targetUserId, communityId }
+					});
+					return fail(500, { message: 'Failed to update membership' });
 				}
 				break;
 			}

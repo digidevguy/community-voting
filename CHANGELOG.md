@@ -6,6 +6,53 @@ Format: `[version] - date` — types: **Added**, **Changed**, **Fixed**, **Remov
 
 ---
 
+## [0.5.0] - 2026-05-31
+
+### Added
+
+#### Customized Invites
+
+- `label`, `granted_role`, and `membership_duration_days` columns added to the `invitations` table (migration `0013`)
+- `createCommunityInvite` — accepts optional `label`, `grantedRole`, and `membershipDurationDays` parameters
+- `updateInvite` service function — allows patching `label`, `expiresAt`, and `maxUses` on an existing invite
+- `update` form action on `/community/[communityId]/invites` — privilege-checked (creator or privileged role); validates via `updateInviteSchema`
+- Invite creation UI redesigned as a modal dialog with preset dropdowns for expiry (30 m / 1 h / 6 h / 12 h / 1 d / 7 d / never), max uses, role, and membership duration
+- Edit dialog on the invites list for modifying label, expiry, and max uses on existing links
+- `getInvitesByCommunity` — now returns `label`, `grantedRole`, and `membershipDurationDays` fields
+
+#### Temporary Memberships
+
+- `membership_expires_at` column and index added to the `community_user` table (migration `0013`)
+- `isTempMember(membershipExpiresAt)` — utility predicate exported from `communities.service`
+- `redeemInvite` — computes and stores `membershipExpiresAt` when `membershipDurationDays` is set on the invite; grants the role specified by `grantedRole` instead of defaulting to `member`
+- `updateCommunityUserRole` — now clears `membershipExpiresAt` when a role is explicitly assigned (promoting to permanent membership)
+- `purgeExpiredMembers` service function — bulk-deletes `community_user` rows past their expiry
+- `GET /api/cron/purge-temp-members` — bearer-token-secured cron endpoint; removes expired temporary members; wrapped in a Sentry monitor; registered in `vercel.json`
+- Join page (`/community/[communityId]/join/[inviteId]`) — displays invite label and a temporary-membership notice when `membershipDurationDays` is set
+
+#### Community Permissions
+
+- `allow_members_create_sessions` and `allow_members_add_collection` boolean columns added to the `community` table (migration `0014`, both default `true`)
+- `canCreateSession(community, role, membershipExpiresAt)` — returns `true` for privileged roles; `false` for temporary members; otherwise defers to the community flag
+- `canAddToCollection(community, role, membershipExpiresAt)` — same logic for collection management
+- `getUserCommunityMembership(db, userId, communityId)` — returns `{ role, membershipExpiresAt }` or `null`; replaces paired calls to `getUserCommunityRole` + separate expiry lookups
+- `updateCommunityPermissions` service function + `updateCommunityPermissionsSchema` validator
+- `updatePermissions` form action on `/community/[communityId]/admin/settings` — admin-only
+- **Admin → Settings** UI — new _Member Permissions_ card with checkboxes for both flags
+
+### Changed
+
+- Community home (`/community/[communityId]`) — `canCreateSession` derived from `getUserCommunityMembership`; passed to the page for conditional rendering of the _Create Session_ button
+- Collection page (`/community/[communityId]/collection`) — `canManageCollection` flag (via `canAddToCollection`) gates the _Add new_ dialog and all collection-mutation actions; migrated from `canAdd` to `canManage`
+- Voting session create (`/voting/create/[communityId]`) — permission check added; returns 403 if user cannot add to the collection
+
+### Fixed
+
+- Collection remove action incorrectly used `canAdd` guard instead of `canManage`; now uses unified `canAddToCollection` check
+- Missing permission check when adding games to the community collection during new voting session creation
+
+---
+
 ## [0.4.0] - 2026-05-29
 
 ### Added

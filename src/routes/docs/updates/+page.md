@@ -2,6 +2,46 @@
 
 > Version headings use the format `## vX-Y-Z` (e.g. `## v1-2-0`) so that push notification links can anchor directly to a release. Each release entry in the `release` table should use a matching `version` value (e.g. `"1.2.0"`).
 
+## v0-5-0
+
+**Smarter Invites, Temporary Memberships & Community Permissions**
+
+### A whole new invite experience
+
+The invite system has been rebuilt from the ground up. Admins and moderators can now create invite links with much more control over how they work.
+
+When creating an invite link you can now set:
+
+- **A label** — give the link a name so you know what it's for (e.g. "Game night guests" or "Streamer promo").
+- **Expiry** — choose from preset options (30 minutes, 1 hour, 6 hours, 12 hours, 1 day, 7 days, or never) instead of typing a date manually.
+- **Max uses** — pick a limit from a simple list, or leave it unlimited.
+- **Role** — decide whether the invited person joins as a regular member or as a moderator.
+- **Membership duration** — optionally make the membership temporary (7, 14, 30, or 90 days). Once the time is up, the person is automatically removed from the community.
+
+You can also **edit** an existing invite link after it has been created to update its label, expiry, or use limit.
+
+### Temporary memberships
+
+When someone joins through a time-limited invite, the join page will show them a clear notice explaining how long their membership lasts and that a moderator can make it permanent if needed.
+
+Temporary members have limited access — they can participate in voting but cannot create new voting sessions or add games to the collection. A moderator can grant them a permanent role at any time, which removes the expiry.
+
+### Control what members can do
+
+A new **Member Permissions** section is available in **Admin → Settings**. Admins can now toggle two community-wide rules:
+
+- **Allow members to create voting sessions** — turn this off to restrict session creation to moderators and admins only.
+- **Allow members to manage the collection** — turn this off to restrict adding and removing games to moderators and admins only.
+
+These settings do not affect moderators or admins, who are always unrestricted.
+
+### Bug Fixes
+
+- Fixed an issue where removing a game from the collection could fail for users with certain permission states.
+- Fixed a missing permission check when adding games to a community collection during voting session creation.
+
+---
+
 ## v0-4-0
 
 **Notifications & Quality of Life Improvements**

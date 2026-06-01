@@ -7,6 +7,7 @@
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
 	import { format } from 'date-fns';
+	import { Clock } from '@lucide/svelte';
 
 	let { data }: { data: PageServerData } = $props();
 	const members = $derived(data.members);
@@ -23,7 +24,11 @@
 		return 'outline';
 	}
 
-	function getActionOptions(memberRole: string, memberUserId: string) {
+	function getActionOptions(
+		memberRole: string,
+		memberUserId: string,
+		membershipExpiresAt: Date | null
+	) {
 		if (memberUserId === data.currentUserId) return [];
 
 		const options: { value: string; label: string }[] = [];
@@ -35,11 +40,13 @@
 			(actorRole === 'moderator' && memberRole === 'member');
 		if (canKick) options.push({ value: 'kick', label: 'Kick from community' });
 
-		// Role changes: admin and owner only
+		// Role changes and membership management: admin and owner only
 		if (isActorOwner || actorRole === 'admin') {
 			if (memberRole !== 'moderator')
 				options.push({ value: 'set_moderator', label: 'Set to Moderator' });
 			if (memberRole !== 'member') options.push({ value: 'set_member', label: 'Set to Member' });
+			if (membershipExpiresAt != null)
+				options.push({ value: 'make_permanent', label: 'Make permanent' });
 		}
 
 		// Admin grant: owner only
@@ -71,13 +78,27 @@
 		</Table.Header>
 		<Table.Body>
 			{#each members as member (member.userId)}
-				{@const options = getActionOptions(member.role, member.userId)}
+				{@const options = getActionOptions(member.role, member.userId, member.membershipExpiresAt)}
 				<Table.Row>
 					<Table.Cell class="font-medium">{member.name}</Table.Cell>
 					<Table.Cell>
-						<Badge variant={roleBadgeVariant(member.role)}>
-							{member.role[0].toUpperCase() + member.role.slice(1)}
-						</Badge>
+						<div class="flex flex-wrap items-center gap-1.5">
+							<Badge variant={roleBadgeVariant(member.role)}>
+								{member.role[0].toUpperCase() + member.role.slice(1)}
+							</Badge>
+							{#if member.membershipExpiresAt != null}
+								<span
+									title="Temporary — expires {format(
+										new Date(member.membershipExpiresAt),
+										'MMM d, yyyy'
+									)}"
+									class="inline-flex items-center gap-1 text-xs text-muted-foreground"
+								>
+									<Clock class="h-3 w-3" />
+									Temp
+								</span>
+							{/if}
+						</div>
 					</Table.Cell>
 					<Table.Cell class="hidden sm:table-cell">{formatJoinDate(member.joinedAt)}</Table.Cell>
 					<Table.Cell class="hidden lg:table-cell">{member.sessionCount}</Table.Cell>
@@ -91,7 +112,7 @@
 										<Button {...props} variant="outline" size="sm">Actions</Button>
 									{/snippet}
 								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="end">
+								<DropdownMenu.Content align="end" class="min-w-44">
 									{#each options as option, i (option.value)}
 										{#if i > 0 && options[i - 1].value === 'kick'}
 											<DropdownMenu.Separator />

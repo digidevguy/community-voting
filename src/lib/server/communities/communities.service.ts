@@ -349,6 +349,22 @@ export async function updateCommunityUserRole(
 	return updated;
 }
 
+export async function clearMembershipExpiry(
+	db: Database | DBTransaction,
+	communityId: string,
+	targetUserId: string
+) {
+	const [updated] = await db
+		.update(communityUser)
+		.set({ membershipExpiresAt: null })
+		.where(and(eq(communityUser.communityId, communityId), eq(communityUser.userId, targetUserId)))
+		.returning();
+
+	if (!updated) throw new Error(`Failed to clear membership expiry for user ${targetUserId}`);
+
+	return updated;
+}
+
 export async function cleanupExpiredInvites(db: Database | DBTransaction) {
 	return await db.delete(invitations).where(sql`${invitations.expiresAt} < NOW()`);
 }
