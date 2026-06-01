@@ -72,7 +72,7 @@
 	<Button href="/community/{data.community.id}" variant="ghost" class="-ml-2 text-muted-foreground"
 		><CircleChevronLeft />Back</Button
 	>
-	{#if data.canAdd}
+	{#if data.canManageCollection}
 		<Dialog.Root
 			bind:open={addDialogOpen}
 			onOpenChange={(open) => {
@@ -234,38 +234,43 @@
 						<Button href="/library/{item.game.id}" variant="link" class="-ml-3"
 							>View game details</Button
 						>
-						<Dialog.Root
-							open={removeDialogOpen[item.game.id] ?? false}
-							onOpenChange={(open) => {
-								removeDialogOpen[item.game.id] = open;
-							}}
-						>
-							<Dialog.Trigger><Trash2 class="text-red-500" /></Dialog.Trigger>
-							<Dialog.Content>
-								<Dialog.Title>Delete collection item?</Dialog.Title>
-								<Dialog.Description>Are you sure you want to do this?</Dialog.Description>
-								<Dialog.Footer class="flex-row justify-end gap-2">
-									<Dialog.Close class={buttonVariants({ variant: 'outline' })}>Cancel</Dialog.Close>
-									<form
-										method="POST"
-										action="?/remove"
-										use:enhance={() => {
-											return async ({ result, update }) => {
-												if (result.type === 'success') {
-													removeDialogOpen[item.game.id] = false;
-													toast.success('Game removed successfully!');
-												}
+						{#if data.canManageCollection}
+							<Dialog.Root
+								open={removeDialogOpen[item.game.id] ?? false}
+								onOpenChange={(open) => {
+									removeDialogOpen[item.game.id] = open;
+								}}
+							>
+								<Dialog.Trigger><Trash2 class="text-red-500" /></Dialog.Trigger>
+								<Dialog.Content>
+									<Dialog.Title>Delete collection item?</Dialog.Title>
+									<Dialog.Description>Are you sure you want to do this?</Dialog.Description>
+									<Dialog.Footer class="flex-row justify-end gap-2">
+										<Dialog.Close class={buttonVariants({ variant: 'outline' })}
+											>Cancel</Dialog.Close
+										>
+										<form
+											method="POST"
+											action="?/remove"
+											use:enhance={() => {
+												return async ({ result, update }) => {
+													if (result.type === 'success') {
+														removeDialogOpen[item.game.id] = false;
+														toast.success('Game removed successfully!');
+													}
 
-												await update();
-											};
-										}}
-									>
-										<input type="hidden" value={item.game.id} name="gameId" />
-										<Button aria-label="Remove" variant="destructive" type="submit">Delete</Button>
-									</form>
-								</Dialog.Footer>
-							</Dialog.Content>
-						</Dialog.Root>
+													await update();
+												};
+											}}
+										>
+											<input type="hidden" value={item.game.id} name="gameId" />
+											<Button aria-label="Remove" variant="destructive" type="submit">Delete</Button
+											>
+										</form>
+									</Dialog.Footer>
+								</Dialog.Content>
+							</Dialog.Root>
+						{/if}
 					</div>
 				</Card.Footer>
 			</Card.Root>

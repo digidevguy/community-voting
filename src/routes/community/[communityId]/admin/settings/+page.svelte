@@ -68,7 +68,9 @@
 				</div>
 				<div class="flex items-center gap-3">
 					<Checkbox.Root id="allowMembersAddCollection" bind:checked={allowMembersAddCollection} />
-					<Label for="allowMembersAddCollection">Allow members to add games to the collection</Label
+					<Label for="allowMembersAddCollection"
+						>Allow members to manage the collection (add &amp; remove games)</Label
+					>
 					>
 				</div>
 			</div>

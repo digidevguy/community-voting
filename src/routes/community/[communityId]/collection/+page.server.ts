@@ -4,7 +4,6 @@ import {
 	confirmUserInCommunity,
 	getCommunityInfo,
 	getUserCommunityMembership,
-	getUserCommunityRole,
 	canAddToCollection
 } from '$lib/server/communities/communities.service';
 import {
@@ -58,7 +57,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		community: communityInfo,
 		ownersByGame,
 		suggestedGames,
-		canAdd: canAddToCollection(
+		canManageCollection: canAddToCollection(
 			communityInfo,
 			membership?.role ?? null,
 			membership?.membershipExpiresAt
@@ -140,14 +139,23 @@ export const actions: Actions = {
 		}
 		const { gameId } = parsed.data;
 
-		const role = await getUserCommunityRole(locals.db, locals.user.id, communityId);
+		const [communityInfo, membership] = await Promise.all([
+			getCommunityInfo(locals.db, communityId),
+			getUserCommunityMembership(locals.db, locals.user.id, communityId)
+		]);
 
-		if (!role) {
+		if (!membership) {
 			return fail(403, { message: 'Unauthorized' });
 		}
 
+		if (!canAddToCollection(communityInfo, membership.role, membership.membershipExpiresAt)) {
+			return fail(403, {
+				message: 'You do not have permission to manage this community collection'
+			});
+		}
+
 		try {
-			if (role !== 'member') {
+			if (membership.role !== 'member') {
 				await deleteGameFromCollection(locals.db, communityId, gameId);
 			} else {
 				await softRemoveGameFromCollection(locals.db, communityId, locals.user.id, gameId);
