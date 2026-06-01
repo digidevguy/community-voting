@@ -5,7 +5,7 @@ import {
 import { createVotingSessionSchema } from '$lib/server/voting/voting-session.validation';
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { confirmUserInCommunity } from '$lib/server/communities/communities.service';
+import { confirmUserInCommunity, getCommunityInfo, getUserCommunityMembership, canCreateSession } from '$lib/server/communities/communities.service';
 import {
 	addGameToCollectionWithEnrichment,
 	getCommunityCollection,
@@ -29,6 +29,17 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!isUserInCommunity) {
 		return error(403, {
 			message: 'You must be a member of this community to create a voting session.'
+		});
+	}
+
+	const [communityInfo, membership] = await Promise.all([
+		getCommunityInfo(locals.db, communityId),
+		getUserCommunityMembership(locals.db, locals.user.id, communityId)
+	]);
+
+	if (!canCreateSession(communityInfo, membership?.role ?? null, membership?.membershipExpiresAt)) {
+		return error(403, {
+			message: 'You do not have permission to create voting sessions in this community.'
 		});
 	}
 
@@ -130,6 +141,16 @@ export const actions: Actions = {
 			});
 		}
 
+		const [communityInfo, membership] = await Promise.all([
+			getCommunityInfo(locals.db, communityId),
+			getUserCommunityMembership(locals.db, user.id, communityId)
+		]);
+		if (!canCreateSession(communityInfo, membership?.role ?? null, membership?.membershipExpiresAt)) {
+			return error(403, {
+				message: 'You do not have permission to create voting sessions in this community.'
+			});
+		}
+
 		const parsed = await parseCreateBody(await request.formData(), communityId);
 		if ('error' in parsed) return parsed.error;
 
@@ -182,6 +203,16 @@ export const actions: Actions = {
 		if (!isUserInCommunity) {
 			return error(403, {
 				message: 'You must be a member of this community to create a voting session.'
+			});
+		}
+
+		const [communityInfo, membership] = await Promise.all([
+			getCommunityInfo(locals.db, communityId),
+			getUserCommunityMembership(locals.db, user.id, communityId)
+		]);
+		if (!canCreateSession(communityInfo, membership?.role ?? null, membership?.membershipExpiresAt)) {
+			return error(403, {
+				message: 'You do not have permission to create voting sessions in this community.'
 			});
 		}
 

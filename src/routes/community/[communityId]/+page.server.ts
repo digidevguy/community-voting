@@ -3,7 +3,9 @@ import {
 	getCommunityInfo,
 	confirmUserInCommunity,
 	getUserCommunityRole,
-	isPrivilegedRole
+	getUserCommunityMembership,
+	isPrivilegedRole,
+	canCreateSession
 } from '$lib/server/communities/communities.service';
 import { getCommunityCollectionCount } from '$lib/server/collections/collection.service';
 import {
@@ -46,7 +48,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		collectionCount,
 		userRole,
 		unresolvedWinners,
-		communityUnreadCount
+		communityUnreadCount,
+		membership
 	] = await Promise.all([
 		getCommunityInfo(locals.db, communityId),
 		getCommunitySessions(locals.db, communityId, userId),
@@ -55,7 +58,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		getUnresolvedCompletedSessions(locals.db, communityId, {
 			createdAfter: launchDate
 		}),
-		getCommunityUnreadCount(locals.db, userId, communityId)
+		getCommunityUnreadCount(locals.db, userId, communityId),
+		getUserCommunityMembership(locals.db, userId, communityId)
 	]);
 
 	const isPrivileged = isPrivilegedRole(userRole);
@@ -88,7 +92,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		collectionCount,
 		userRole,
 		sessionsNeedingAction,
-		communityUnreadCount
+		communityUnreadCount,
+		canCreateSession: canCreateSession(community, membership?.role ?? null, membership?.membershipExpiresAt)
 	};
 };
 

@@ -3,7 +3,9 @@ import type { Actions, PageServerLoad } from '../$types';
 import {
 	confirmUserInCommunity,
 	getCommunityInfo,
-	getUserCommunityRole
+	getUserCommunityMembership,
+	getUserCommunityRole,
+	canAddToCollection
 } from '$lib/server/communities/communities.service';
 import {
 	addGameToCollectionWithEnrichment,
@@ -37,11 +39,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		throw error(403, `You do not have access to this community`);
 	}
 
-	const [collection, communityInfo, gameOwners, steamId] = await Promise.all([
+	const [collection, communityInfo, gameOwners, steamId, membership] = await Promise.all([
 		getCommunityCollection(locals.db, params.communityId),
 		getCommunityInfo(locals.db, params.communityId),
 		getCommunityGameOwners(locals.db, params.communityId),
-		getUserSteamId(locals.db, locals.user.id)
+		getUserSteamId(locals.db, locals.user.id),
+		getUserCommunityMembership(locals.db, locals.user.id, params.communityId)
 	]);
 
 	const suggestedGames = steamId
@@ -54,7 +57,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		collection,
 		community: communityInfo,
 		ownersByGame,
-		suggestedGames
+		suggestedGames,
+		canAdd: canAddToCollection(communityInfo, membership?.role ?? null, membership?.membershipExpiresAt)
 	};
 };
 
@@ -65,9 +69,15 @@ export const actions: Actions = {
 		}
 
 		const communityId = params.communityId;
-		const isMember = await confirmUserInCommunity(locals.db, locals.user.id, params.communityId);
-		if (!isMember) {
+		const [communityInfo, membership] = await Promise.all([
+			getCommunityInfo(locals.db, communityId),
+			getUserCommunityMembership(locals.db, locals.user.id, communityId)
+		]);
+		if (!membership) {
 			return fail(403, { message: 'Not a member of this community' });
+		}
+		if (!canAddToCollection(communityInfo, membership.role, membership.membershipExpiresAt)) {
+			return fail(403, { message: 'You do not have permission to add games to this community collection' });
 		}
 
 		const formData = await request.formData();

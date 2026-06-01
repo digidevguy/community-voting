@@ -38,6 +38,9 @@
 			</div>
 			<div>
 				<Card.Title class="text-2xl font-bold">{data.community.title}</Card.Title>
+				{#if data.invite.label}
+					<p class="mt-1 text-xs text-muted-foreground">{data.invite.label}</p>
+				{/if}
 				<Card.Description class="mt-1 text-sm">
 					{#if data.isAuthenticated}
 						You've been invited to join this community.
@@ -45,6 +48,12 @@
 						Sign in with Discord to join this community.
 					{/if}
 				</Card.Description>
+				{#if data.invite.membershipDurationDays != null}
+					<p class="mt-2 text-xs text-muted-foreground">
+						This is a temporary membership that lasts <strong>{data.invite.membershipDurationDays} days</strong>.
+						You will be removed from the community after that unless a moderator assigns you a permanent role.
+					</p>
+				{/if}
 			</div>
 		</Card.Header>
 

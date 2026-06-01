@@ -6,10 +6,14 @@ import * as Sentry from '@sentry/sveltekit';
 import type { Actions, PageServerLoad } from './$types';
 import {
 	getCommunityInfo,
-	getUserCommunityRole
+	getUserCommunityRole,
+	updateCommunityPermissions
 } from '$lib/server/communities/communities.service';
 import { updateCommunityInfo } from '$lib/server/communities/communities.service';
-import { updateCommunitySchema } from '$lib/server/communities/communites.validation';
+import {
+	updateCommunitySchema,
+	updateCommunityPermissionsSchema
+} from '$lib/server/communities/communites.validation';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	if (!locals.user) {
@@ -71,6 +75,40 @@ export const actions: Actions = {
 				extra: { userId: locals.user.id, communityId: params.communityId }
 			});
 			return fail(500, { message: 'Failed to update community settings' });
+		}
+	},
+
+	updatePermissions: async ({ request, params, locals }) => {
+		if (!locals.user) {
+			return redirect(302, '/auth');
+		}
+
+		const role = await getUserCommunityRole(locals.db, locals.user.id, params.communityId);
+		if (role !== 'admin') {
+			return fail(403, { message: 'Only admins are authorized' });
+		}
+
+		const formData = await request.formData();
+		const parsed = updateCommunityPermissionsSchema.safeParse({
+			allowMembersCreateSessions: formData.get('allowMembersCreateSessions') === 'true',
+			allowMembersAddCollection: formData.get('allowMembersAddCollection') === 'true'
+		});
+		if (!parsed.success) {
+			return fail(400, { message: parsed.error.issues[0]?.message ?? 'Invalid input' });
+		}
+
+		try {
+			await updateCommunityPermissions(locals.db, params.communityId, parsed.data);
+			Sentry.logger.info('Community permissions updated', {
+				userId: locals.user.id,
+				communityId: params.communityId
+			});
+			return { permissionsSuccess: true };
+		} catch (err) {
+			Sentry.captureException(err, {
+				extra: { userId: locals.user.id, communityId: params.communityId }
+			});
+			return fail(500, { message: 'Failed to update community permissions' });
 		}
 	}
 };

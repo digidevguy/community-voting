@@ -72,6 +72,7 @@
 	<Button href="/community/{data.community.id}" variant="ghost" class="-ml-2 text-muted-foreground"
 		><CircleChevronLeft />Back</Button
 	>
+	{#if data.canAdd}
 	<Dialog.Root
 		bind:open={addDialogOpen}
 		onOpenChange={(open) => {
@@ -170,6 +171,7 @@
 			</Dialog.Footer>
 		</Dialog.Content>
 	</Dialog.Root>
+	{/if}
 </div>
 <Separator class="my-4" />
 <ul

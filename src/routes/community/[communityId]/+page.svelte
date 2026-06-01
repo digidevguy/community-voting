@@ -143,9 +143,11 @@
 				>
 			</li>
 		</ul>
-		<Button class="w-full sm:w-auto" href="/voting/create/{data.community.id}">
-			<CirclePlus /><span>New voting session</span>
-		</Button>
+		{#if data.canCreateSession}
+			<Button class="w-full sm:w-auto" href="/voting/create/{data.community.id}">
+				<CirclePlus /><span>New voting session</span>
+			</Button>
+		{/if}
 	</div>
 </nav>
 

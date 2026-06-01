@@ -126,7 +126,9 @@ export const community = pgTable(
 		header_image: text('header_image'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-		createdBy: text('created_by').references(() => user.id, { onDelete: 'cascade' })
+		createdBy: text('created_by').references(() => user.id, { onDelete: 'cascade' }),
+		allowMembersCreateSessions: boolean('allow_members_create_sessions').notNull().default(true),
+		allowMembersAddCollection: boolean('allow_members_add_collection').notNull().default(true)
 	},
 	(table) => [index('community_created_by_idx').on(table.createdBy)]
 );
@@ -143,7 +145,10 @@ export const invitations = pgTable(
 		status: invitationStatus('status').notNull().default('pending'),
 		expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }),
 		maxUses: integer('max_uses'),
-		useCount: integer('use_count').notNull().default(0)
+		useCount: integer('use_count').notNull().default(0),
+		label: text('label'),
+		grantedRole: communityRole('granted_role'),
+		membershipDurationDays: integer('membership_duration_days')
 	},
 	(table) => [index('invitations_expires_at_idx').on(table.expiresAt)]
 );
@@ -181,12 +186,14 @@ export const communityUser = pgTable(
 		joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
 		notifyVoteStarted: boolean('notify_vote_started').notNull().default(false),
 		notifyVoteEnded: boolean('notify_vote_ended').notNull().default(false),
-		notifyVoteReminder: boolean('notify_vote_reminder').notNull().default(false)
+		notifyVoteReminder: boolean('notify_vote_reminder').notNull().default(false),
+		membershipExpiresAt: timestamp('membership_expires_at', { withTimezone: true })
 	},
 	(table) => [
 		primaryKey({ columns: [table.communityId, table.userId] }),
 		index('community_user_user_id_idx').on(table.userId),
-		index('community_role_idx').on(table.communityId, table.role)
+		index('community_role_idx').on(table.communityId, table.role),
+		index('community_user_membership_expires_at_idx').on(table.membershipExpiresAt)
 	]
 );
 

@@ -12,12 +12,23 @@ export const createCommunitySchema = z.object({
 export const createCommunityUserSchema = z.object({
 	communityId: z.uuid(),
 	userId: userIdSchema,
-	role: z.enum(['member', 'moderator', 'admin']).optional()
+	role: z.enum(['member', 'moderator', 'admin']).optional(),
+	membershipExpiresAt: z.date().optional()
 });
 
 export const createInviteSchema = z.object({
 	expiresAt: z.coerce.date().optional(),
-	maxUses: z.coerce.number().int().positive().optional()
+	maxUses: z.coerce.number().int().positive().optional(),
+	label: z.string().max(100).optional(),
+	grantedRole: z.enum(['member', 'moderator']).optional(),
+	membershipDurationDays: z.coerce.number().int().positive().optional()
+});
+
+export const updateInviteSchema = z.object({
+	inviteId: z.uuid(),
+	expiresAt: z.coerce.date().optional(),
+	maxUses: z.coerce.number().int().positive().optional(),
+	label: z.string().max(100).optional()
 });
 
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>;
@@ -34,9 +45,17 @@ export const updateCommunitySchema = z
 
 export type UpdateCommunityInput = z.infer<typeof updateCommunitySchema>;
 
+export const updateCommunityPermissionsSchema = z.object({
+	allowMembersCreateSessions: z.boolean(),
+	allowMembersAddCollection: z.boolean()
+});
+
+export type UpdateCommunityPermissionsInput = z.infer<typeof updateCommunityPermissionsSchema>;
+
 export type CreateCommunityUserInput = z.infer<typeof createCommunityUserSchema>;
 
 export type CreateInviteInput = z.infer<typeof createInviteSchema>;
+export type UpdateInviteInput = z.infer<typeof updateInviteSchema>;
 
 export const manageUserActionSchema = z.object({
 	userId: z.string().min(1, 'User ID is required'),

@@ -1,7 +1,9 @@
 import type {
 	CreateCommunityInput,
 	CreateCommunityUserInput,
-	UpdateCommunityInput
+	UpdateCommunityInput,
+	UpdateCommunityPermissionsInput,
+	UpdateInviteInput
 } from '$lib/server/communities/communites.validation';
 import type { Database, DBTransaction } from '$lib/server/db';
 import {
@@ -12,13 +14,48 @@ import {
 	invitationRedemptions,
 	user
 } from '$lib/server/db/schema';
-import { and, asc, count, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, asc, count, eq, isNull, isNotNull, lt, or, sql } from 'drizzle-orm';
 
 type CommunityRole = (typeof communityRole.enumValues)[number];
 
 /** Returns true if the role has moderator-level or higher privileges. */
 export function isPrivilegedRole(role: CommunityRole | null): boolean {
 	return role === 'moderator' || role === 'admin';
+}
+
+/** Returns true when the membership is flagged as temporary (has an expiry date). */
+export function isTempMember(membershipExpiresAt: Date | null | undefined): boolean {
+	return membershipExpiresAt != null;
+}
+
+/**
+ * Returns true when the user is allowed to create voting sessions.
+ * Privileged roles always can. Regular members need the community flag to be on
+ * and must not be a temporary member.
+ */
+export function canCreateSession(
+	community: { allowMembersCreateSessions: boolean },
+	role: CommunityRole | null,
+	membershipExpiresAt: Date | null | undefined
+): boolean {
+	if (isPrivilegedRole(role)) return true;
+	if (isTempMember(membershipExpiresAt)) return false;
+	return community.allowMembersCreateSessions;
+}
+
+/**
+ * Returns true when the user is allowed to add games to the community collection.
+ * Privileged roles always can. Regular members need the community flag to be on
+ * and must not be a temporary member.
+ */
+export function canAddToCollection(
+	community: { allowMembersAddCollection: boolean },
+	role: CommunityRole | null,
+	membershipExpiresAt: Date | null | undefined
+): boolean {
+	if (isPrivilegedRole(role)) return true;
+	if (isTempMember(membershipExpiresAt)) return false;
+	return community.allowMembersAddCollection;
 }
 
 export async function getCommunityInfo(db: Database | DBTransaction, communityId: string) {
@@ -82,6 +119,24 @@ export async function updateCommunityInfo(
 	}
 
 	return updatedCommunity;
+}
+
+export async function updateCommunityPermissions(
+	db: Database | DBTransaction,
+	communityId: string,
+	data: UpdateCommunityPermissionsInput
+) {
+	const [updated] = await db
+		.update(community)
+		.set(data)
+		.where(eq(community.id, communityId))
+		.returning();
+
+	if (!updated) {
+		throw new Error(`Unable to update community permissions for ${communityId}`);
+	}
+
+	return updated;
 }
 
 export async function joinCommunity(db: Database | DBTransaction, data: CreateCommunityUserInput) {
@@ -158,16 +213,33 @@ export async function getUserCommunityRole(
 	return row?.role ?? null;
 }
 
+/** Returns both the role and membership expiry for a user in a community, or null if not a member. */
+export async function getUserCommunityMembership(
+	db: Database | DBTransaction,
+	userId: string,
+	communityId: string
+): Promise<{ role: CommunityRole; membershipExpiresAt: Date | null } | null> {
+	const [row] = await db
+		.select({ role: communityUser.role, membershipExpiresAt: communityUser.membershipExpiresAt })
+		.from(communityUser)
+		.where(and(eq(communityUser.userId, userId), eq(communityUser.communityId, communityId)));
+
+	return row ?? null;
+}
+
 export async function createCommunityInvite(
 	db: Database | DBTransaction,
 	communityId: string,
 	createdBy: string,
 	expiresAt?: Date,
-	maxUses?: number
+	maxUses?: number,
+	label?: string,
+	grantedRole?: 'member' | 'moderator',
+	membershipDurationDays?: number
 ) {
 	const [invite] = await db
 		.insert(invitations)
-		.values({ communityId, createdBy, expiresAt, maxUses })
+		.values({ communityId, createdBy, expiresAt, maxUses, label, grantedRole, membershipDurationDays })
 		.returning();
 
 	if (!invite) throw new Error('Failed to create community invite');
@@ -203,7 +275,17 @@ export async function redeemInvite(db: Database | DBTransaction, inviteId: strin
 		await db.update(invitations).set({ status: 'accepted' }).where(eq(invitations.id, inviteId));
 	}
 
-	await joinCommunity(db, { communityId: invite.communityId, userId });
+	const membershipExpiresAt =
+		invite.membershipDurationDays != null
+			? new Date(Date.now() + invite.membershipDurationDays * 24 * 60 * 60 * 1000)
+			: undefined;
+
+	await joinCommunity(db, {
+		communityId: invite.communityId,
+		userId,
+		role: invite.grantedRole ?? undefined,
+		membershipExpiresAt
+	});
 	await db.insert(invitationRedemptions).values({ invitationId: inviteId, userId });
 
 	return invite;
@@ -219,7 +301,10 @@ export async function getInvitesByCommunity(db: Database | DBTransaction, commun
 			status: invitations.status,
 			expiresAt: invitations.expiresAt,
 			maxUses: invitations.maxUses,
-			useCount: invitations.useCount
+			useCount: invitations.useCount,
+			label: invitations.label,
+			grantedRole: invitations.grantedRole,
+			membershipDurationDays: invitations.membershipDurationDays
 		})
 		.from(invitations)
 		.leftJoin(user, eq(user.id, invitations.createdBy))
@@ -247,7 +332,7 @@ export async function updateCommunityUserRole(
 ) {
 	const [updated] = await db
 		.update(communityUser)
-		.set({ role })
+		.set({ role, membershipExpiresAt: null })
 		.where(and(eq(communityUser.communityId, communityId), eq(communityUser.userId, targetUserId)))
 		.returning();
 
@@ -258,6 +343,26 @@ export async function updateCommunityUserRole(
 
 export async function cleanupExpiredInvites(db: Database | DBTransaction) {
 	return await db.delete(invitations).where(sql`${invitations.expiresAt} < NOW()`);
+}
+
+export async function updateInvite(db: Database | DBTransaction, data: UpdateInviteInput) {
+	const { inviteId, ...patch } = data;
+	const [updated] = await db
+		.update(invitations)
+		.set(patch)
+		.where(eq(invitations.id, inviteId))
+		.returning();
+
+	if (!updated) throw new Error(`Failed to update invite ${inviteId}`);
+
+	return updated;
+}
+
+export async function purgeExpiredMembers(db: Database | DBTransaction) {
+	return await db
+		.delete(communityUser)
+		.where(and(isNotNull(communityUser.membershipExpiresAt), lt(communityUser.membershipExpiresAt, new Date())))
+		.returning({ communityId: communityUser.communityId, userId: communityUser.userId });
 }
 
 export async function clearInactiveInvites(db: Database | DBTransaction, communityId: string) {
