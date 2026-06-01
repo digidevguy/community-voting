@@ -15,7 +15,8 @@
 		LayoutDashboard,
 		TriangleAlert,
 		Vote,
-		Bell
+		Bell,
+		Clock
 	} from '@lucide/svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import ClearVoteButton from '$lib/components/custom/ClearVoteButton.svelte';
@@ -45,6 +46,21 @@
 	const archivedSessions: SessionList = $derived(
 		data.sessions.filter((session: Session) => session.status === 'archived')
 	);
+
+	const membershipExpiresAt = $derived(
+		data.membershipExpiresAt ? new Date(data.membershipExpiresAt) : null
+	);
+
+	function formatMembershipExpiry(expiresAt: Date): string {
+		const now = new Date();
+		const msRemaining = expiresAt.getTime() - now.getTime();
+		if (msRemaining <= 0) return 'expired';
+		const totalHours = Math.floor(msRemaining / (1000 * 60 * 60));
+		const days = Math.floor(totalHours / 24);
+		const hours = totalHours % 24;
+		if (days > 0) return `${days} day${days === 1 ? '' : 's'}${hours > 0 ? ` ${hours}h` : ''}`;
+		return `${hours} hour${hours === 1 ? '' : 's'}`;
+	}
 </script>
 
 <svelte:head>
@@ -84,6 +100,19 @@
 {/if}
 <h1 class="mb-3 text-xl font-semibold sm:mb-4 sm:text-2xl">{data.community.title}</h1>
 <p class="mb-4 text-sm text-muted-foreground">{data.community.description}</p>
+
+{#if membershipExpiresAt}
+	<div
+		class="mb-4 flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-400"
+	>
+		<Clock class="mt-0.5 h-4 w-4 shrink-0" />
+		<span>
+			Your membership is temporary. You have
+			<strong>{formatMembershipExpiry(membershipExpiresAt)}</strong> remaining (expires
+			{format(membershipExpiresAt, 'MMM d, yyyy')}).
+		</span>
+	</div>
+{/if}
 
 <nav aria-label="Community submenu" class="py-2">
 	{#if role === 'admin' || role === 'moderator'}

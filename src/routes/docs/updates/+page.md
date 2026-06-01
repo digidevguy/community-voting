@@ -18,6 +18,7 @@ When creating an invite link you can now set:
 - **Role** — decide whether the invited person joins as a regular member or as a moderator.
 - **Membership duration** — optionally make the membership temporary (7, 14, 30, or 90 days). Once the time is up, the person is automatically removed from the community.
 
+
 You can also **edit** an existing invite link after it has been created to update its label, expiry, or use limit.
 
 ### Temporary memberships
