@@ -33,12 +33,12 @@ If the invite was created with a membership duration, you will see a notice expl
 
 Members, moderators, and admins can create invite links from the **Invites** page inside the community. When creating an invite you can configure:
 
-| Option | Description |
-| ------ | ----------- |
-| **Label** | An optional name for the link (e.g. "Game night guests") |
-| **Expiry** | When the link stops working — 30 min, 1 h, 6 h, 12 h, 1 day, 7 days, or never |
-| **Max uses** | How many times the link can be used before it deactivates |
-| **Role** | Whether new members join as Member or Moderator |
+| Option                  | Description                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| **Label**               | An optional name for the link (e.g. "Game night guests")                           |
+| **Expiry**              | When the link stops working — 30 min, 1 h, 6 h, 12 h, 1 day, 7 days, or never      |
+| **Max uses**            | How many times the link can be used before it deactivates                          |
+| **Role**                | Whether new members join as Member or Moderator                                    |
 | **Membership duration** | Optional — 7, 14, 30, or 90 days; after expiry the member is automatically removed |
 
 Invite creators and privileged roles can **edit** an existing invite's label, expiry, and use limit, or **revoke** it at any time. Expired, revoked, and used-up links can be bulk-cleared with the **Clear inactive** action.

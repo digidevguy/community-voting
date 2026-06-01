@@ -60,10 +60,10 @@ Available to admins and the community owner. Controls the community title, descr
 
 The **Member Permissions** card in Settings lets admins toggle two community-wide rules:
 
-| Permission | Default | Effect when off |
-| ---------- | ------- | --------------- |
-| Allow members to create voting sessions | On | Only moderators and admins can create sessions |
-| Allow members to manage the collection | On | Only moderators and admins can add or remove games |
+| Permission                              | Default | Effect when off                                    |
+| --------------------------------------- | ------- | -------------------------------------------------- |
+| Allow members to create voting sessions | On      | Only moderators and admins can create sessions     |
+| Allow members to manage the collection  | On      | Only moderators and admins can add or remove games |
 
 <DocsAlert type="note">
         These settings apply to regular permanent members only. Moderators and admins are always unrestricted. Temporary members are always restricted regardless of these toggles.
