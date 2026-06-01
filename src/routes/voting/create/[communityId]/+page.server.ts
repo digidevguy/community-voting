@@ -9,7 +9,8 @@ import {
 	confirmUserInCommunity,
 	getCommunityInfo,
 	getUserCommunityMembership,
-	canCreateSession
+	canCreateSession,
+	canAddToCollection
 } from '$lib/server/communities/communities.service';
 import {
 	addGameToCollectionWithEnrichment,
@@ -90,7 +91,8 @@ async function ensureSelectedGamesAreInCommunityCollection(
 	db: App.Locals['db'],
 	communityId: string,
 	userId: string,
-	selectedGameIds: string[]
+	selectedGameIds: string[],
+	allowedToAddToCollection: boolean
 ) {
 	if (selectedGameIds.length === 0) {
 		return { success: true as const };
@@ -102,6 +104,17 @@ async function ensureSelectedGamesAreInCommunityCollection(
 
 	if (missingGameIds.length === 0) {
 		return { success: true as const };
+	}
+
+	// Games not in the community collection require collection-write permission
+	if (!allowedToAddToCollection) {
+		return {
+			success: false as const,
+			error: fail(403, {
+				success: false,
+				message: 'You can only select games already in the community collection.'
+			})
+		};
 	}
 
 	const userLibraryGameIds = await getUserLibraryGameIds(db, userId, missingGameIds);
@@ -165,7 +178,8 @@ export const actions: Actions = {
 			locals.db,
 			communityId,
 			user.id,
-			parsed.data.gameIds
+			parsed.data.gameIds,
+			canAddToCollection(communityInfo, membership?.role ?? null, membership?.membershipExpiresAt)
 		);
 
 		if (!communityCoverage.success) return communityCoverage.error;
@@ -232,7 +246,8 @@ export const actions: Actions = {
 			locals.db,
 			communityId,
 			user.id,
-			parsed.data.gameIds
+			parsed.data.gameIds,
+			canAddToCollection(communityInfo, membership?.role ?? null, membership?.membershipExpiresAt)
 		);
 
 		if (!communityCoverage.success) return communityCoverage.error;
